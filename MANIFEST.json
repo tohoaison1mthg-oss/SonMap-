@@ -1,0 +1,110 @@
+[
+  {
+    "file": ".gitignore",
+    "sha256": "c108db03687736987b1c75d9b10f2bddd4f38ce403362f87fe79f2b0e46e7862"
+  },
+  {
+    "file": "active_dgn.ps1",
+    "sha256": "474e971e711be44647c6e453a901ac93e3e62a1545b2bce196cfca3300670e40"
+  },
+  {
+    "file": "admin_catalog.json",
+    "sha256": "bb2d0009c98289dc87db1536d6580ee76cb29be07e433e19ce3c470037f93da1"
+  },
+  {
+    "file": "app.py",
+    "sha256": "d51475af43cfc47d0eee822ca74a02415545c96dc721b3af805f56f1c7ced5a9"
+  },
+  {
+    "file": "bootstrap.template.bas",
+    "sha256": "831b2749a68e8d0ee24e85eac14bbe433aeca4b696277afb94ae4d190d5e2306"
+  },
+  {
+    "file": "bridge.bas",
+    "sha256": "9b8c371746c64b285627119a3192db9cfc7b7af7123dccdc26fd1df123c67e6f"
+  },
+  {
+    "file": "installer/build.py",
+    "sha256": "d45fa242f9ef3b67e5aa3a2690c40a990184686b17a803b924d21e1edd219456"
+  },
+  {
+    "file": "installer/install.ps1",
+    "sha256": "e0da2e0f36e10ceaa9e2c8f7558869ef12598b2412e79baf85c5665f174a22d8"
+  },
+  {
+    "file": "installer/Setup.cs",
+    "sha256": "352561a59cd84bcab19128e7fc0719d76a0a15d20281322ead60968add06433f"
+  },
+  {
+    "file": "installer/setup_prepare.py",
+    "sha256": "9fea33f08e6bef27559f7e211ce463397e37bcea30bc3d8fefcb5737913def8e"
+  },
+  {
+    "file": "installer/update_vba.ps1",
+    "sha256": "87405ec0182b8ea50f276e82d47b32958b4b65fbba98fa90278887d4129f6887"
+  },
+  {
+    "file": "launch.py",
+    "sha256": "fe944ccecf4192b1dd82a4a24c4e5142b1398f7d87c3947512761887c5dc0f4e"
+  },
+  {
+    "file": "LH_DgnMonitor.cls",
+    "sha256": "e05d3749d7e16e15dd1b12bba1ad35e0bdeee6d9df0c1bc6ea0fe9b2e9b64a76"
+  },
+  {
+    "file": "mau03_engine.bas",
+    "sha256": "11ce33c02013021369fb516105601838a3c9131673cd868f63a0e2801cd52f6e"
+  },
+  {
+    "file": "PROJECT.md",
+    "sha256": "7fb96978d3e0ac35c534956050593c00346bf8301e8088612aa87cb6beec4aa1"
+  },
+  {
+    "file": "quality.py",
+    "sha256": "94a59ed1f164e3316eba4b49361db8b31f47a3500cdeeeb73b690e28d1952901"
+  },
+  {
+    "file": "read_mdb.ps1",
+    "sha256": "f4b7b3cd7c3f5338fa1cc1866c8adc922136abbd162eb633f1b7dc7d9adfcfe0"
+  },
+  {
+    "file": "README.md",
+    "sha256": "710aec577582af83a6945ee1ba657f1df6f298f648a2b3236c5918459a42f080"
+  },
+  {
+    "file": "reference_map.ps1",
+    "sha256": "7d073d944af2f943da4ad25479a26dce456923340bfe82e5ba9ebd3f81edb4e9"
+  },
+  {
+    "file": "run_export.ps1",
+    "sha256": "18d5f7518d32b1632c7357d86cd26882104d8f58f63e5d90d334440d8e782c3b"
+  },
+  {
+    "file": "setup_fast_workspace.ps1",
+    "sha256": "b9677578bc6e349336eb390d1eda8fbcf5346a1f6676200ec965b2af03a8cba0"
+  },
+  {
+    "file": "sonmap.ico",
+    "sha256": "4f5084153a958f0df40166fed52307aa940b6c58ec577b84288f5b21f0b3412b"
+  },
+  {
+    "file": "start_v8i.ps1",
+    "sha256": "0df4dbedb03e260ef3dfed3170d802e30f4002a6cca1c0b3e287d32443a92c36"
+  },
+  {
+    "file": "template_engine.bas",
+    "sha256": "709ddf129dadfafbb35c7819bfd3a09d364e298bedec19f81a8128cde8ec6325"
+  },
+  {
+    "file": "test_upgrade.py",
+    "sha256": "e54ddecd15b0d44495ee21c247538c29186f1df04744f7cf0e9f86400e5ebc98"
+  },
+  {
+    "file": "VERSION",
+    "sha256": "ec2f527436a760498d5ae1d9c409cbd3f0410f715d25124377b77ae51401f3b8"
+  },
+  {
+    "file": "workflow.py",
+    "sha256": "98c5a73aa61427449d346eca432b506f7cdeaa849082bef18ec42f900f40e6d3"
+  }
+]

@@ -1,0 +1,14 @@
+runtime/
+data/
+exports/
+assets/
+*.mdb
+*.dgn
+*.mvba
+*.exe
+*.dll
+*.zip
+*.lnk
+__pycache__/
+installer/payload.zip
+settings.json
