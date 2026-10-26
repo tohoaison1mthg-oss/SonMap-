@@ -12,3 +12,6 @@ assets/
 __pycache__/
 installer/payload.zip
 settings.json
+
+.venv-topology/
+*_SonMap_*/

@@ -19,3 +19,7 @@ Cần bổ sung riêng runtime Python Windows (thư mục runtime), project VBA 
 ## Tiếp tục phát triển
 
 Đọc PROJECT.md trước. Gói này chỉ giữ mã và mô tả dự án; không sao chép các câu hỏi ngoài luồng. Repository mã nguồn: https://github.com/tohoaison1mthg-oss/SonMap-. Môi trường Codex Cloud cần được cấu hình riêng với repository này.
+
+## Chức năng mới: tạo dữ liệu từ DGN chưa có MDB
+
+Ba nút **Sửa lỗi**, **Tạo topology** và **Kết nối CSDL** mở các hộp thoại riêng để xử lý ranh trên bản sao, tạo tâm thửa, gán nhãn, sửa thuộc tính, tạo hoặc đọc MDB tương thích SonMap. Xem [hướng dẫn và giới hạn](TOPOLOGY.md). Phần hình học có kiểm thử cloud; cầu nối Windows/V8i mới chưa được xác minh thực tế.

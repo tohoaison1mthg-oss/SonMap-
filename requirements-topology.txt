@@ -1,0 +1,2 @@
+# Optional dependency for the DGN -> MDB workflow (Python 3.8+ recommended).
+shapely==2.0.7

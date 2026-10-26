@@ -80,7 +80,7 @@ def neighbors(parcel, parcels):
                         if not any(i==r[0] and abs(ray[1]-r[1])+abs(ray[2]-r[2])<.01 for r in rays):rays.append(ray)
     return result,rays
 
-def load_mdb(path):
+def load_mdb(path,allow_empty=False):
     if Path(path).suffix.lower() != '.mdb':
         raise ValueError('Ô Access MDB phải chọn tệp .mdb, không phải .dgn. Kiểm tra lại hai đường dẫn nguồn.')
     ps = Path(os.environ.get('WINDIR',r'C:\Windows'))/'SysWOW64/WindowsPowerShell/v1.0/powershell.exe'
@@ -95,13 +95,17 @@ def load_mdb(path):
         '-MdbPath',str(snapshot),'-JsonPath',str(target)],capture_output=True,text=True,creationflags=0x08000000)
     if completed.returncode: raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
     raw=json.loads(target.read_text(encoding='utf-8-sig')); raw=raw if isinstance(raw,list) else [raw]
+    return decode_mdb_rows(raw,path,before,allow_empty)
+
+
+def decode_mdb_rows(raw,path,before,allow_empty=False):
     parcels=[]; rejected=[]
     for row in raw:
         row['key']=f"{row['ToBD']}/{row['TCT']}/{row['ID']}"
         row['_source_key']=source_key(path,before)
         try:row['points']=geometry(row['Geometry']);parcels.append(row)
         except ValueError as exc:rejected.append({'key':row['key'],'reason':str(exc)})
-    if not parcels:raise ValueError('Không có thửa hợp lệ trong MDB.')
+    if not parcels and (raw or not allow_empty):raise ValueError('Không có thửa hợp lệ trong MDB.')
     overrides=ROOT/'data/overrides.json'
     if overrides.exists():
         saved=read_edits(json.loads(overrides.read_text(encoding='utf-8-sig')),source_key(path,before))
@@ -189,7 +193,7 @@ def gui():
     if (ROOT/'settings.json').exists():cfg.update(json.loads((ROOT/'settings.json').read_text(encoding='utf-8-sig')))
     for key in ('mdb','dgn','template','output'):
         if not Path(cfg[key]).is_absolute():cfg[key]=str((ROOT/cfg[key]).resolve())
-    win=tk.Tk();win.title('SonMap+ V10.3');win.geometry('1050x370');win.iconbitmap(str(ROOT/'sonmap.ico'))
+    win=tk.Tk();win.title('SonMap+ V10.3');win.geometry('900x300');win.iconbitmap(str(ROOT/'sonmap.ico'))
     def show_window():
         win.deiconify()
         win.lift()
@@ -201,10 +205,10 @@ def gui():
     for key in ('mdb','dgn','template','output','address_suffix'):variables[key]=tk.StringVar(value='')
     state['drawing']='';state['address_profile']={}
     drawing_label=tk.StringVar(value='Đang chờ DGN mở trong MicroStation V8i…')
-    ttk.Label(win,textvariable=drawing_label,wraplength=960).grid(row=0,column=0,columnspan=3,sticky='w',padx=10,pady=8)
+    ttk.Label(win,textvariable=drawing_label,wraplength=860).grid(row=0,column=0,columnspan=3,sticky='w',padx=10,pady=8)
     icons={key:toolbar_icon(tk,win,key) for key in ('read','save','build','export','print','sheet','address','find','check','list','map')}
     color=tk.BooleanVar(value=cfg['label_colors'])
-    ttk.Checkbutton(win,text='Màu nhãn theo ảnh mẫu (vàng / xanh / đỏ); bỏ chọn để dùng màu ghi chú thông thường',variable=color).grid(row=5,column=0,columnspan=3,sticky='w',padx=10)
+    color_option=ttk.Checkbutton(win,text='Màu nhãn theo mẫu',variable=color)
     tree=ttk.Treeview(win,columns=('sheet','parcel','id','owner','area','land'),show='headings',selectmode='browse')
     for k,title,width in [('sheet','Tờ',60),('parcel','Thửa',70),('id','ID MDB',60),('owner','Chủ sử dụng',290),('area','Diện tích',100),('land','Loại đất',90)]:
         tree.heading(k,text=title);tree.column(k,width=width)
@@ -260,10 +264,13 @@ def gui():
         ttk.Label(panel,text=label).grid(row=i,column=0,sticky='w');edit_vars[k]=tk.StringVar()
         ttk.Entry(panel,textvariable=edit_vars[k],width=95,state='readonly' if k=='address_override' else 'normal').grid(row=i,column=1,sticky='ew',pady=3)
     status=tk.StringVar(value='Đọc MDB, kiểm tra địa chỉ và thông tin, rồi tạo bộ xuất MicroStation.')
-    ttk.Label(win,textvariable=status,wraplength=940).grid(row=10,column=0,columnspan=3,sticky='w',padx=10,pady=8)
+    ttk.Label(win,textvariable=status,wraplength=860).grid(row=10,column=0,columnspan=3,sticky='w',padx=10,pady=8)
     def settings(mode='TrichLuc'):
         if not state['drawing']:raise ValueError('Mở bản đồ DGN trong MicroStation trước.')
-        return {**cfg,**drawing_paths(state['drawing'],ROOT,mode),'address_suffix':'','address_profile':state['address_profile'],'label_colors':color.get()}
+        paths=drawing_paths(state['drawing'],ROOT,mode,require_mdb=False)
+        paths['mdb']=state.get('connected_mdb') or paths['mdb']
+        if not Path(paths['mdb']).is_file():raise FileNotFoundError('Kết nối hoặc tạo MDB trước khi xuất hồ sơ.')
+        return {**cfg,**paths,'address_suffix':'','address_profile':state['address_profile'],'label_colors':color.get()}
     def edit_address():
         if not state['drawing']:
             messagebox.showinfo('Địa chỉ thửa','Mở DGN trong MicroStation trước.');return
@@ -297,7 +304,7 @@ def gui():
         tree.delete(*tree.get_children())
         for variable in edit_vars.values():variable.set('')
         try:
-            parcels,rejected=load_mdb(variables['mdb'].get());state.update(parcels=parcels,rejected=rejected)
+            parcels,rejected=load_mdb(variables['mdb'].get(),allow_empty=True);state.update(parcels=parcels,rejected=rejected)
             tree.delete(*tree.get_children())
             for i,p in enumerate(parcels):tree.insert('', 'end',iid=str(i),values=(p['ToBD'],p['TCT'],p['ID'],p.get('TenChu'),p['DienTich'],p.get('LRD') or p.get('MaLD')))
             status.set(f'Đã đọc {len(parcels)} thửa; {len(rejected)} thửa không hỗ trợ. Chọn một dòng để bổ sung thông tin.')
@@ -422,9 +429,9 @@ def gui():
     def toggle_parcels():
         state['list_open']=not state['list_open']
         if state['list_open']:
-            tree.grid();searchbar.grid();win.rowconfigure(7,weight=1);win.geometry('1050x730')
+            tree.grid();searchbar.grid();panel.grid();win.rowconfigure(7,weight=1);win.geometry('1050x730')
         else:
-            tree.grid_remove();searchbar.grid_remove();win.rowconfigure(7,weight=0);win.geometry('1050x370')
+            tree.grid_remove();searchbar.grid_remove();panel.grid_remove();win.rowconfigure(7,weight=0);win.geometry('900x300')
     def reference_map():
         if state['exporting']:return
         if not state.get('last_output'):
@@ -446,14 +453,45 @@ def gui():
             elif 'DISPLAY_OFF' in text:status.set('Đã tắt hiển thị tờ bản đồ Reference. Bấm Ánh xạ lần nữa để bật lại.')
             else:status.set('Đã bật hiển thị tờ bản đồ Reference. Bấm Ánh xạ lần nữa để tắt.')
         threading.Thread(target=work,daemon=True).start();win.after(200,wait)
+    def database_connected(result):
+        path=result['path']
+        variables['mdb'].set(path);state['connected_mdb']=path;state['connected_drawing']=state.get('drawing','')
+        if not state['drawing']:
+            status.set('Đã kết nối MDB. Mở DGN trong V8i để làm việc với bản đồ.');return
+        try:
+            parcels,rejected=decode_mdb_rows(result['rows'],path,result['sha256'],allow_empty=True)
+            state.update(parcels=parcels,rejected=rejected);filter_rows()
+            status.set(f'Đã kết nối CSDL: {len(parcels)} thửa; {len(rejected)} hình học chưa hỗ trợ.')
+        except Exception as exc:messagebox.showerror('Không nạp được dữ liệu thửa',str(exc))
+    def dgn_tools(mode='main'):
+        if state['exporting']:return
+        from topology_ui import TopologyWorkspace
+        workspace=state.get('topology_workspace')
+        if workspace is None:
+            workspace=TopologyWorkspace(win,state.get('drawing',''),lambda busy:state.update(exporting=busy),database_connected)
+            state['topology_workspace']=workspace
+        source=state.get('drawing','')
+        if source and source!=workspace.source.get():workspace.source.set(source)
+        {'main':workspace.main,'clean':workspace.clean,'topology':workspace.topology,'database':workspace.database_dialog}[mode]()
     compact=ttk.Frame(win);compact.grid(row=1,column=0,columnspan=3,sticky='w',padx=10,pady=5)
     ttk.Button(compact,text='Mở V8i',image=icons['read'],compound='left',command=connect_v8i).pack(side='left',padx=4)
     ttk.Button(compact,text='Danh sách thửa ▾',image=icons['list'],compound='left',command=toggle_parcels).pack(side='left',padx=4)
     ttk.Button(compact,text='Ánh xạ tờ bản đồ',image=icons['map'],compound='left',command=reference_map).pack(side='left',padx=4)
-    tree.grid_remove();searchbar.grid_remove()
+    primary=ttk.LabelFrame(win,text='BẢN ĐỒ ĐỊA CHÍNH');primary.grid(row=2,column=0,columnspan=3,sticky='ew',padx=10,pady=6)
+    for title,mode in [('Sửa lỗi','clean'),('Tạo topology','topology'),('Kết nối CSDL','database')]:
+        ttk.Button(primary,text=title,command=lambda selected_mode=mode:dgn_tools(selected_mode),width=24).pack(side='left',padx=8,pady=10)
+    tree.grid_remove();searchbar.grid_remove();panel.grid_remove()
     buttons=ttk.Frame(win);buttons.grid(row=6,column=0,columnspan=3,sticky='w',padx=10,pady=8)
     for title,kind,command in [('Trích lục','export',request),('In GCN','print',lambda:request('GCN')),('Mẫu 03/CLBĐ','sheet',lambda:request('Mau03')),('Địa chỉ thửa','address',edit_address),('Thư mục hồ sơ','export',open_output_folder)]:
         ttk.Button(buttons,text=title,image=icons[kind],compound='left',command=command).pack(side='left',padx=3)
+    state['export_tools_open']=False
+    def toggle_export_tools():
+        state['export_tools_open']=not state['export_tools_open']
+        if state['export_tools_open']:
+            buttons.grid();color_option.grid(row=5,column=0,columnspan=3,sticky='w',padx=10)
+        else:buttons.grid_remove();color_option.grid_remove()
+    ttk.Button(compact,text='Xuất hồ sơ ▾',command=toggle_export_tools).pack(side='left',padx=4)
+    buttons.grid_remove()
     win.columnconfigure(1,weight=1);win.rowconfigure(7,weight=0)
     # Query document API in a worker: never use a stale marker or sample source.
     import threading,queue
@@ -486,13 +524,19 @@ def gui():
                 # Output DGN stays visible after exporting; keep the source context.
                 generated=state.get('drawing') and raw and Path(raw).parent.name in ('Trích lục','In GCN','Phiếu đo đạc chỉnh lý','Trich luc','Phieu do dac chinh ly') and Path(raw).parent.parent==Path(state['drawing']).parent
                 if not generated and (raw!=state.get('observed_dgn')):
-                    state['observed_dgn']=raw;state['drawing']='';source_changed()
+                    state['observed_dgn']=raw;state['drawing']=''
+                    if state.get('connected_mdb') and not state.get('connected_drawing'):state['connected_drawing']=raw
+                    elif state.get('connected_drawing')!=raw:state['connected_mdb']='';state['connected_drawing']=''
+                    source_changed()
                     if raw:
                         try:
-                            paths=drawing_paths(raw,ROOT)
+                            paths=drawing_paths(raw,ROOT,require_mdb=False)
+                            if state.get('connected_mdb'):paths['mdb']=state['connected_mdb']
                             for key,value in paths.items():variables[key].set(value)
                             state['drawing']=paths['dgn'];state['address_profile']=address_profile(ROOT,raw)
-                            drawing_label.set('Bản đồ: '+Path(raw).name+'  —  '+str(Path(raw).parent));read()
+                            drawing_label.set('Bản đồ: '+Path(raw).name+'  —  '+str(Path(raw).parent))
+                            if Path(paths['mdb']).is_file():read()
+                            else:status.set('DGN chưa có MDB. Bấm Sửa lỗi hoặc Tạo topology để tạo dữ liệu từ bản vẽ.')
                         except Exception as exc:drawing_label.set(str(exc));status.set('Không nạp dữ liệu cũ. Mở DGN có MDB cùng tên để tiếp tục.')
                     else:drawing_label.set('Đang chờ DGN mở trong MicroStation V8i…')
         except queue.Empty:pass
@@ -500,6 +544,11 @@ def gui():
             state['probe_busy']=True;threading.Thread(target=probe,daemon=True).start()
         win.after(2000,follow_active)
     win.after(100,follow_active)
+    def close_main():
+        if state['exporting']:
+            messagebox.showinfo('Đang xử lý','Đợi tác vụ hiện tại hoàn tất trước khi đóng.');return
+        win.destroy()
+    win.protocol('WM_DELETE_WINDOW',close_main)
     win.mainloop()
 
 if __name__=='__main__':

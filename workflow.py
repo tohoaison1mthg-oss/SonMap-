@@ -3,11 +3,11 @@ from pathlib import Path
 import json
 
 FOLDERS={'TrichLuc':'Trich luc','GCN':'In GCN','Mau03':'Phieu do dac chinh ly'}
-def drawing_paths(dgn,root,mode='TrichLuc'):
+def drawing_paths(dgn,root,mode='TrichLuc',require_mdb=True):
     path=Path(dgn).resolve()
     if path.suffix.lower()!='.dgn' or not path.is_file():raise ValueError('DGN đang mở không hợp lệ.')
     mdb=path.with_suffix('.mdb')
-    if not mdb.is_file():raise FileNotFoundError('Không tìm thấy MDB cùng tên: '+str(mdb))
+    if require_mdb and not mdb.is_file():raise FileNotFoundError('Không tìm thấy MDB cùng tên: '+str(mdb))
     if mode not in FOLDERS:raise ValueError('Loại hồ sơ không hợp lệ.')
     return {'dgn':str(path),'mdb':str(mdb),'template':str(Path(root)/'assets/TrichLucTT26 -ThanhTan.dgn'),'output':str(path.parent/FOLDERS[mode])}
 
