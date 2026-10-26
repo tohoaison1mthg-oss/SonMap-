@@ -41,3 +41,21 @@ Mỗi cloud task đã được cô lập. Dùng checkout hiện có; không tạ
 người dùng yêu cầu. Không đưa DGN/MDB thật, thông tin cá nhân, khóa hoặc runtime
 bên thứ ba lên Git. Không chạy `python test_upgrade.py` trên cloud vì phần main
 của file đó yêu cầu data/source.json riêng.
+
+## Quy tắc nâng cấp
+
+Người dùng đã xác nhận nhánh codex/sonmap-topology-ui là đúng bản giao diện cần
+đóng gói. Phiên bản hiện tại là V10.4; lần nâng cấp kế tiếp tăng lên V10.5 nếu
+chưa có bản cao hơn trên GitHub. Đọc AGENTS.md, VERSION và CHANGELOG.md trước khi
+phát hành. Không dùng dev-v1/v2 thay số phiên bản app.
+
+Gói cập nhật laptop: `python installer/package_update.py --output <thu-mục-mới>`.
+Giải nén và chạy Cai_dat.cmd; cài theo người dùng, không cần quyền quản trị,
+tạo lối tắt Desktop, sao lưu mã cũ và giữ dữ liệu riêng. Bộ cài không kèm Python,
+MicroStation hoặc tài nguyên xuất hồ sơ riêng. Kiểm thử cloud không thay thế
+kiểm chứng cài đặt và COM/V8i/Jet trên Windows thật.
+
+Người dùng cho phép thao tác trên MicroStation ở laptop và tham khảo C:\VietMapXM,
+nhưng phiên cloud không có công cụ điều khiển laptop. Không được tuyên bố đã
+thao tác Windows. Kèm Kiem_tra_V8i.cmd/check_connection.ps1 để người dùng chạy
+tại máy, lấy báo cáo data/vietmapxm-diagnostic.json; chỉ đọc các cấu hình CAD.

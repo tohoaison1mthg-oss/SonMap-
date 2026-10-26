@@ -4,8 +4,20 @@
     "sha256": "8cebe32b1c006f245c68ba56ff52570af5c91edb918baa5234465889f156e428"
   },
   {
+    "file": "AGENTS.md",
+    "sha256": "4e35f72937be3b86294d82936c5acf1723a176b96e5b35b957569858483d1725"
+  },
+  {
+    "file": "CHANGELOG.md",
+    "sha256": "b010cf8962ca9c4e5787652f8221856962b9491d03c029b17c3627042d1162de"
+  },
+  {
     "file": "CONTINUE.md",
-    "sha256": "9f79db60f5f967a3742e28fa5a726e5156484dcf2d58f0d9ffa56555b797f41f"
+    "sha256": "2c9912585c76d8795f919ef76a8e59ce4694a93fbbd9132a6f25303720662fed"
+  },
+  {
+    "file": "Kiem_tra_V8i.cmd",
+    "sha256": "d352bf992b95c123d284cc7f7a88c9bd8dca5742f58ed6762cf02e7965711766"
   },
   {
     "file": "LH_DgnMonitor.cls",
@@ -17,15 +29,15 @@
   },
   {
     "file": "README.md",
-    "sha256": "e69d7f6e610202b26f1927d6e69f10ac12af06e3585c6595ff787dbf18266034"
+    "sha256": "c4ecf6cdd174a92d4be2c390ffe09faf0cb0a842114c7f87daa5aadf3a78a157"
   },
   {
     "file": "TOPOLOGY.md",
-    "sha256": "f6f269eb8e6a08a97cb84274ef5450338992494207c7b49204a20fe955be6168"
+    "sha256": "ad1825f848472923d8d0df6d1d5c6566fdc4e582f3342e6e2ad1ea006fd8e17b"
   },
   {
     "file": "VERSION",
-    "sha256": "ec2f527436a760498d5ae1d9c409cbd3f0410f715d25124377b77ae51401f3b8"
+    "sha256": "3ae36db32a3ca45dd9347c433620e36a3ae2759cfadfac2d957e4989ea5c401a"
   },
   {
     "file": "active_dgn.ps1",
@@ -37,7 +49,7 @@
   },
   {
     "file": "app.py",
-    "sha256": "02e4638fdf6a32691db0e909afa042e3599066ccd656994981824f219fadf577"
+    "sha256": "d9fd73b9942865a7a6d3c33bfa39931ef00aa945af5165b5caaeb6f2dda70f27"
   },
   {
     "file": "bootstrap.template.bas",
@@ -46,6 +58,10 @@
   {
     "file": "bridge.bas",
     "sha256": "9b8c371746c64b285627119a3192db9cfc7b7af7123dccdc26fd1df123c67e6f"
+  },
+  {
+    "file": "check_connection.ps1",
+    "sha256": "bf7077326e89ff70992391728eb7725334a2076d4aab9c3b35306bebaca66a92"
   },
   {
     "file": "dgn_models.ps1",
@@ -57,19 +73,39 @@
   },
   {
     "file": "installer/Setup.cs",
-    "sha256": "352561a59cd84bcab19128e7fc0719d76a0a15d20281322ead60968add06433f"
+    "sha256": "f80244521aa218fe57ffbda25a97f18ed2065c084c550dcf337d267feb3d315e"
   },
   {
     "file": "installer/build.py",
-    "sha256": "d45fa242f9ef3b67e5aa3a2690c40a990184686b17a803b924d21e1edd219456"
+    "sha256": "57f3fc3343c9c0df4773ca7496336c5921e6b6af9898858fce3ed3007177c6bc"
   },
   {
     "file": "installer/install.ps1",
-    "sha256": "e0da2e0f36e10ceaa9e2c8f7558869ef12598b2412e79baf85c5665f174a22d8"
+    "sha256": "b53eae7f85985d86d6e398444316ea2615b8d122d80c5e032a6fe886defbe0f0"
+  },
+  {
+    "file": "installer/package_update.py",
+    "sha256": "06e39b1ffaa1627956619c67164689eeea60a03edf38a33d67f10164bbaf8e65"
+  },
+  {
+    "file": "installer/restore.cmd",
+    "sha256": "85facca71fbac05d9db00f319cf5a1152fba62782165608fd0efc0d98c8598dc"
+  },
+  {
+    "file": "installer/restore.ps1",
+    "sha256": "b6cbea2c7de4b54d379bfaacfb7f985332a3f893e0cd0e6bfc435bb083fb773e"
   },
   {
     "file": "installer/setup_prepare.py",
     "sha256": "9fea33f08e6bef27559f7e211ce463397e37bcea30bc3d8fefcb5737913def8e"
+  },
+  {
+    "file": "installer/update.cmd",
+    "sha256": "9b6fa75cfe7f744636691b6b89d107db01fb5dc7aa838735f0d8840629ac1f26"
+  },
+  {
+    "file": "installer/update.ps1",
+    "sha256": "55354e309a94dca8763c618822cac6297204ca9da85506c82f7b9cb211abc3f1"
   },
   {
     "file": "installer/update_vba.ps1",
@@ -117,7 +153,7 @@
   },
   {
     "file": "start_topology.ps1",
-    "sha256": "4f28ab68ab1f0246f63172c94e611f5eb6fee5d5ee8920876336e103f676eb53"
+    "sha256": "d72f9dc2a3a17a7a8a9c379d7f1fbd130bfee5077db9aa6615e02a8414316cb8"
   },
   {
     "file": "start_v8i.ps1",
@@ -130,6 +166,10 @@
   {
     "file": "test_dgn_models.ps1",
     "sha256": "d6c0edac99b35c61095f8558a251263f371319090ca62981684552eb0b192292"
+  },
+  {
+    "file": "test_release.py",
+    "sha256": "58c63586184a346d82dc9e560e54796252a3ccbe4aec419214385350d1d83290"
   },
   {
     "file": "test_topology.py",

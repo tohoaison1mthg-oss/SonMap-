@@ -32,6 +32,7 @@ try {
   $old=Join-Path $root ('data\'+$name)
   if(Test-Path -LiteralPath $old){$b=Join-Path $backup ('data\'+$name);[IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($b))|Out-Null;Copy-Item -LiteralPath $old -Destination $b}
  }
+ $version=([IO.File]::ReadAllText((Join-Path $root 'VERSION'))).Trim()
  $python=Join-Path $root 'runtime\python.exe'
  $out=& $python (Join-Path $root 'setup_prepare.py') $root 2>&1
  $out|Out-File -LiteralPath (Join-Path $root 'data\setup-20261023.log') -Encoding UTF8
@@ -42,7 +43,7 @@ try {
  $vp=Start-Process -FilePath (Join-Path $env:WINDIR 'SysWOW64\WindowsPowerShell\v1.0\powershell.exe') -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+(Join-Path $root 'update_vba.ps1')+'"'),'-Root',('"'+$root+'"')) -RedirectStandardOutput $vbaLog -RedirectStandardError $vbaError -WindowStyle Hidden -Wait -PassThru
  $ready=$vp.ExitCode -eq 0
  $shell=New-Object -ComObject WScript.Shell
- $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'SonMap+ V10.3.lnk'))
+ $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) ('SonMap+ V'+$version+'.lnk')))
  $shortcut.TargetPath=Join-Path $root 'runtime\pythonw.exe';$shortcut.Arguments='"'+(Join-Path $root 'launch.py')+'"';$shortcut.WorkingDirectory=$root;$shortcut.IconLocation=(Join-Path $root 'sonmap.ico');$shortcut.Save()
  $profileOutput=& (Join-Path $root 'setup_fast_workspace.ps1') -Root $root
  $profileOutput|Out-File -LiteralPath (Join-Path $root 'data\fast-workspace-install.log') -Encoding UTF8

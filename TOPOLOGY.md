@@ -114,7 +114,7 @@ Khi lỗi, thông báo mới ghi bước đang chạy và dòng mã; nội dung 
 
 ```sh
 python -m pip install -r requirements-topology.txt
-python -m unittest test_upgrade.UpgradeTests test_topology test_topology_ui -v
+python -m unittest test_upgrade.UpgradeTests test_topology test_topology_ui test_release -v
 ```
 
 Kiểm thử giao diện cần màn hình Tk; khi chạy cloud không có DISPLAY sẽ được ghi
@@ -123,3 +123,36 @@ rõ là skipped. Kiểm thử cũ vẫn chạy độc lập không cần Shapely
 ```sh
 python -m unittest test_upgrade.UpgradeTests -v
 ```
+
+## Gói cập nhật V10.4
+
+Giải nén toàn bộ SonMapPlus_V10_4_Update.zip rồi chạy Cai_dat.cmd. Trình cài
+không cần quyền quản trị; dùng Python 3.12 64-bit đã cài, tạo môi trường riêng và
+lối tắt Desktop. Cần Internet lần đầu để cài thư viện. Đóng bản SonMap đã cài
+trước khi cập nhật. Bản cũ trong thư mục Downloads vẫn còn nguyên; sau cài hãy
+mở bằng lối tắt SonMap+ mới và kiểm tra tiêu đề V10.4.
+
+Vị trí cài: %LOCALAPPDATA%\SonMapPlus\App. Nhật ký ở SonMapPlus\Logs; sao lưu
+mã trước khi cập nhật ở SonMapPlus\Backups. Không ghi đè data, assets, runtime,
+settings.json hoặc DGN/MDB cũ. Nếu bản ThanhTanApp cũ có assets/VBA, trình cài
+sao chép chúng sang khi đích chưa có; không tải/cung cấp các tài nguyên riêng.
+
+Gói là ZIP có trình cài Cai_dat.cmd/Cai_dat.ps1, không phải EXE độc lập. Đã kiểm
+tra cấu trúc gói, checksum và cú pháp; cài đặt Windows/V8i vẫn cần chạy thực tế.
+
+## Phục hồi và phát triển trên máy khác
+
+Mỗi nâng cấp tăng phiên bản; các gói mang số cũ không bị ghi đè. Khi đã cài và
+cập nhật ít nhất một lần, lối tắt **SonMap+ - Khoi phuc** cho chọn bản cũ trong
+Backups. Khôi phục chỉ thay file chương trình, giữ data/settings/assets và
+DGN/MDB. Bản đang dùng cũng được sao lưu trước khi khôi phục để có thể quay lại.
+Lần đầu cài vào thư mục mới chưa có bản trước đó để khôi phục tại thư mục này.
+
+Các mốc mã cũ/mới được giữ trên GitHub bằng tag phiên bản. Đăng nhập trên máy
+khác, mở repository và chọn đúng nhánh/tag để tiếp tục; không tự tăng số phiên
+bản từ một checkout cũ khi GitHub đã có bản mới hơn.
+
+Để kiểm tra laptop: mở V8i và DGN rồi chạy Kiem_tra_V8i.cmd trong gói cài.
+Công cụ đọc các thiết lập CAD cho phép trong C:\VietMapXM và cấu hình User Bentley,
+không đọc nội dung bản đồ hoặc sửa cấu hình/DLL/giấy phép. Báo cáo ở
+`%LOCALAPPDATA%\SonMapPlus\App\data\vietmapxm-diagnostic.json`.

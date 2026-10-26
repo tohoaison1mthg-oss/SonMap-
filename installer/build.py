@@ -6,6 +6,8 @@ with zipfile.ZipFile(root/'payload.zip','w',compression=zipfile.ZIP_STORED) as z
     for p in source.iterdir():
         if p.is_file() and p.suffix in ('.py','.ps1','.cmd','.bas','.cls','.md','.mvba'):
             if p.name not in ('setup_prepare.py','update_vba.ps1'):z.write(p,p.name)
+    z.write(source/'VERSION','VERSION')
+    z.write(source/'requirements-topology.txt','requirements-topology.txt')
     z.write(source/'admin_catalog.json','admin_catalog.json')
     z.write(source/'sonmap.ico','sonmap.ico')
     for folder in ('runtime','assets'):

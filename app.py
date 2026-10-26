@@ -5,6 +5,8 @@ from workflow import drawing_paths, address_profile, save_address_profile, parce
 from quality import ring_issues, audit, matches, source_key, read_edits, merge_edits
 
 ROOT = Path(__file__).resolve().parent
+APP_VERSION = (ROOT / 'VERSION').read_text(encoding='utf-8-sig').strip()
+APP_TITLE = 'SonMap+ V' + APP_VERSION
 DEFAULTS = {'mdb': r'D:\BANDODUNGCHUNG\1. PHUONG NGA NAM\dc100.mdb',
  'dgn': r'D:\BANDODUNGCHUNG\1. PHUONG NGA NAM\dc100.dgn',
  'template': r'D:\TX NGA NAM\MAU\TrichLucTT26 -ThanhTan.dgn',
@@ -193,7 +195,7 @@ def gui():
     if (ROOT/'settings.json').exists():cfg.update(json.loads((ROOT/'settings.json').read_text(encoding='utf-8-sig')))
     for key in ('mdb','dgn','template','output'):
         if not Path(cfg[key]).is_absolute():cfg[key]=str((ROOT/cfg[key]).resolve())
-    win=tk.Tk();win.title('SonMap+ V10.3');win.geometry('900x300');win.iconbitmap(str(ROOT/'sonmap.ico'))
+    win=tk.Tk();win.title(APP_TITLE);win.geometry('900x300');win.iconbitmap(str(ROOT/'sonmap.ico'))
     def show_window():
         win.deiconify()
         win.lift()
@@ -589,7 +591,7 @@ if __name__=='__main__':
             user32.FindWindowW.restype=ctypes.c_void_p
             user32.ShowWindow.argtypes=[ctypes.c_void_p,ctypes.c_int]
             user32.SetForegroundWindow.argtypes=[ctypes.c_void_p]
-            window=user32.FindWindowW(None,'SonMap+ V10.3')
+            window=user32.FindWindowW(None,APP_TITLE)
             if window:
                 user32.ShowWindow(window,9)
                 user32.SetForegroundWindow(window)

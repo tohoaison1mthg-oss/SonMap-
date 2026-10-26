@@ -1,6 +1,9 @@
+param([switch]$PrepareOnly,[string]$EnvironmentRoot)
 # Detect a real Python installation without requiring the optional py launcher.
 $ErrorActionPreference='Stop'
 Set-Location -LiteralPath $PSScriptRoot
+if(-not $EnvironmentRoot){$EnvironmentRoot=$PSScriptRoot}
+$EnvironmentRoot=[IO.Path]::GetFullPath($EnvironmentRoot)
 function TestPython([string]$Executable, [string[]]$Prefix=@()) {
  if(-not $Executable -or $Executable -match '\\Microsoft\\WindowsApps\\'){return $false}
  try {
@@ -25,7 +28,7 @@ function InvokePython([string]$Executable, [string[]]$PythonArguments) {
 try {
  [void](New-Item -ItemType Directory -Path $logDirectory -Force)
  Set-Content -LiteralPath (Join-Path $logDirectory 'topology-startup.log') -Value ('SonMap startup: '+(Get-Date -Format s)) -Encoding UTF8
- $venvPython=Join-Path $PSScriptRoot '.venv-topology\Scripts\python.exe'
+ $venvPython=Join-Path $EnvironmentRoot '.venv-topology\Scripts\python.exe'
  if(Test-Path -LiteralPath $venvPython) {
   if(-not (TestPython $venvPython)){throw 'Existing .venv-topology is incompatible. Rename that folder, then run again with Python 3.12 64-bit installed.'}
  } else {
@@ -68,7 +71,7 @@ try {
    exit 2
   }
   Write-Host ('Python: '+$found)
-  InvokePython $found ($prefix + @('-m','venv',(Join-Path $PSScriptRoot '.venv-topology')))
+  InvokePython $found ($prefix + @('-m','venv',(Join-Path $EnvironmentRoot '.venv-topology')))
   if($script:PythonExitCode -ne 0){throw 'Could not create Python virtual environment.'}
  }
  InvokePython $venvPython @('-c',"import importlib.metadata as m, sys; versions={d.metadata['Name'].lower():d.version for d in m.distributions()}; sys.exit(0 if versions.get('shapely')=='2.0.7' else 1)")
@@ -76,6 +79,7 @@ try {
   InvokePython $venvPython @('-m','pip','install','-r',(Join-Path $PSScriptRoot 'requirements-topology.txt'))
   if($script:PythonExitCode -ne 0){throw 'Could not install topology dependencies. Check the pip error above.'}
  }
+ if($PrepareOnly){Write-Host 'Python and topology dependencies are ready.';exit 0}
  InvokePython $venvPython @((Join-Path $PSScriptRoot 'launch.py'))
  if($script:PythonExitCode -ne 0){throw 'SonMap exited with an error; see data/startup-error.log if present.'}
  exit 0
