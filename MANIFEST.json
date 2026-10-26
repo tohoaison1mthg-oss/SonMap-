@@ -1,7 +1,7 @@
 [
   {
     "file": ".gitignore",
-    "sha256": "8cebe32b1c006f245c68ba56ff52570af5c91edb918baa5234465889f156e428"
+    "sha256": "2adabb840a8fb2a9222e7cf695f327438b5476e5ed0a471a64a974f422719031"
   },
   {
     "file": "AGENTS.md",
@@ -9,11 +9,15 @@
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "8303e34637c9f9634fbaa79ed00a8ffcd47d131346de5d73d29acdccd382290d"
+    "sha256": "1d12e402ac517d4b65542fda1afed1dbf5ae9d457689de1512c950faaffad3e6"
   },
   {
     "file": "CONTINUE.md",
-    "sha256": "699812047b32d40da3b59899322ee5a6ce89321e4f1be56578b40b3d867ccd29"
+    "sha256": "bc31c2854b7a413661bd626c4e7265db3828af51e696f2ba1d3e6416d97e10ff"
+  },
+  {
+    "file": "Gui_len_GitHub.cmd",
+    "sha256": "3275744f99ddbae427dc8ee59474e59102dc1dde3d04ee6563f9cc57b1851cc2"
   },
   {
     "file": "Kiem_tra_V8i.cmd",
@@ -28,20 +32,36 @@
     "sha256": "e05d3749d7e16e15dd1b12bba1ad35e0bdeee6d9df0c1bc6ea0fe9b2e9b64a76"
   },
   {
+    "file": "Lam_viec_laptop.cmd",
+    "sha256": "4606e903f8488bc3824a580bc64ee6f184cd4833c85d83ed7902699a9bfe5488"
+  },
+  {
+    "file": "Lay_ban_moi_tu_GitHub.cmd",
+    "sha256": "f058c2b1fca45cc11f80714a1acd51d77b6bfeb9f4a165195bf375da8b131816"
+  },
+  {
+    "file": "Mo_Codex_laptop.cmd",
+    "sha256": "a30ccacbed2d44d9568dc5cd7a0470e560f93914b76189da7250fbeaaa2af236"
+  },
+  {
     "file": "PROJECT.md",
     "sha256": "7fb96978d3e0ac35c534956050593c00346bf8301e8088612aa87cb6beec4aa1"
   },
   {
     "file": "README.md",
-    "sha256": "d00d6de77778a189280062abbc692a6ef6cc7814f82a313863feb2d158f75bd6"
+    "sha256": "d22683eab912d156bc27124ae8d5e568fd885684d95d9ab2930bfcecdbedbcdd"
+  },
+  {
+    "file": "SonMap.code-workspace",
+    "sha256": "6d9ec27f66a574bbb17c61726fa5e25cacd0af4f78ecfd7b6c09e5645afe0ed8"
   },
   {
     "file": "TOPOLOGY.md",
-    "sha256": "c7e0d7fd0a87d5c4026c8c6e70a1d6e6903b78960739be8e1b51ed0c7eef27af"
+    "sha256": "529f912cc4f5a44e12ea30d08578d1ce4abed65ea0e33a48243df66dd96fa2da"
   },
   {
     "file": "VERSION",
-    "sha256": "278449e9042e2ebb39a772061a61ffec0d3e29f2f7c1fdcead01b5abe5844c7c"
+    "sha256": "1f50d767ada78a3d186af456a10696a849cb426464252a030d591346bb076292"
   },
   {
     "file": "active_dgn.ps1",
@@ -53,7 +73,7 @@
   },
   {
     "file": "app.py",
-    "sha256": "d9fd73b9942865a7a6d3c33bfa39931ef00aa945af5165b5caaeb6f2dda70f27"
+    "sha256": "d977d2f166375170ed73a75e17373b029057c40c0cc91f067419cde47827a744"
   },
   {
     "file": "bootstrap.template.bas",
@@ -68,6 +88,10 @@
     "sha256": "bf7077326e89ff70992391728eb7725334a2076d4aab9c3b35306bebaca66a92"
   },
   {
+    "file": "database_topology.py",
+    "sha256": "af67e4e233504ea4c5c3275023db31c934c0f637c25e96c887efc984dc99da4c"
+  },
+  {
     "file": "dgn_models.ps1",
     "sha256": "23f5a164f1dacefbc8acc3e6d6301e3f6cdff7aae066662dc447ab7bfbf70266"
   },
@@ -77,7 +101,7 @@
   },
   {
     "file": "dgn_topology.ps1",
-    "sha256": "d574e7dd5b11aa35f385cb57f71de7b9cf1dc35b83913909f2b2ebd978c58e7d"
+    "sha256": "cb61b0719d6a85b29ddc7c3dc1be81aa3fc4adb1f4ee11443ec9973c81065131"
   },
   {
     "file": "installer/Setup.cs",
@@ -93,7 +117,11 @@
   },
   {
     "file": "installer/package_update.py",
-    "sha256": "ddc3d4ef73136b7a74bf344c8d5279e170c4f03516b22c02d451c1da57c5d1f7"
+    "sha256": "c4bc8dd44017ec2e3d84fa1e9faea064f5613d88db19a6487d9fb64251ab95fb"
+  },
+  {
+    "file": "installer/package_workspace.py",
+    "sha256": "95334453c989024cc14ff4293dcf0345c4fdf0d7057858ba02f551a134a9220c"
   },
   {
     "file": "installer/restore.cmd",
@@ -120,6 +148,14 @@
     "sha256": "87405ec0182b8ea50f276e82d47b32958b4b65fbba98fa90278887d4129f6887"
   },
   {
+    "file": "installer/workspace.cmd",
+    "sha256": "3d083408830cb847c3ce24fbd30c3f05f89c7e299eee75a5fc7e4d92562f85fa"
+  },
+  {
+    "file": "installer/workspace.ps1",
+    "sha256": "13529d4e69c31ff5731d720af85688dd6d7840ec2854c7def3a838642c1b052c"
+  },
+  {
     "file": "launch.py",
     "sha256": "fe944ccecf4192b1dd82a4a24c4e5142b1398f7d87c3947512761887c5dc0f4e"
   },
@@ -137,7 +173,7 @@
   },
   {
     "file": "quality.py",
-    "sha256": "94a59ed1f164e3316eba4b49361db8b31f47a3500cdeeeb73b690e28d1952901"
+    "sha256": "c923a9d0e538bb0500bd1f7e9b807aa70adb82c2affb4dddf94a70e8657a1412"
   },
   {
     "file": "read_mdb.ps1",
@@ -176,8 +212,16 @@
     "sha256": "0df4dbedb03e260ef3dfed3170d802e30f4002a6cca1c0b3e287d32443a92c36"
   },
   {
+    "file": "sync_github.ps1",
+    "sha256": "d2aa159cf11b48bdc5dac582cc8ae558c36b05e8b5c4046bad48dcbbe01c6640"
+  },
+  {
     "file": "template_engine.bas",
     "sha256": "709ddf129dadfafbb35c7819bfd3a09d364e298bedec19f81a8128cde8ec6325"
+  },
+  {
+    "file": "test_database_topology.py",
+    "sha256": "2d7ca29e6da919ff66ecabf5f8c71c79cf7c3103d47535e4f56730833aa2eef3"
   },
   {
     "file": "test_dgn_models.ps1",
@@ -205,7 +249,7 @@
   },
   {
     "file": "test_topology_ui.py",
-    "sha256": "93f54989c9ca82110b09107058faccf08f9262cdaa2611f6288fb9ca63ebe021"
+    "sha256": "1297211f56c9057f9eb17fac9d5f1503c883ba06d25cf4b927c6de40ef1c9bd0"
   },
   {
     "file": "test_upgrade.py",
@@ -213,15 +257,19 @@
   },
   {
     "file": "topology.py",
-    "sha256": "d692f3e0c00438710c5c106dcf8a1b113dfbba5dd7fef86c91cc425e276d4a7f"
+    "sha256": "479c2cb485129ad5c60ccdf0b735ee65efb13689035e5ce7ebff3c94ee58a1b5"
   },
   {
     "file": "topology_ui.py",
-    "sha256": "9d60103b2061c27892134ba7645c5b6709ab6d51d97315608ec62f38abe52df3"
+    "sha256": "dbcc09081910b7f021ad13eb6b149feac9ba737c999bc90b6523b8b21493e1e9"
   },
   {
     "file": "topology_workflow.py",
-    "sha256": "5e8777f044d6fec7dc9584d22c64ed2ad3c9cfe81665a87840f1cd42fa2d1c7a"
+    "sha256": "44cf7e4b7e380d106c9433bd6b822a873faebfdac25c0502cbe4ca6ec7ac4bbd"
+  },
+  {
+    "file": "update_mdb_topology.ps1",
+    "sha256": "dbc54508eda5b51ac56c9eef042875479a78b7b70da96b51353db16f0ee1b973"
   },
   {
     "file": "workflow.py",

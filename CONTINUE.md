@@ -45,7 +45,7 @@ của file đó yêu cầu data/source.json riêng.
 ## Quy tắc nâng cấp
 
 Người dùng đã xác nhận nhánh codex/sonmap-topology-ui là đúng bản giao diện cần
-đóng gói. Phiên bản hiện tại là V10.6; lần nâng cấp kế tiếp tăng lên V10.7 nếu
+đóng gói. Phiên bản hiện tại là V10.7; lần nâng cấp kế tiếp tăng lên V10.8 nếu
 chưa có bản cao hơn trên GitHub. Đọc AGENTS.md, VERSION và CHANGELOG.md trước khi
 phát hành. Không dùng dev-v1/v2 thay số phiên bản app.
 
@@ -72,3 +72,29 @@ array khi lớp 10,23,32. Lớp nhập đúng. dgn_scan.ps1 tạo ElementScanCri
 V8i, truyền tham số Scan rõ ràng cho COM; giữ tham chiếu tiêu chí tới hết lượt
 quét. Các bước tạo/bắt đầu/MoveNext/Current được báo riêng. Chưa được chạy trên
 V8i thật; nếu vẫn lỗi phải đọc dgn-topology-last.log, không coi bản đồ rỗng.
+
+## V10.7: làm trực tiếp và đồng bộ mã
+
+Người dùng xác nhận ranh mới đã dính nhưng danh sách MDB không tăng; bản cũ chỉ
+xuất bản sao, không cập nhật MDB. Yêu cầu mới là sửa ngay DGN/MDB đang dùng, có
+sao lưu. apply_current và database_topology.reconcile tạo delta trên bản sao
+MDB, giữ các bảng/cột không liên quan, đọc lại kiểm tra rồi cập nhật. Tách thửa
+có ID mới, chờ số hiệu chính thức nếu nhãn không có; không tự bịa số pháp lý.
+Nếu MDB có ràng buộc/schema không hỗ trợ chèn/xóa, dừng và giữ sao lưu. Chưa
+kiểm chứng COM/Jet thực; phải thử trên laptop trước khi khẳng định thành công.
+
+Gói Laptop_Workspace được tạo bằng installer/package_workspace.py từ Git đã
+commit sạch. Bat_dau_lam_viec.cmd tạo %USERPROFILE%/SonMap-Dev từ Git bundle,
+không ghi đè workspace cũ. Lam_viec_laptop.cmd chạy ứng dụng tại máy. Để một
+trợ lý thực sự dùng terminal/COM trên laptop, mở Mo_Codex_laptop.cmd trong
+VS Code có extension OpenAI Codex (openai.chatgpt), đăng nhập tại laptop và
+bắt đầu phiên local; cloud chat này không tự truy cập laptop. Đọc file này và
+AGENTS.md trước, dùng SysWOW64 PowerShell cho COM V8i/Jet, tham khảo C:\VietMapXM
+chỉ theo phạm vi người dùng cho phép, không sửa DLL/giấy phép. Có Kiem_tra_quet_DGN.cmd
+và các báo cáo ở data để kiểm chứng thật.
+
+Khi xong, Gui_len_GitHub.cmd chỉ gửi mã nguồn, tăng VERSION khi có thay đổi;
+không tải DGN/MDB/assets/runtime/keys lên GitHub. Đăng nhập qua Git credential
+manager trên laptop, không gửi token vào chat. Khi nhánh cloud đã có thay đổi
+khác, upload sang laptop/snapshot-<SHA> thay vì force-push. Mang link nhánh đó
+về cloud để tiếp tục, không tự thay main hay ghi đè các tag cũ.

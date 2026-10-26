@@ -15,3 +15,6 @@ settings.json
 
 .venv-topology/
 *_SonMap_*/
+
+SonMap_backups/
+*.bundle

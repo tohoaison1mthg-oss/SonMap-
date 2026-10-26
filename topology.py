@@ -158,13 +158,14 @@ def build(snapshot, options):
     return dict(version=1, source=snapshot.get('source'), model=snapshot.get('model'),
                 model_is_default=bool(snapshot.get('model_is_default',False)),
                 unit=snapshot.get('unit'), options=options, parcels=parcels,
-                cleaned_lines=[list(line.coords) for line in lines], issues=issues)
+                cleaned_lines=[list(line.coords) for line in lines], issues=issues,
+                input_summary={str(level):sum(int(e['level'])==level for e in snapshot['elements']) for level in sorted(selected)})
 
 
 BLOCKING = {'UNSUPPORTED', 'CUT_EDGE', 'DANGLE', 'INVALID_RING', 'HOLE_UNSUPPORTED', 'NO_PARCELS'}
 
 
-def export_rows(project):
+def export_rows(project,allow_unnumbered=False):
     """Refuse incomplete topology; preserve DGN coordinates for existing world-coordinate export."""
     if any(i['code'] in BLOCKING for i in project['issues']):
         raise ValueError('Còn lỗi topology/kiểu phần tử chưa hỗ trợ. Xem báo cáo và sửa ranh trước khi tạo MDB.')
@@ -177,6 +178,7 @@ def export_rows(project):
         try:
             for field in ('ToBD', 'TCT', 'ID'):
                 value = p[field]
+                if field=='TCT' and value is None and allow_unnumbered:continue
                 if isinstance(value, bool) or str(value).strip() != str(int(value)) or not 0 < int(value) <= 2147483647:
                     raise ValueError()
                 p[field] = int(value)
@@ -189,9 +191,9 @@ def export_rows(project):
             if not isinstance(p.get(field, ''), str) or len(p.get(field, '')) > 255:
                 raise ValueError(f'{field}: cần chuỗi tối đa 255 ký tự.')
         key = (p['ToBD'], p['TCT'])
-        if key in seen:
+        if p['TCT'] is not None and key in seen:
             raise ValueError(f'Trùng số tờ/thửa {key}.')
-        seen.add(key)
+        if p['TCT'] is not None:seen.add(key)
         if p.get('holes') or ring_issues(p['points']):
             raise ValueError(f"Hình học thửa {p['ID']} không tương thích bộ xuất hiện tại.")
         LineString, Point, Polygon, _, _ = _engine()

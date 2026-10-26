@@ -1,176 +1,96 @@
-# SonMap+ — Sửa lỗi, Tạo topology và Kết nối CSDL
+# SonMap+ V10.7 — làm trực tiếp trên laptop
 
-## Chạy trên Windows
+## Cài hoặc nâng cấp ứng dụng
 
-Cần Python 3.12 **64-bit** có Tcl/Tk và pip. Giải nén gói mã vào một thư mục
-riêng, nhấp đúp **start_topology.cmd**. Script tự tìm Python qua PATH, Registry
-và thư mục cài thông dụng; không bắt buộc có lệnh `py`. Lần đầu cần Internet để
-cài Shapely. Không cần cài lại Python nếu bản 3.12 64-bit đang hoạt động.
+Giải nén SonMapPlus_V10_7_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
+Lối tắt SonMap+ dùng chương trình ở `%LOCALAPPDATA%\SonMapPlus\App`.
+Trình cài giữ các phiên bản trước, sao lưu mã cũ và có công cụ Khôi phục.
+Nếu thiếu CPython 3.12 64-bit phù hợp, chuẩn bị bản riêng cho SonMap từ bộ cài
+chính thức có chữ ký hợp lệ. Python 3.15 và PATH được giữ nguyên.
 
-Nếu báo lỗi, xem **data/topology-startup.log**. Nếu thiếu Python, dùng
-[bộ cài chính thức 3.12.10 64-bit](https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe).
-Có thể chỉ định đường dẫn Python bằng biến `SONMAP_PYTHON`.
+## Làm trên DGN/MDB đang mở
 
-Đọc/ghi DGN cần MicroStation V8i đang chạy. Đọc/ghi MDB cần Windows PowerShell
-32-bit, Microsoft Jet OLEDB 4.0 và ADOX. Chương trình tự gọi PowerShell trong
-SysWOW64; Python xử lý hình học vẫn dùng 64-bit. Tạo/đọc CSDL không đòi hỏi V8i
-đang mở, nhưng làm việc với bản vẽ và xuất hồ sơ thì có.
+1. Mở đúng DGN trong MicroStation V8i. SonMap tự nhận MDB cùng tên; hoặc chọn
+   Kết nối CSDL → Đọc/kết nối MDB để chọn CSDL khác.
+2. Trong Sửa lỗi/Tạo topology, nhập lớp ranh, ví dụ `10,23,32`. Chỉ chọn lớp ranh.
+3. Mặc định **ghi DGN hiện tại** được bật. Chương trình sao lưu trạng thái trên
+   đĩa, lưu nét đang mở rồi phân tích lại. Không kẻ thêm/sửa bản vẽ trong khi
+   tác vụ đang chạy. Bỏ chọn nếu muốn xuất bản riêng như các phiên bản trước.
+4. Sửa lỗi chuẩn hóa ranh và báo đoạn ngắn, vùng nhỏ, đầu hở/cạnh thừa. Nó không
+   tự tạo thêm bản ghi thửa; dùng Tạo topology sau khi ranh hợp lệ.
+5. Tạo topology dựng lại vùng, tâm thửa và cập nhật MDB đang kết nối. Kết quả
+   được ghi vào **tên DGN/MDB hiện tại**, có sao lưu ở SonMap_backups cạnh DGN.
+   Giao diện hiển thị số phần tử theo lớp, số vùng, số thửa MDB trước/sau.
+6. Một đường phân chia khép đúng hai đầu vào ranh của một thửa phải tạo hai
+   vùng. Nếu tách một thửa từ MDB có 12 thửa, kết quả dự kiến là 13 bản ghi.
+   Thửa không thay đổi giữ ID/thuộc tính; phần ngoài phạm vi được giữ nguyên.
+7. Thửa con mới có ID riêng; số hiệu chính thức được lấy từ nhãn nếu cấu hình
+   rõ ràng, nếu không hiển thị **Chờ số**. Không tự bịa số thửa pháp lý. Mở
+   Thông tin thửa, nhập số rồi lưu; dùng Cập nhật MDB hiện tại trong Kết nối CSDL
+   để ghi các thuộc tính sửa tay. Xuất hồ sơ bị chặn khi thiếu số thửa.
+8. Không có MDB kết nối thì chỉ cập nhật DGN; tạo/kết nối CSDL trước nếu cần
+   danh sách thửa được cập nhật. Đổi DGN sẽ bỏ liên kết CSDL của bản đồ cũ.
 
-## Bảng chính
+Cập nhật MDB áp dụng delta trên bản sao đầy đủ, giữ các bảng/cột khác và kiểm
+tra dữ liệu đọc lại trước khi thay tệp. MDB bị khóa hoặc có ràng buộc chèn/xóa
+không hỗ trợ sẽ báo lỗi; không phá ràng buộc hoặc xóa bảng khác để ép cập nhật.
+Nếu ghi thất bại, chương trình thử phục hồi và luôn nêu vị trí sao lưu. Các
+phần mềm khác không nên đồng thời sửa MDB trong lúc SonMap đang cập nhật.
 
-Ba nút chính mở ba hộp thoại độc lập, bố cục theo nhóm tham số:
+## Giới hạn đã biết
 
-- **Sửa lỗi**: tùy chọn ranh trùng, phá Arc/Complex, LineString, báo đoạn ngắn,
-  vùng nhỏ và nút gần; ngưỡng nối đầu hở; lớp, màu, bán kính cell báo lỗi.
-- **Tạo topology**: lớp tạo vùng, số tờ, thuộc tính cell tâm và báo lỗi tạo vùng.
-  Có nút Gán nhãn, Thông tin thửa và Báo lỗi.
-- **Kết nối CSDL**: Đọc/kết nối MDB, Tạo MDB trống mới hoặc Tạo DGN + MDB có dữ
-  liệu từ topology. Có thể mở lại dự án đã lưu ở đây.
+Model 2D; Line/LineString/Shape, Complex được phân rã khi bật tùy chọn. Arc được
+chia theo sai số dây cung nếu API V8i hỗ trợ. Không tự suy diễn ranh trong
+Reference, Cell hoặc B-spline. Ranh hở, đường thừa, vòng lỗi và thửa có lỗ chặn
+cập nhật topology/MDB. Không biến cảnh báo polygon thành cam kết sạch bản đồ.
 
-Các nút xuất trích lục, GCN và Mẫu 03 cũ được thu gọn dưới **Xuất hồ sơ ▾**.
-Danh sách thửa có nút mở riêng; không trải tất cả tham số ra bảng chính.
+Các ngưỡng chiều dài tính bằng mét, diện tích bằng m². DGN dùng mét nhập hệ số 1;
+ghi MDB hiện yêu cầu hệ số này để tương thích xuất hồ sơ. Ranh dựng lại nằm trên
+lớp ranh đầu tiên đã chọn, không giữ riêng nét/màu từng đoạn nguồn.
 
-## Quy trình với DGN chưa có MDB
+Phần xuất hồ sơ cũ vẫn cần mẫu/VBA riêng. Không sửa DLL hoặc giấy phép VietMap.
 
-1. Mở đúng DGN và model 2D trong V8i, lưu bản vẽ trước khi xử lý. Chương trình
-   dùng dữ liệu đã lưu trên đĩa, không lấy các sửa đổi chưa lưu hoặc Reference.
-2. Bấm **Sửa lỗi**, chọn các lớp ranh đúng với bản vẽ. Lớp 10 là gợi ý ban đầu.
-   Trong **Đơn vị / sai số cung**, đặt số mét trên một đơn vị DGN (DGN dùng mét:
-   nhập 1). Các ngưỡng chiều dài nhập bằng mét, diện tích bằng m².
-3. Bấm **Thực hiện**: phân tích và ghi ranh đã xử lý lên một bản sao mới. Đoạn
-   trùng chính xác và đoạn dài 0 được loại bỏ; giao cắt/chồng đoạn được node.
-   Nếu bật nối đầu hở, chỉ nối cặp đầu mút cô lập có duy nhất một đối tác trong
-   ngưỡng. Không tự kéo đầu ranh tới cạnh hoặc nối qua các ngã ba mơ hồ.
-4. **Báo lỗi** mở danh sách cảnh báo; **Ghi cell báo lỗi** tạo bản sao có vòng tròn
-   `SMERR` trên lớp lỗi. Phần tử không đọc được có thể chỉ báo trong danh sách.
-   Nếu còn đầu hở/đường thừa, sửa trên bản sao trong V8i, lưu và xử lý lại từ bản
-   sao đó. Dữ liệu nguyên gốc được giữ lại.
-5. Bấm **Tạo topology**, chọn lớp ranh và số tờ rồi **Thực hiện**. Khi ranh hợp lệ,
-   chương trình tạo DGN mới với vùng và cell tâm `SMPARC`. Điểm tâm nằm bên trong
-   thửa, kể cả thửa lõm. Tâm chưa có số thửa ghi `ID:<mã>` tạm, không tự đánh số
-   thửa chính thức.
-6. Bấm **Gán nhãn** để chọn lớp chữ cho số thửa, loại đất, tên chủ, xứ đồng. Có
-   thể đặt trước khi tạo topology hoặc gán lại từ bản chụp dữ liệu đã lưu sau đó.
-   Mỗi nhãn cần có điểm chèn nằm hẳn trong một vùng. Nhãn trên ranh hoặc nhiều
-   nhãn cùng trường được báo để kiểm tra. Không suy đoán cách tách nhãn nhiều
-   dòng/ghép số thửa-diện tích. Có thể để trống lớp và nhập tay.
-7. Mở **Thông tin thửa**, chọn một dòng; đánh dấu các trường muốn thay đổi, sửa
-   rồi bấm **Lưu**. Các trường bỏ chọn được giữ nguyên. Diện tích đo được tính
-   từ ranh, không dùng để thay diện tích pháp lý. Gán lại nhãn giữ các trường
-   đã sửa tay. Việc lưu này cập nhật dự án, chưa ghi vào MDB cũ.
-8. Mở **Kết nối CSDL → Tạo DGN + MDB từ topology**. Cần hết lỗi ranh chặn, số tờ
-   và số thửa nguyên dương, không trùng số thửa. Mỗi lần xuất tạo thư mục
-   `result_<mã riêng>` có DGN/MDB cùng tên, không ghi đè kết quả cũ.
-9. Chỉ kết quả xuất DGN + MDB có **receipt.json** với `status: verified` mới được
-   đọc lại để kiểm tra mọi trường MDB, hình học, từng vùng và tâm DGN. Nếu lỗi
-   giữa chừng, không coi các tệp dở dang là dữ liệu đã xác minh.
-10. Mở DGN kết quả trong V8i để SonMap tự nhận MDB cùng tên cạnh bản vẽ.
+## Phát triển tại laptop và gửi mã lên GitHub
 
-Mỗi lần phân tích lưu `project.json`, snapshot và DGN gốc sao chép vào thư mục
-`<tên>_SonMap_<mã riêng>`. Dùng **Kết nối CSDL → Mở dự án** để tiếp tục làm việc.
-Đổi DGN sẽ bỏ dữ liệu dự án cũ khỏi phiên làm việc để tránh gán nhầm bản đồ.
+Dùng SonMapPlus_V10_7_Laptop_Workspace.zip:
 
-## Tạo hoặc đọc MDB trực tiếp
+1. Cần Git for Windows; nếu thiếu, có thể cài bằng
+   `winget install --id Git.Git -e --source winget`.
+2. Giải nén gói, chạy Bat_dau_lam_viec.cmd để tạo `%USERPROFILE%\SonMap-Dev`
+   từ lịch sử Git đóng gói. Workspace cũ không bị ghi đè.
+3. Lam_viec_laptop.cmd chạy ứng dụng từ mã tại laptop. Đóng ứng dụng bản cũ trước.
+4. Để trợ lý có terminal/COM ngay trên laptop, mở Mo_Codex_laptop.cmd trong
+   Visual Studio Code, cài extension OpenAI Codex được đề xuất (`openai.chatgpt`),
+   đăng nhập tại máy và bắt đầu phiên local. Yêu cầu: “Đọc CONTINUE.md và AGENTS.md,
+   kiểm tra SonMap với MicroStation V8i đang mở, tham khảo C:\VietMapXM”.
+   Phiên cloud hiện tại không tự biến thành phiên điều khiển laptop.
+5. Làm xong chạy Gui_len_GitHub.cmd, đăng nhập GitHub qua trình quản lý thông tin
+   đăng nhập của Git. Script chỉ gửi mã, tăng phiên bản khi có thay đổi và giữ
+   lịch sử; không gửi DGN/MDB/runtime/assets/khóa. Snapshot mã chưa qua kiểm chứng
+   Windows không được coi là bộ cài đã kiểm thử.
+6. Nếu GitHub có nhánh khác phát triển đồng thời, mã laptop được gửi vào nhánh
+   laptop/snapshot-<SHA> để không ghi đè. Mang link nhánh được in về cloud để làm
+   tiếp. Lay_ban_moi_tu_GitHub.cmd lấy bản mới khi workspace sạch.
 
-- **Tạo MDB mới** tạo CSDL trống có bảng `ThuaDat` theo cấu trúc SonMap. Chọn tên
-  chưa tồn tại; chương trình từ chối ghi đè MDB cũ. CSDL trống chưa có thửa hoặc
-  hình học; cần tạo topology/gán thuộc tính để xuất MDB có dữ liệu.
-- **Đọc / kết nối MDB** chọn tệp có cấu trúc bảng phù hợp với `read_mdb.ps1`.
-  Chương trình đọc trên bản sao tạm để tránh đặt sidecar Jet bên cạnh nguồn.
-  Sau khi đọc thành công sẽ kết nối vào bảng chính; mở Danh sách thửa để xem.
-- Có thể kết nối MDB khác tên với DGN. Liên kết này chỉ áp dụng trong phiên làm
-  việc và cho bản vẽ tương ứng; chuyển sang bản đồ khác sẽ ngắt liên kết cũ.
-- Đây không phải bản sao đầy đủ cấu trúc MDB riêng của VietMap. Các trường không
-  có trên bản vẽ không thể tự sinh thành dữ liệu thật.
+Không gửi token/mật khẩu vào chat. Dữ liệu bản đồ giữ trên laptop; chỉ chia sẻ
+mẫu đã ẩn thông tin cá nhân khi cần kiểm tra ngoài máy.
 
-## Lỗi kết nối V8i
+## Kiểm chứng và chẩn đoán
 
-Lỗi **Value does not fall within expected range** trong ảnh là ngoại lệ của cầu
-nối COM, chưa đủ dữ liệu để quy về hỏng bản đồ. Bản cập nhật không dùng tên model
-hay số lớp làm chỉ số danh sách: tìm model theo tên, lớp theo số thực tế.
-Khi lỗi, thông báo mới ghi bước đang chạy và dòng mã; nội dung đầy đủ ở
-**data/dgn-topology-last.log**. Gửi file này nếu vẫn không đọc được DGN.
+Cloud kiểm tra logic tách thửa, ID/thuộc tính, cập nhật và phục hồi bằng I/O mô
+phỏng. **Chưa xác minh thao tác trực tiếp DGN/MDB với V8i/Jet trên Windows thật.**
+Dùng phiên Codex local để kiểm tra bản sao dữ liệu trước khi dùng chính thức.
 
-## Phạm vi và giới hạn kiểm chứng
-
-- Phần hình học và tương tác giao diện có kiểm thử trên cloud. Kết nối Windows,
-  Jet và V8i vẫn cần xác minh trên máy thực; thử giao diện dùng mô phỏng I/O.
-- Xử lý model 2D, Line, LineString, Shape, ComplexString/ComplexShape và chữ
-  Text/TextNode. Complex được phân rã theo lớp cha khi bật tùy chọn. Arc/Ellipse
-  được chia theo sai số dây cung nếu API V8i đọc được; trường hợp không đọc được
-  ghi lỗi chặn, không bỏ ranh để tạo MDB.
-- Ranh trong Cell cần Drop trên bản sao trước. Không tự suy diễn B-spline, 3D
-  hoặc ranh trong Reference. Một lần phân tích giới hạn 30.000 nút.
-- Đoạn ngắn/vùng nhỏ là cảnh báo, không tự xoá thửa. Đầu hở, đường thừa, vòng lỗi,
-  thửa có lỗ hoặc phần tử ranh không hỗ trợ chặn xuất MDB.
-- Ranh kết quả dùng lớp ranh đầu tiên đã chọn. Màu/nét riêng của từng đường nguồn
-  không được bảo toàn khi dựng lại ranh. Cell lỗi và tâm ở các lớp riêng.
-- Chưa hỗ trợ hàng loạt, cập nhật ranh từ MDB cũ, bỏ qua lỗi để xuất MDB, CCCD,
-  thông tin vợ chồng, đất lâm nghiệp hoặc toàn bộ quy trình pháp lý trong VietMap.
-- Xuất MDB hiện yêu cầu DGN dùng mét để tương thích bộ xuất SonMap hiện có.
-  Bộ cài đầy đủ và xuất hồ sơ cũ vẫn cần các tài nguyên Windows/VBA/mẫu riêng.
-
-## Kiểm thử
+Kiem_tra_V8i.cmd đọc cấu hình CAD cho phép từ C:\VietMapXM và trạng thái COM.
+Kiem_tra_quet_DGN.cmd thử quét bản đang mở và bản sao chỉ đọc, ghi data/v8i-scan-*.json.
+Các lỗi thao tác đầy đủ ở data/dgn-topology-last.log. Không coi kết quả quét đạt
+là bằng chứng cập nhật MDB hoặc xuất hồ sơ đã đúng.
 
 ```sh
 python -m pip install -r requirements-topology.txt
-python -m unittest test_upgrade.UpgradeTests test_topology test_topology_ui test_release -v
+python -m unittest test_upgrade.UpgradeTests test_topology test_release test_python_probe test_database_topology -v
 ```
 
-Kiểm thử giao diện cần màn hình Tk; khi chạy cloud không có DISPLAY sẽ được ghi
-rõ là skipped. Kiểm thử cũ vẫn chạy độc lập không cần Shapely:
-
-```sh
-python -m unittest test_upgrade.UpgradeTests -v
-```
-
-## Gói cập nhật V10.4
-
-Giải nén toàn bộ SonMapPlus_V10_4_Update.zip rồi chạy Cai_dat.cmd. Trình cài
-không cần quyền quản trị; dùng Python 3.12 64-bit đã cài, tạo môi trường riêng và
-lối tắt Desktop. Cần Internet lần đầu để cài thư viện. Đóng bản SonMap đã cài
-trước khi cập nhật. Bản cũ trong thư mục Downloads vẫn còn nguyên; sau cài hãy
-mở bằng lối tắt SonMap+ mới và kiểm tra tiêu đề V10.4.
-
-Vị trí cài: %LOCALAPPDATA%\SonMapPlus\App. Nhật ký ở SonMapPlus\Logs; sao lưu
-mã trước khi cập nhật ở SonMapPlus\Backups. Không ghi đè data, assets, runtime,
-settings.json hoặc DGN/MDB cũ. Nếu bản ThanhTanApp cũ có assets/VBA, trình cài
-sao chép chúng sang khi đích chưa có; không tải/cung cấp các tài nguyên riêng.
-
-Gói là ZIP có trình cài Cai_dat.cmd/Cai_dat.ps1, không phải EXE độc lập. Đã kiểm
-tra cấu trúc gói, checksum và cú pháp; cài đặt Windows/V8i vẫn cần chạy thực tế.
-
-## Phục hồi và phát triển trên máy khác
-
-Mỗi nâng cấp tăng phiên bản; các gói mang số cũ không bị ghi đè. Khi đã cài và
-cập nhật ít nhất một lần, lối tắt **SonMap+ - Khoi phuc** cho chọn bản cũ trong
-Backups. Khôi phục chỉ thay file chương trình, giữ data/settings/assets và
-DGN/MDB. Bản đang dùng cũng được sao lưu trước khi khôi phục để có thể quay lại.
-Lần đầu cài vào thư mục mới chưa có bản trước đó để khôi phục tại thư mục này.
-
-Các mốc mã cũ/mới được giữ trên GitHub bằng tag phiên bản. Đăng nhập trên máy
-khác, mở repository và chọn đúng nhánh/tag để tiếp tục; không tự tăng số phiên
-bản từ một checkout cũ khi GitHub đã có bản mới hơn.
-
-Để kiểm tra laptop: mở V8i và DGN rồi chạy Kiem_tra_V8i.cmd trong gói cài.
-Công cụ đọc các thiết lập CAD cho phép trong C:\VietMapXM và cấu hình User Bentley,
-không đọc nội dung bản đồ hoặc sửa cấu hình/DLL/giấy phép. Báo cáo ở
-`%LOCALAPPDATA%\SonMapPlus\App\data\vietmapxm-diagnostic.json`.
-
-## V10.5 — máy có Python 3.15
-
-Python 3.15 không đáp ứng yêu cầu 3.12 của môi trường SonMap hiện tại. Khi
-chạy Cai_dat.cmd V10.5, trình cài dùng lại bản 3.12 phù hợp nếu có; nếu chưa có,
-tải bộ cài 3.12.10 chính thức qua HTTPS và chỉ chạy khi chữ ký hợp lệ của Python
-Software Foundation. Python này được cài riêng trong SonMapPlus/Python312,
-không gỡ 3.15 hay đổi PATH. Cần Internet và chứng thư hệ thống hoạt động. Nếu
-đã có đăng ký Python 3.12 nhưng thiếu thành phần, chương trình báo cần Modify/Repair
-bản đó thay vì tự ghi đè. Probe có giới hạn 15 giây để tránh treo vô hạn.
-
-## V10.6 — kiểm tra lỗi quét dùng chung
-
-Trước khi cài, mở MicroStation V8i và lưu DGN. Sau khi cài, trình cài tự thử
-quét model đang mở và bản sao tạm chỉ đọc trên lớp 10,23,32. Kết quả ở
-`data/v8i-scan-*.json`; chỉ `scan_passed` mới xác nhận phép quét qua. Phép thử này
-chưa xác nhận hình học hoặc ghi MDB. Có thể chạy lại Kiem_tra_quet_DGN.cmd.
-Nếu số phần tử khác giữa bản đang mở và bản đã lưu, lưu DGN rồi thử lại.
+Thêm test_topology_ui nếu có màn hình Tk. Tạo gói cài bằng
+`python installer/package_update.py --output <thư-mục-mới>`, gói workspace bằng
+`python -m installer.package_workspace --output <thư-mục-mới>` sau khi commit sạch.

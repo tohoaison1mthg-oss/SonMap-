@@ -38,7 +38,9 @@ def audit(parcels,rejected=()):
     issues=[];numbers=defaultdict(list);ids=defaultdict(list)
     def add(p,code,detail):issues.append({'key':p['key'],'code':code,'detail':detail})
     for p in parcels:
-        numbers[(p['ToBD'],p['TCT'])].append(p);ids[p['key']].append(p)
+        if p.get('TCT') is None:add(p,'NUMBER_MISSING','Thửa mới chưa có số hiệu chính thức.')
+        else:numbers[(p['ToBD'],p['TCT'])].append(p)
+        ids[p['key']].append(p)
         errors=ring_issues(p['points'])
         for detail in errors:add(p,'GEOMETRY',detail)
         if not errors:

@@ -1,5 +1,16 @@
 # Phiên bản SonMap+
 
+## V10.7
+
+- Chế độ mặc định ghi DGN hiện tại và cập nhật MDB đang kết nối, có sao lưu trước thay đổi.
+- Sau tách vùng, cập nhật và nạp lại danh sách MDB; giữ thửa ngoài phạm vi, ID/thuộc tính của vùng không đổi.
+- Thửa con mới có ID mới; số thửa chính thức để chờ nếu không có nhãn được gán.
+- Cập nhật delta trên bản sao đầy đủ MDB để giữ các bảng/cột khác; phát hiện ràng buộc không hỗ trợ sẽ dừng.
+- Hiển thị số phần tử đọc theo lớp và số vùng tạo được; vẫn có lựa chọn tạo bản riêng.
+- Gói workspace cho laptop, lối mở Codex local trong VS Code, đồng bộ mã qua GitHub và lưu lịch sử.
+
+Cần xác minh DGN/Jet thật trên laptop. Các kiểm thử cloud chỉ xác nhận logic và mô phỏng I/O.
+
 ## V10.6
 
 - Sửa lệnh quét DGN từ COM ngoài V8i: tạo ElementScanCriteria qua ứng dụng rồi truyền rõ vào Scan.

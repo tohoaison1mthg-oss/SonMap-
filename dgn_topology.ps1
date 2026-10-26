@@ -1,5 +1,5 @@
 param(
- [Parameter(Mandatory=$true)][ValidateSet('Extract','WriteDrawing','WritePreview','WriteMdb','CleanDrawing','TopologyDrawing')][string]$Action,
+ [Parameter(Mandatory=$true)][ValidateSet('Extract','WriteDrawing','WritePreview','WriteMdb','CleanDrawing','TopologyDrawing','SaveActive','ApplyDrawing','ApplyClean','RestoreActive')][string]$Action,
  [Parameter(Mandatory=$true)][string]$InputPath,
  [Parameter(Mandatory=$true)][string]$OutputPath,
  [string]$ModelName,
@@ -33,7 +33,7 @@ function WriteJson($path,$value) {
  [IO.File]::WriteAllText($path,(ConvertTo-Json -InputObject $value -Depth 30),(New-Object Text.UTF8Encoding($false)))
 }
 function XY($p) { return ,@([double]$p.X,[double]$p.Y) }
-if(Test-Path -LiteralPath $OutputPath){throw 'Output already exists; refusing to overwrite.'}
+if((Test-Path -LiteralPath $OutputPath) -and $Action -notin @('ApplyDrawing','ApplyClean','RestoreActive')){throw 'Output already exists; refusing to overwrite.'}
 if($Action -eq 'WriteMdb') {
  $rows=@(Get-Content -LiteralPath $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json)
  if($rows.Count -eq 0 -and -not $AllowEmpty){throw 'No parcels.'}
@@ -78,6 +78,21 @@ if($Action -eq 'WriteMdb') {
 }
 $script:Stage='connect-microstation'
 $app=[Runtime.InteropServices.Marshal]::GetActiveObject('MicroStationDGN.Application')
+if($Action -eq 'SaveActive') {
+ $script:Stage='save-active-source'
+ if([IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($SourcePath)){throw 'Open the selected source DGN first.'}
+ Copy-Item -LiteralPath $SourcePath -Destination $OutputPath
+ $app.ActiveDesignFile.Save()
+ Write-Output 'ACTIVE_SOURCE_SAVED';exit 0
+}
+if($Action -eq 'RestoreActive') {
+ $script:Stage='restore-active-source'
+ if([IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($OutputPath)){throw 'Active DGN changed; restore cancelled. Use the saved backup manually.'}
+ $temporary=$app.OpenDesignFile($InputPath,$true)
+ Copy-Item -LiteralPath $InputPath -Destination $OutputPath -Force
+ $restored=$app.OpenDesignFile($OutputPath,$false)
+ Write-Output 'ACTIVE_SOURCE_RESTORED';exit 0
+}
 if($Action -eq 'Extract') {
  if($SourcePath) {
   if([IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($SourcePath)){throw 'Open the selected source DGN in MicroStation first.'}
@@ -154,14 +169,20 @@ if($Action -eq 'Extract') {
 $project=Get-Content -LiteralPath $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json
 if(-not $project.working_dgn){throw 'Missing working-copy path.'}
 if([IO.Path]::GetFullPath($project.working_dgn) -eq [IO.Path]::GetFullPath($project.source.path)){throw 'Refusing to edit source.'}
-Copy-Item -LiteralPath $project.working_dgn -Destination $OutputPath -ErrorAction Stop
+$direct=$Action -in @('ApplyDrawing','ApplyClean')
+$mutationStarted=$false
+if($direct) {
+ if([IO.Path]::GetFullPath($OutputPath) -ne [IO.Path]::GetFullPath($project.source.path) -or [IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($OutputPath)){throw 'Direct write requires the original DGN to remain active.'}
+ if(-not $project.direct_backup -or -not (Test-Path -LiteralPath $project.direct_backup)){throw 'A verified DGN backup is required before direct write.'}
+ if((Get-FileHash -LiteralPath $project.direct_backup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $project.source.sha256 -or (Get-FileHash -LiteralPath $OutputPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $project.source.sha256){throw 'Source or backup changed before direct write.'}
+} else {Copy-Item -LiteralPath $project.working_dgn -Destination $OutputPath -ErrorAction Stop}
 $design=$null
 try {
- $design=$app.OpenDesignFileForProgram($OutputPath,$false)
+ if($direct){$design=$app.ActiveDesignFile}else{$design=$app.OpenDesignFileForProgram($OutputPath,$false)}
  $script:Stage='select-output-model: '+$project.model
  $model=ResolveSonMapModel $design $project.model ([bool]$project.model_is_default)
  if($model.Is3D){throw 'Only 2D cadastral models are supported.'}
- if($Action -in @('WriteDrawing','CleanDrawing','TopologyDrawing')) {
+ if($Action -in @('WriteDrawing','CleanDrawing','TopologyDrawing','ApplyDrawing','ApplyClean')) {
  $boundary=@(([string]$project.options.boundary_levels).Split(',') | ForEach-Object {[int]$_.Trim()})
  $centreLevel=[int]$project.options.centre_level
  if($boundary -contains $centreLevel){throw 'Centre and boundary levels must differ.'}
@@ -169,9 +190,15 @@ try {
  $remove=New-Object 'System.Collections.Generic.List[object]'
  while(MoveSonMapScan $scanContext) {
   $element=ReadSonMapScanCurrent $scanContext
-  if($boundary -contains [int]$element.Level.Number){$remove.Add($element)}
+  $generated=$false
+  if([int]$element.Type -eq 2){
+   $name=[string]$element.AsCellElement.Name
+   $generated=($name -eq 'SMERR' -or ($name -eq 'SMPARC' -and $Action -notin @('CleanDrawing','ApplyClean')))
+  }
+  if(($boundary -contains [int]$element.Level.Number) -or $generated){$remove.Add($element)}
  }
  # Retain text and unsupported elements: export validation has already rejected unsupported boundaries.
+ $mutationStarted=$true
  foreach($element in $remove){if([int]$element.Type -notin @(7,17)){$model.RemoveElement($element)}}
  foreach($line in $project.cleaned_lines) {
   if($project.options.join_lines) {
@@ -188,7 +215,7 @@ try {
    $element.Level=(FindLevel $design $boundary[0]);$model.AddElement($element)
   }
  }
- if($Action -ne 'CleanDrawing') {
+ if($Action -notin @('CleanDrawing','ApplyClean')) {
  foreach($parcel in $project.parcels) {
   $origin=$app.Point3dFromXYZ([double]$parcel.centre[0],[double]$parcel.centre[1],0)
   $label=if($null -ne $parcel.TCT){[string]$parcel.TCT}else{'ID:'+ $parcel.ID}
@@ -209,7 +236,7 @@ try {
   $point=$null
   if($issue.point){$point=$issue.point}
   elseif($issue.points){$point=$issue.points[0]}
-  elseif($issue.parcel){$point=$project.parcels[[int]$issue.parcel-1].centre}
+  elseif($issue.parcel){$parcel=@($project.parcels | Where-Object {$_.ID -eq $issue.parcel} | Select-Object -First 1);if($parcel.Count){$point=$parcel[0].centre}}
   if(-not $point){continue}
   $origin=$app.Point3dFromXYZ([double]$point[0],[double]$point[1],0)
   $radius=[double]$project.options.error_radius / [double]$project.options.metres_per_unit
@@ -220,8 +247,19 @@ try {
  }
  $design.Save()
 } catch {
- if($design){$design.Close();$design=$null}
- if(Test-Path -LiteralPath $OutputPath){Remove-Item -LiteralPath $OutputPath}
- throw
-} finally {if($design){$design.Close()}}
+ $failure=$_
+ if($direct) {
+  if($mutationStarted) {
+   try {
+    $temporary=$app.OpenDesignFile($project.direct_backup,$true)
+    Copy-Item -LiteralPath $project.direct_backup -Destination $OutputPath -Force
+    $restored=$app.OpenDesignFile($OutputPath,$false)
+   } catch {throw ('Direct write failed; automatic DGN restore also failed. Backup: '+$project.direct_backup+'. Original error: '+$failure.Exception.Message+'. Restore error: '+$_.Exception.Message)}
+  }
+ } else {
+  if($design){$design.Close();$design=$null}
+  if(Test-Path -LiteralPath $OutputPath){Remove-Item -LiteralPath $OutputPath}
+ }
+ throw $failure
+} finally {if($design -and -not $direct){$design.Close()}}
 Write-Output 'DRAWING_CREATED'

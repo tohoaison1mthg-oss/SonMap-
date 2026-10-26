@@ -1,5 +1,6 @@
 """Windows-only I/O coordinator. Never modifies the original DGN or an existing MDB."""
 import hashlib
+import copy
 import json
 import os
 import shutil
@@ -74,6 +75,8 @@ def prepare(source, options):
         raise RuntimeError('Chuẩn bị bản vẽ cần Windows + MicroStation V8i.')
     folder = source.parent / (source.stem + '_SonMap_' + uuid.uuid4().hex[:10])
     folder.mkdir()
+    if options.get('in_place'):
+        powershell('dgn_topology.ps1','-Action','SaveActive','-InputPath',source,'-SourcePath',source,'-OutputPath',folder/'before-save.dgn')
     original = digest(source)
     working = folder / source.name
     shutil.copyfile(source, working)
@@ -229,13 +232,98 @@ def assign_labels(project_path, label_levels):
     for before,after in zip(old['parcels'],new['parcels']):
         if not Polygon(before['points']).equals(Polygon(after['points'])):
             raise ValueError('Ranh thay đổi; cần phân tích lại.')
-        for key in before.get('manual_fields',[]):after[key]=before[key]
+        after['ID']=before['ID']
+        for key in ('ToBD','TCT','TenChu','DiaChi','DiaChiThuaDatChiTiet','Xudong','LRD','MaLD'):
+            if key in before.get('manual_fields',[]) or not label_levels.get(key):after[key]=before.get(key)
         after['manual_fields']=before.get('manual_fields',[])
         after['MaLD']=after.get('LRD','')
     for key in ('working_dgn','working_sha256','references_excluded','status'):new[key]=old.get(key)
     for issue in new['issues']:
         if issue.get('parcel'):
             p=new['parcels'][issue['parcel']-1]
+            issue['parcel']=p['ID']
             if issue.get('field') in p.get('manual_fields',[]) and p.get(issue['field']):issue['resolved_by_manual_edit']=True
     save_project(project_path,new)
     return new
+
+
+def apply_current(project_path, database_path=None,clean_only=False):
+    """Back up and update the active DGN and optionally its connected MDB, keeping filenames."""
+    from database_topology import reconcile
+    project_path=Path(project_path)
+    original_project=json.loads(project_path.read_text(encoding='utf-8'))
+    project=copy.deepcopy(original_project)
+    source=Path(project['source']['path'])
+    if digest(source)!=project['source']['sha256']:
+        raise ValueError('DGN đã đổi từ lúc phân tích. Thực hiện topology lại trước khi cập nhật.')
+    backup=source.parent/'SonMap_backups'/uuid.uuid4().hex
+    backup.mkdir(parents=True)
+    dgn_backup=backup/source.name
+    shutil.copyfile(source,dgn_backup)
+    if digest(dgn_backup)!=project['source']['sha256']:raise RuntimeError('Bản sao lưu DGN không khớp nguồn.')
+    delta=None;target=None;staged=None;db_backup=None;db_before=None;db_applied=False;dgn_applied=False;new_db_digest=None
+    try:
+        if database_path:
+            target=Path(database_path).resolve()
+            if target.suffix.lower()!='.mdb':raise ValueError('CSDL cần có phần mở rộng .mdb.')
+            old=inspect_database(target);db_before=old['sha256']
+            db_backup=backup/target.name
+            if db_backup==dgn_backup:raise ValueError('Tên sao lưu DGN/MDB không hợp lệ.')
+            shutil.copyfile(target,db_backup)
+            if digest(db_backup)!=db_before:raise RuntimeError('MDB thay đổi khi sao lưu; không cập nhật.')
+            delta=reconcile(project,old['rows']);project=delta['project']
+            staged=backup/('pending-'+uuid.uuid4().hex+'.mdb')
+            shutil.copyfile(db_backup,staged)
+            plan=backup/'mdb-plan.json'
+            plan.write_text(json.dumps({k:delta[k] for k in ('delete_ids','insert_rows','update_rows')},ensure_ascii=False),encoding='utf-8')
+            powershell('update_mdb_topology.ps1','-PlanPath',plan,'-MdbPath',staged)
+            actual=inspect_database(staged)
+            wanted={int(r['ID']):r for r in delta['final_rows']}
+            found={int(r['ID']):r for r in actual['rows']}
+            if set(wanted)!=set(found):raise RuntimeError('MDB tạm đọc lại không khớp danh sách ID dự kiến.')
+            for rid,row in wanted.items():
+                for key,value in row.items():
+                    if key not in found[rid]:continue
+                    other=found[rid][key]
+                    if value!=other and not (value in ('',None) and other in ('',None)):
+                        raise RuntimeError(f'MDB tạm không khớp trường {key} của ID {rid}.')
+        # Geometry must remain exportable, but new parcels may wait for official numbering.
+        if clean_only:
+            if any(i['code']=='UNSUPPORTED' for i in project['issues']):raise ValueError('Còn phần tử ranh chưa hỗ trợ; không ghi đè.')
+        else:export_rows(project,allow_unnumbered=True)
+        project['direct_backup']=str(dgn_backup)
+        save_project(project_path,project)
+        if target and digest(target)!=db_before:raise ValueError('MDB đang bị thay đổi bởi chương trình khác. Chưa ghi thay đổi.')
+        powershell('dgn_topology.ps1','-Action','ApplyClean' if clean_only else 'ApplyDrawing','-InputPath',project_path,'-OutputPath',source)
+        dgn_applied=True
+        if target:
+            if digest(target)!=db_before:raise ValueError('MDB thay đổi trong khi cập nhật DGN; cần kết nối lại.')
+            new_db_digest=digest(staged)
+            try:os.replace(staged,target)
+            except OSError as exc:raise RuntimeError('Không thay được MDB đang bị khóa. Đóng kết nối CSDL trong phần mềm khác rồi thử lại; bản cũ được giữ.') from exc
+            db_applied=True
+            connected=inspect_database(target)
+        else:connected=None
+        project['source']['sha256']=digest(source)
+        # Refresh the analysis copy so a subsequent explicit operation does not use stale geometry.
+        shutil.copyfile(source,project['working_dgn']);project['working_sha256']=digest(project['working_dgn'])
+        save_project(project_path,project)
+        receipt={'status':'updated_current','dgn':str(source),'mdb':str(target) if target else None,
+                 'backup':str(backup),'project':project,'connected':connected,
+                 'before_count':delta['before_count'] if delta else None,
+                 'after_count':delta['after_count'] if delta else None,
+                 'splits':delta['splits'] if delta else [],'unnumbered':delta['unnumbered'] if delta else 0}
+        (backup/'receipt.json').write_text(json.dumps({k:v for k,v in receipt.items() if k not in ('project','connected')},ensure_ascii=False,indent=2),encoding='utf-8')
+        return receipt
+    except Exception as exc:
+        failures=[]
+        if db_applied and target and db_backup:
+            try:
+                if digest(target)!=new_db_digest:raise RuntimeError('MDB đã được tiến trình khác sửa sau khi ghi; không ghi đè dữ liệu mới của tiến trình đó.')
+                recovery=backup/'rollback.mdb';shutil.copyfile(db_backup,recovery);os.replace(recovery,target)
+            except Exception as rollback:failures.append('Không tự khôi phục MDB: '+str(rollback))
+        if dgn_applied:
+            try:powershell('dgn_topology.ps1','-Action','RestoreActive','-InputPath',dgn_backup,'-OutputPath',source)
+            except Exception as rollback:failures.append('Không tự khôi phục DGN: '+str(rollback))
+        save_project(project_path,original_project)
+        raise RuntimeError(str(exc)+'\nSao lưu trước cập nhật: '+str(backup)+ ('\n'+'\n'.join(failures) if failures else '')) from exc

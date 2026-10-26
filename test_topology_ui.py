@@ -63,6 +63,7 @@ class DialogTests(unittest.TestCase):
         self.assertNotEqual(self.workspace.windows['clean'],self.workspace.windows['topology'])
 
     def test_clean_and_topology_dispatch_different_drawing_operations(self):
+        self.workspace.in_place.set(False)
         for kind,expected in [('clean',False),('topology',True)]:
             with patch('topology_ui.prepare',return_value=(self.path,copy.deepcopy(self.data))),patch('topology_ui.drawing_project',return_value='result.dgn') as write:
                 self.workspace.process(kind);self.pump()
@@ -100,3 +101,12 @@ class DialogTests(unittest.TestCase):
         self.workspace.source.set('other.dgn');self.root.update()
         self.assertIsNone(self.workspace.project)
         self.assertEqual(self.workspace.parcel_table.get_children(),())
+
+    def test_default_direct_topology_updates_connected_mdb(self):
+        self.workspace.current_mdb='current.mdb'
+        result={'project':copy.deepcopy(self.data),'connected':{'path':'current.mdb','count':2,'rows':[],'sha256':'fixture'},'before_count':1,'after_count':2,'splits':[{}],'unnumbered':2,'backup':'backup'}
+        with patch('topology_ui.prepare',return_value=(self.path,copy.deepcopy(self.data))),patch('topology_ui.apply_current',return_value=result) as update:
+            self.workspace.process('topology');self.pump()
+            update.assert_called_once_with(self.path,'current.mdb',clean_only=False)
+        self.assertEqual(len(self.connected),1)
+        self.assertIn('1 → 2',self.workspace.status.get())

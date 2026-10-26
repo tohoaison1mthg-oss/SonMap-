@@ -7,7 +7,7 @@ from pathlib import Path
 
 from topology import BLOCKING, finite, save_project
 from topology_workflow import (prepare, export_project, preview_project, drawing_project,
-                               inspect_database, create_database, assign_labels, validate_options)
+                               inspect_database, create_database, assign_labels, validate_options, apply_current)
 
 ISSUES = {
  'UNSUPPORTED':'Phần tử ranh chưa hỗ trợ', 'SHORT_SEGMENT':'Đoạn ngắn',
@@ -36,6 +36,8 @@ class TopologyWorkspace:
         self.flags={k:tk.BooleanVar(master=parent,value=v) for k,v in FLAGS.items()}
         self.status=tk.StringVar(master=parent,value='Chọn Sửa lỗi, Tạo topology hoặc Kết nối CSDL.')
         self.database=tk.StringVar(master=parent,value='Chưa kết nối CSDL')
+        self.in_place=tk.BooleanVar(master=parent,value=True)
+        self.current_mdb=None
         self.windows={};self.controls=[];self.busy=False;self.project=None;self.path=None
         self.source.trace_add('write',self.source_changed)
 
@@ -105,6 +107,7 @@ class TopologyWorkspace:
     def options(self):
         options={k:v.get().strip() for k,v in self.vars.items() if not k.startswith('label_')}
         options.update({k:v.get() for k,v in self.flags.items()})
+        options['in_place']=self.in_place.get()
         options['label_levels']={k:self.vars['label_'+k].get().strip() for k in ('TCT','LRD','TenChu','Xudong')}
         validate_options(options)
         for key in ('metres_per_unit','short_length','min_area','near_distance','snap_tolerance'):
@@ -144,17 +147,32 @@ class TopologyWorkspace:
         from tkinter import messagebox
         try:options=self.options()
         except Exception as exc:messagebox.showerror('Thông số chưa đúng',str(exc),parent=self.parent);return
-        source=self.source.get();self.project=None;self.path=None;self.refresh_parcels();self.refresh_report()
+        source=self.source.get();target=self.current_mdb;self.project=None;self.path=None;self.refresh_parcels();self.refresh_report()
         def work():return prepare(source,options)
         def done(value):
             self.path,self.project=value
             self.refresh_report();self.refresh_parcels()
             count=len(self.project['parcels']);errors=sum(i['code'] in BLOCKING for i in self.project['issues'])
-            self.status.set(f'{count} vùng thửa; {errors} lỗi ranh cần xử lý.')
+            evidence='; '.join('lớp '+k+': '+str(v)+' phần tử' for k,v in self.project.get('input_summary',{}).items())
+            self.status.set(f'Đọc {evidence}. Tạo {count} vùng; {errors} lỗi ranh.')
             if kind=='topology' and errors:self.show_report();return
             if kind=='clean' and any(i['code']=='UNSUPPORTED' for i in self.project['issues']):self.show_report();return
-            self.launch(lambda:drawing_project(self.path,topology=kind=='topology'),lambda path:self.drawing_done(kind,path))
+            if options['in_place']:
+                self.launch(lambda:apply_current(self.path,target if kind=='topology' else None,clean_only=kind=='clean'),self.current_done)
+            else:self.launch(lambda:drawing_project(self.path,topology=kind=='topology'),lambda path:self.drawing_done(kind,path))
         self.launch(work,done)
+
+    def current_done(self,result):
+        from tkinter import messagebox
+        self.project=result['project'];self.refresh_parcels();self.refresh_report()
+        text='Đã ghi vào DGN hiện tại. '
+        if result.get('connected'):
+            self.on_database(result['connected'])
+            text+=f"MDB: {result['before_count']} → {result['after_count']} thửa; {len(result['splits'])} thửa được tách."
+            if result['unnumbered']:text+=f" {result['unnumbered']} thửa chờ nhập số hiệu chính thức."
+        else:text+='Chưa cập nhật MDB (chưa kết nối CSDL hoặc đang sửa ranh).'
+        self.status.set(text)
+        messagebox.showinfo('Đã cập nhật',text+'\nSao lưu trước thay đổi: '+result['backup'],parent=self.parent)
 
     def drawing_done(self,kind,path):
         from tkinter import messagebox
@@ -194,6 +212,7 @@ class TopologyWorkspace:
         self.button(links,'Báo lỗi…',self.show_report).pack(side='left',padx=3)
         self.button(links,'Ghi cell báo lỗi…',self.preview).pack(side='left',padx=3)
         self.button(links,'Đơn vị / sai số cung…',self.advanced).pack(side='left',padx=3)
+        check=ttk.Checkbutton(win,text='Sửa ngay DGN hiện tại (có sao lưu)',variable=self.in_place);check.pack(anchor='w',padx=14);self.controls.append(check)
         self.footer(win,lambda:self.process('clean'))
 
     def topology(self):
@@ -205,7 +224,7 @@ class TopologyWorkspace:
         self.entry(fields,'boundary_levels',0,'Lớp tạo vùng (nhập số)',width=30)
         self.entry(fields,'sheet',1,'Tờ bản đồ số',width=15)
         mode=ttk.LabelFrame(win,text='Cơ sở dữ liệu thửa');mode.pack(fill='x',padx=12,pady=8)
-        ttk.Label(mode,text='Tạo mới vùng và tâm thửa trên bản sao DGN.').pack(anchor='w',padx=10,pady=5)
+        ttk.Label(mode,text='Dựng lại vùng và tâm thửa từ ranh DGN.').pack(anchor='w',padx=10,pady=5)
         ttk.Label(mode,text='Chưa có số thửa: tâm tạm hiển thị ID, chờ gán thông tin.').pack(anchor='w',padx=10,pady=(0,5))
         middle=ttk.Frame(win);middle.pack(fill='x',padx=8)
         centre=ttk.LabelFrame(middle,text='Cell tâm thửa');centre.pack(side='left',fill='both',expand=True,padx=4)
@@ -220,6 +239,7 @@ class TopologyWorkspace:
         self.button(links,'Gán nhãn…',self.labels).pack(side='left',padx=3)
         self.button(links,'Thông tin thửa…',self.parcels).pack(side='left',padx=3)
         self.button(links,'Báo lỗi…',self.show_report).pack(side='left',padx=3)
+        check=ttk.Checkbutton(win,text='Ghi DGN hiện tại và cập nhật MDB kết nối (có sao lưu)',variable=self.in_place);check.pack(anchor='w',padx=14);self.controls.append(check)
         self.footer(win,lambda:self.process('topology'))
 
     def advanced(self):
@@ -365,11 +385,12 @@ class TopologyWorkspace:
 
     def database_dialog(self):
         from tkinter import ttk,filedialog,messagebox
-        win=self.window('database','Kết nối cơ sở dữ liệu','630x365')
+        win=self.window('database','Kết nối cơ sở dữ liệu','630x410')
         if not win:return
         box=ttk.LabelFrame(win,text='Cơ sở dữ liệu Access MDB');box.pack(fill='x',padx=12,pady=12)
         ttk.Label(box,textvariable=self.database,wraplength=580).pack(anchor='w',padx=10,pady=12)
         def connected(result):
+            self.current_mdb=result['path']
             self.database.set(result['path']);self.status.set(f"Đã kết nối CSDL: {result['count']} thửa.")
             self.on_database(result)
         def connect():
@@ -384,12 +405,20 @@ class TopologyWorkspace:
         self.button(buttons,'Tạo MDB mới…',create).pack(side='left',padx=4)
         project=ttk.LabelFrame(win,text='Dữ liệu từ topology');project.pack(fill='x',padx=12,pady=4)
         ttk.Label(project,text='Tạo MDB có dữ liệu sau khi kiểm tra vùng và gán số thửa.').pack(anchor='w',padx=10,pady=8)
-        self.button(project,'Tạo DGN + MDB từ topology…',self.export).pack(anchor='w',padx=10,pady=(0,10))
+        self.button(project,'Cập nhật MDB hiện tại (sao lưu)',self.update_current).pack(anchor='w',padx=10,pady=(0,5))
+        self.button(project,'Tạo DGN + MDB riêng…',self.export).pack(anchor='w',padx=10,pady=(0,10))
         links=ttk.Frame(win);links.pack(fill='x',padx=12,pady=8)
         self.button(links,'Mở dự án…',self.load_project).pack(side='left',padx=3)
         self.button(links,'Thông tin thửa…',self.parcels).pack(side='left',padx=3)
         self.button(links,'Đóng',win.destroy).pack(side='right',padx=3)
         ttk.Label(win,textvariable=self.status,wraplength=590).pack(fill='x',padx=12,pady=4)
+
+    def update_current(self):
+        from tkinter import messagebox
+        if not self.require_project():return
+        if not self.current_mdb:
+            messagebox.showinfo('Chưa kết nối CSDL','Chọn Đọc / kết nối MDB trước.',parent=self.parent);return
+        self.launch(lambda:apply_current(self.path,self.current_mdb),self.current_done)
 
     def export(self):
         from tkinter import messagebox

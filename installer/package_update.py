@@ -17,7 +17,7 @@ def release_version(root=ROOT):
 
 
 def source_files(root=ROOT):
-    allowed={'.py','.ps1','.bas','.cls','.md','.cmd','.ico'}
+    allowed={'.py','.ps1','.bas','.cls','.md','.cmd','.ico','.code-workspace'}
     files=[p for p in root.iterdir() if p.is_file() and
            (p.suffix.lower() in allowed or p.name in ('VERSION','admin_catalog.json','requirements-topology.txt'))]
     files += [p for p in (root/'installer').iterdir() if p.is_file() and p.suffix.lower() in ('.cs','.py','.ps1','.cmd')]
