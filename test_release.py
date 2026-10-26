@@ -25,7 +25,7 @@ class ReleaseTests(unittest.TestCase):
                 self.assertEqual(set(outer.namelist()),{'Cai_dat.cmd','Cai_dat.ps1','payload.zip','HUONG_DAN.txt','Kiem_tra_V8i.cmd'})
                 with zipfile.ZipFile(io.BytesIO(outer.read('payload.zip'))) as payload:
                     self.assertEqual(payload.read('VERSION').decode().strip(),release_version())
-                    for required in ['installer/restore.ps1','installer/restore.cmd','CHANGELOG.md','AGENTS.md','check_connection.ps1']:
+                    for required in ['installer/restore.ps1','installer/restore.cmd','CHANGELOG.md','AGENTS.md','check_connection.ps1','python_probe.py','python_setup.ps1']:
                         self.assertIn(required,payload.namelist())
                     entries=json.loads(payload.read('MANIFEST.json'))
                     self.assertEqual(set(payload.namelist()),{entry['file'] for entry in entries}|{'MANIFEST.json'})

@@ -156,3 +156,13 @@ bản từ một checkout cũ khi GitHub đã có bản mới hơn.
 Công cụ đọc các thiết lập CAD cho phép trong C:\VietMapXM và cấu hình User Bentley,
 không đọc nội dung bản đồ hoặc sửa cấu hình/DLL/giấy phép. Báo cáo ở
 `%LOCALAPPDATA%\SonMapPlus\App\data\vietmapxm-diagnostic.json`.
+
+## V10.5 — máy có Python 3.15
+
+Python 3.15 không đáp ứng yêu cầu 3.12 của môi trường SonMap hiện tại. Khi
+chạy Cai_dat.cmd V10.5, trình cài dùng lại bản 3.12 phù hợp nếu có; nếu chưa có,
+tải bộ cài 3.12.10 chính thức qua HTTPS và chỉ chạy khi chữ ký hợp lệ của Python
+Software Foundation. Python này được cài riêng trong SonMapPlus/Python312,
+không gỡ 3.15 hay đổi PATH. Cần Internet và chứng thư hệ thống hoạt động. Nếu
+đã có đăng ký Python 3.12 nhưng thiếu thành phần, chương trình báo cần Modify/Repair
+bản đó thay vì tự ghi đè. Probe có giới hạn 15 giây để tránh treo vô hạn.

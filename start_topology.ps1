@@ -1,17 +1,10 @@
-param([switch]$PrepareOnly,[string]$EnvironmentRoot)
+param([switch]$PrepareOnly,[string]$EnvironmentRoot,[switch]$InstallPython)
 # Detect a real Python installation without requiring the optional py launcher.
 $ErrorActionPreference='Stop'
 Set-Location -LiteralPath $PSScriptRoot
 if(-not $EnvironmentRoot){$EnvironmentRoot=$PSScriptRoot}
 $EnvironmentRoot=[IO.Path]::GetFullPath($EnvironmentRoot)
-function TestPython([string]$Executable, [string[]]$Prefix=@()) {
- if(-not $Executable -or $Executable -match '\\Microsoft\\WindowsApps\\'){return $false}
- try {
-  $ErrorActionPreference='Continue'
-  & $Executable @Prefix -c "import sys,struct,tkinter,venv; sys.exit(0 if sys.version_info[:2]==(3,12) and struct.calcsize('P')==8 else 1)" *> $null
-  return $LASTEXITCODE -eq 0
- } catch {return $false}
-}
+. (Join-Path $PSScriptRoot 'python_setup.ps1')
 # Windows PowerShell 5.1 can turn native stderr (including Python tracebacks
 # and ordinary pip warnings) into a terminating NativeCommandError under Stop.
 # Handle native exit codes explicitly and retain every output line in a log.
@@ -40,7 +33,7 @@ try {
    if($command){$candidates.Add($command.Source)}
   }
   foreach($base in 'HKCU:\Software\Python\PythonCore','HKLM:\Software\Python\PythonCore') {
-   foreach($version in '3.12','3.12-64') {
+   foreach($version in @('3.12','3.12-64')+@(Get-ChildItem -LiteralPath $base -ErrorAction SilentlyContinue | ForEach-Object {$_.PSChildName})) {
     $key=Get-Item ($base+'\'+$version+'\InstallPath') -ErrorAction SilentlyContinue
     if($key) {
      $executable=$key.GetValue('ExecutablePath')
@@ -50,6 +43,8 @@ try {
     }
    }
   }
+  $privatePython=Join-Path (Split-Path -Parent $EnvironmentRoot) 'Python312'
+  $candidates.Add((Join-Path $privatePython 'python.exe'))
   foreach($directory in @((Join-Path $env:LOCALAPPDATA 'Programs\Python\Python312'),(Join-Path $env:ProgramFiles 'Python312'),(Join-Path $PSScriptRoot 'runtime'))) {
    $candidates.Add((Join-Path $directory 'python.exe'))
   }
@@ -60,9 +55,14 @@ try {
    $launcher=Get-Command py -CommandType Application -ErrorAction SilentlyContinue
    if($launcher -and (TestPython $launcher.Source @('-3.12'))){$found=$launcher.Source;$prefix=@('-3.12')}
   }
+  if(-not $found -and $InstallPython) {
+   $found=InstallSonMapPython $privatePython
+   $prefix=@()
+  }
   if(-not $found) {
    Write-Host ''
-   Write-Host 'Khong tim thay Python 3.12 64-bit co Tkinter.'
+   Write-Host 'Khong tim thay Python 3.12 64-bit phu hop; cac ban khac khong bi thay the.'
+   Write-Host 'Chay Cai_dat.cmd ban moi de tu chuan bi Python rieng cho SonMap.'
    Write-Host 'Tai ban cai chinh thuc:'
    Write-Host 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe'
    Write-Host 'Cai voi tuy chon Tcl/Tk va pip; sau do chay lai start_topology.cmd.'

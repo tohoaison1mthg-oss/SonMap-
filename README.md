@@ -1,6 +1,6 @@
 # SonMap+
 
-Phần mềm địa chính cho Windows + MicroStation V8i. Phiên bản hiện tại: **V10.4**.
+Phần mềm địa chính cho Windows + MicroStation V8i. Phiên bản hiện tại: **V10.5**.
 
 Tự nhận DGN đang mở và MDB cùng tên; tìm thửa, kiểm tra hình học, xuất trích lục/In GCN/Mẫu 03; địa chỉ từ Xudong + xã/phường + tỉnh; Reference tọa độ thực, bật/tắt bằng nút Ánh xạ. Giao diện gọn, danh sách thửa mở/thu gọn riêng. Có workspace SonMap V7 độc lập.
 
@@ -34,3 +34,10 @@ Gói cài không kèm Python, MicroStation hoặc tài nguyên xuất hồ sơ r
 
 Để tạo gói từ mã nguồn: `python installer/package_update.py --output <thu-muc-moi>`.
 Phiên bản lấy từ VERSION; lần nâng cấp kế tiếp phải tăng số theo AGENTS.md.
+
+## V10.5 — Python trên máy khác
+
+Trình cài ghi rõ phiên bản Python tìm thấy. Nếu máy chỉ có Python 3.15 hoặc
+không có CPython 3.12 64-bit phù hợp, Cai_dat.cmd tải bộ cài chính thức, xác minh
+chữ ký Python Software Foundation rồi cài Python riêng vào SonMapPlus/Python312.
+Không gỡ Python 3.15, không đổi PATH hoặc liên kết tệp. Lần đầu cần Internet.

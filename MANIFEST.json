@@ -9,11 +9,11 @@
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "b010cf8962ca9c4e5787652f8221856962b9491d03c029b17c3627042d1162de"
+    "sha256": "3d519dc87140f19e64192deee46069b980057f56c5559ec38ab79998a8d3d787"
   },
   {
     "file": "CONTINUE.md",
-    "sha256": "2c9912585c76d8795f919ef76a8e59ce4694a93fbbd9132a6f25303720662fed"
+    "sha256": "16e8e1c2bb6e517dc8dbec59a018f8ab2ba705c36e660bad6c86a79373224973"
   },
   {
     "file": "Kiem_tra_V8i.cmd",
@@ -29,15 +29,15 @@
   },
   {
     "file": "README.md",
-    "sha256": "c4ecf6cdd174a92d4be2c390ffe09faf0cb0a842114c7f87daa5aadf3a78a157"
+    "sha256": "1dca2f35b7bfc70759dd2142947e24b166d353e17210ad963d064acd0ae5b2e7"
   },
   {
     "file": "TOPOLOGY.md",
-    "sha256": "ad1825f848472923d8d0df6d1d5c6566fdc4e582f3342e6e2ad1ea006fd8e17b"
+    "sha256": "1a4351b1d89d004e735a9ef6c497052e3428b38755e06ef5d49b732cad89b8c1"
   },
   {
     "file": "VERSION",
-    "sha256": "3ae36db32a3ca45dd9347c433620e36a3ae2759cfadfac2d957e4989ea5c401a"
+    "sha256": "15247019562708f00d877aeae249852de6035546ba3c6e921b8dc5f76486cf39"
   },
   {
     "file": "active_dgn.ps1",
@@ -85,7 +85,7 @@
   },
   {
     "file": "installer/package_update.py",
-    "sha256": "06e39b1ffaa1627956619c67164689eeea60a03edf38a33d67f10164bbaf8e65"
+    "sha256": "6ed397bcde118a03faab22e97dcee2fe850d7dbe934611157682fac5d50fcf91"
   },
   {
     "file": "installer/restore.cmd",
@@ -105,7 +105,7 @@
   },
   {
     "file": "installer/update.ps1",
-    "sha256": "55354e309a94dca8763c618822cac6297204ca9da85506c82f7b9cb211abc3f1"
+    "sha256": "04b4bc1a040b64418662f2fc7f6ab086301d217f39a720ff2a798ee8f3dae017"
   },
   {
     "file": "installer/update_vba.ps1",
@@ -118,6 +118,14 @@
   {
     "file": "mau03_engine.bas",
     "sha256": "11ce33c02013021369fb516105601838a3c9131673cd868f63a0e2801cd52f6e"
+  },
+  {
+    "file": "python_probe.py",
+    "sha256": "5201d414769d86857882c244aafebaa0124c737d46454db5404a48cfc9213d80"
+  },
+  {
+    "file": "python_setup.ps1",
+    "sha256": "282cc405e279a25e9b311555148a6192ee68a8d17e28fd037d9d5d5952daf428"
   },
   {
     "file": "quality.py",
@@ -153,7 +161,7 @@
   },
   {
     "file": "start_topology.ps1",
-    "sha256": "d72f9dc2a3a17a7a8a9c379d7f1fbd130bfee5077db9aa6615e02a8414316cb8"
+    "sha256": "c50a5c783925e1b6bb555ae50795296e61ebe7221a3ad7bd9d6fbb130c1f619e"
   },
   {
     "file": "start_v8i.ps1",
@@ -168,8 +176,12 @@
     "sha256": "d6c0edac99b35c61095f8558a251263f371319090ca62981684552eb0b192292"
   },
   {
+    "file": "test_python_probe.py",
+    "sha256": "fe045751c7267a02f66fd8827c18cefe4c2071981672b534a2588b849a317e47"
+  },
+  {
     "file": "test_release.py",
-    "sha256": "58c63586184a346d82dc9e560e54796252a3ccbe4aec419214385350d1d83290"
+    "sha256": "e8a60174ed63a25151c22f282089df3c8ec6d6183449bb748b7c5b53186085a9"
   },
   {
     "file": "test_topology.py",

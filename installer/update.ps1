@@ -53,7 +53,7 @@ try {
  $previous=$ErrorActionPreference
  try {
   $ErrorActionPreference='Continue'
-  & $powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $stage 'start_topology.ps1') -PrepareOnly -EnvironmentRoot $InstallRoot 2>&1 | ForEach-Object {Log ([string]$_)}
+  & $powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $stage 'start_topology.ps1') -PrepareOnly -EnvironmentRoot $InstallRoot -InstallPython 2>&1 | ForEach-Object {Log ([string]$_)}
   $code=$LASTEXITCODE
  } finally {$ErrorActionPreference=$previous}
  if($code -ne 0){throw 'Python/dependency preparation failed. See the messages above.'}

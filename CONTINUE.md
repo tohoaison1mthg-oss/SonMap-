@@ -45,7 +45,7 @@ của file đó yêu cầu data/source.json riêng.
 ## Quy tắc nâng cấp
 
 Người dùng đã xác nhận nhánh codex/sonmap-topology-ui là đúng bản giao diện cần
-đóng gói. Phiên bản hiện tại là V10.4; lần nâng cấp kế tiếp tăng lên V10.5 nếu
+đóng gói. Phiên bản hiện tại là V10.5; lần nâng cấp kế tiếp tăng lên V10.6 nếu
 chưa có bản cao hơn trên GitHub. Đọc AGENTS.md, VERSION và CHANGELOG.md trước khi
 phát hành. Không dùng dev-v1/v2 thay số phiên bản app.
 
@@ -59,3 +59,10 @@ Người dùng cho phép thao tác trên MicroStation ở laptop và tham khảo
 nhưng phiên cloud không có công cụ điều khiển laptop. Không được tuyên bố đã
 thao tác Windows. Kèm Kiem_tra_V8i.cmd/check_connection.ps1 để người dùng chạy
 tại máy, lấy báo cáo data/vietmapxm-diagnostic.json; chỉ đọc các cấu hình CAD.
+
+V10.5 sửa trường hợp laptop chỉ có Python 3.15: bản này không tương thích yêu
+cầu 3.12 của thư viện đã ghim. python_probe.py báo rõ phiên bản/bit/thành phần;
+python_setup.ps1 có timeout và chuẩn bị Python 3.12 riêng nếu được trình cài gọi.
+Chỉ thực thi bộ cài có chữ ký hợp lệ của Python Software Foundation; không tắt
+TLS/chữ ký. Không gỡ bản 3.15 hay đổi PATH. Nếu đã có 3.12 hỏng/thiếu thành phần,
+báo sửa bản đó thay vì tự ghi đè. Chưa xác minh trên Windows thật.

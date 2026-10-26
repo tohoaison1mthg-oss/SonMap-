@@ -1,5 +1,15 @@
 # Phiên bản SonMap+
 
+## V10.5
+
+- Phân biệt Python đã cài và Python phù hợp với thư viện SonMap; báo rõ 3.15/32-bit/thiếu thành phần.
+- Probe Python có giới hạn 15 giây, không che mất lý do kiểm tra thất bại.
+- Khi cài mới mà thiếu 3.12, tự tải bộ cài chính thức, kiểm tra chữ ký hợp lệ của Python Software Foundation.
+- Cài Python 3.12 riêng cho SonMap, giữ các Python khác và không đổi PATH/liên kết tệp.
+- Giữ gói, tag và nguồn V10.4 để phục hồi.
+
+Cài tự động vẫn cần được xác minh trên Windows thật; kiểm thử cloud không thay thế thao tác này.
+
 ## V10.4
 
 - Bảng chính gọn: Sửa lỗi, Tạo topology, Kết nối CSDL; hộp thoại riêng.

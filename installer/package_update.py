@@ -45,7 +45,7 @@ def build(output,root=ROOT):
 
 1. Dong SonMap dang chay. Giai nen toan bo ZIP vao mot thu muc.
 2. Nhan dup Cai_dat.cmd. Khong chay file ben trong cua so xem ZIP.
-3. Lan dau can Internet va Python 3.12 64-bit co Tcl/Tk + pip.
+3. Lan dau can Internet; trinh cai tu chuan bi Python 3.12 rieng neu thieu.
 4. Trinh cai tu tao moi truong Python rieng va loi tat SonMap+ tren Desktop.
 5. Mo bang loi tat, kiem tra tieu de SonMap+ V{version}.
 6. Mo MicroStation va DGN, chay Kiem_tra_V8i.cmd neu can kiem tra ket noi
@@ -55,8 +55,9 @@ Thu muc cai: %LOCALAPPDATA%\\SonMapPlus\\App
 Sao luu ma cu: %LOCALAPPDATA%\\SonMapPlus\\Backups
 Nhat ky cai dat: %LOCALAPPDATA%\\SonMapPlus\\Logs
 Khong ghi de DGN/MDB, assets, runtime, settings.json hay data hien co.
-Ban cai nguon nay khong kem MicroStation, Python, runtime/vendor DLL hoac
-bo tai nguyen xuat ho so rieng. Python da cai tren laptop duoc tai su dung.
+Ban cai nguon nay khong kem MicroStation, runtime/vendor DLL hoac
+bo tai nguyen xuat ho so rieng. Python 3.12 phu hop duoc tai su dung; neu thieu se tai bo cai chinh thuc,
+kiem tra chu ky va cai rieng, khong go Python 3.15 hoac doi PATH.
 
 Neu con loi V8i: gui file data\\dgn-topology-last.log trong thu muc cai.
 Cau noi V8i/Jet va trinh cai moi van can kiem chung tren Windows thuc te.
