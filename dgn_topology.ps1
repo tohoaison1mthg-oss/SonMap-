@@ -20,6 +20,7 @@ trap {
  exit 1
 }
 . (Join-Path $PSScriptRoot 'dgn_models.ps1')
+. (Join-Path $PSScriptRoot 'dgn_scan.ps1')
 function FindLevel($design,[int]$number) {
  foreach($level in $design.Levels){if([int]$level.Number -eq $number){return $level}}
  $level=$design.Levels.Add('SonMap_Level_'+$number)
@@ -139,9 +140,11 @@ if($Action -eq 'Extract') {
     $elements.Add(@{kind=('unsupported-type-'+$element.Type);level=$level;id=$id;reason=$_.Exception.Message})
    }
   }
-  $script:Stage='scan-model'
-  $scan=$model.Scan()
-  while($scan.MoveNext()){CollectElement $scan.Current 0 0 $false}
+  $scanContext=NewSonMapScan $app $model
+  while(MoveSonMapScan $scanContext){
+   $element=ReadSonMapScanCurrent $scanContext
+   CollectElement $element 0 0 $false
+  }
   $script:Stage='write-snapshot-json'
   WriteJson $OutputPath @{version=1;model=$ModelName;model_is_default=[bool]$DefaultModel;unit=[string]$model.MasterUnit.Label;references_excluded=[int]$model.Attachments.Count;elements=@($elements.ToArray());texts=@($texts.ToArray())}
  } finally {$design.Close()}
@@ -162,9 +165,10 @@ try {
  $boundary=@(([string]$project.options.boundary_levels).Split(',') | ForEach-Object {[int]$_.Trim()})
  $centreLevel=[int]$project.options.centre_level
  if($boundary -contains $centreLevel){throw 'Centre and boundary levels must differ.'}
- $scan=$model.Scan();$remove=New-Object 'System.Collections.Generic.List[object]'
- while($scan.MoveNext()) {
-  $element=$scan.Current
+ $scanContext=NewSonMapScan $app $model 'output-scan'
+ $remove=New-Object 'System.Collections.Generic.List[object]'
+ while(MoveSonMapScan $scanContext) {
+  $element=ReadSonMapScanCurrent $scanContext
   if($boundary -contains [int]$element.Level.Number){$remove.Add($element)}
  }
  # Retain text and unsupported elements: export validation has already rejected unsupported boundaries.

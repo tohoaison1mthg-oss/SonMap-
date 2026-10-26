@@ -22,10 +22,10 @@ class ReleaseTests(unittest.TestCase):
             path=build(directory)
             self.assertEqual(path.name,'SonMapPlus_V'+release_version().replace('.','_')+'_Update.zip')
             with zipfile.ZipFile(path) as outer:
-                self.assertEqual(set(outer.namelist()),{'Cai_dat.cmd','Cai_dat.ps1','payload.zip','HUONG_DAN.txt','Kiem_tra_V8i.cmd'})
+                self.assertEqual(set(outer.namelist()),{'Cai_dat.cmd','Cai_dat.ps1','payload.zip','HUONG_DAN.txt','Kiem_tra_V8i.cmd','Kiem_tra_quet_DGN.cmd'})
                 with zipfile.ZipFile(io.BytesIO(outer.read('payload.zip'))) as payload:
                     self.assertEqual(payload.read('VERSION').decode().strip(),release_version())
-                    for required in ['installer/restore.ps1','installer/restore.cmd','CHANGELOG.md','AGENTS.md','check_connection.ps1','python_probe.py','python_setup.ps1']:
+                    for required in ['installer/restore.ps1','installer/restore.cmd','CHANGELOG.md','AGENTS.md','check_connection.ps1','python_probe.py','python_setup.ps1','dgn_scan.ps1','test_scan_v8i.ps1']:
                         self.assertIn(required,payload.namelist())
                     entries=json.loads(payload.read('MANIFEST.json'))
                     self.assertEqual(set(payload.namelist()),{entry['file'] for entry in entries}|{'MANIFEST.json'})

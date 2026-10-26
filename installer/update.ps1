@@ -104,7 +104,28 @@ try {
  Log ('Installed SonMap+ V'+$version+' to '+$InstallRoot)
  Log ('Previous program files saved in '+$backup)
  Log 'Desktop shortcut: SonMap+. Your DGN/MDB and existing user data are preserved.'
- if(-not $NoLaunch){Start-Process -FilePath (Join-Path $InstallRoot 'start_topology.cmd') -WorkingDirectory $InstallRoot}
+ if(-not $NoLaunch) {
+  Log 'Checking DGN scan in the running V8i (read-only snapshot test).'
+  $scanShell=Join-Path $env:SystemRoot 'SysWOW64\WindowsPowerShell\v1.0\powershell.exe'
+  $scanProcess=$null;$scanCode=1
+  try {
+   $scanInfo=New-Object Diagnostics.ProcessStartInfo
+   $scanInfo.FileName=$scanShell
+   $scanInfo.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $InstallRoot 'test_scan_v8i.ps1')+'"'
+   $scanInfo.UseShellExecute=$false;$scanInfo.CreateNoWindow=$true
+   $scanInfo.RedirectStandardOutput=$true;$scanInfo.RedirectStandardError=$true
+   $scanProcess=New-Object Diagnostics.Process;$scanProcess.StartInfo=$scanInfo
+   [void]$scanProcess.Start()
+   $scanOutput=$scanProcess.StandardOutput.ReadToEndAsync();$scanError=$scanProcess.StandardError.ReadToEndAsync()
+   if($scanProcess.WaitForExit(150000)) {
+    $scanCode=$scanProcess.ExitCode
+    Log $scanOutput.Result;Log $scanError.Result
+   } else {$scanProcess.Kill();Log 'V8i scan timed out; test not verified. Installation remains complete.'}
+  } catch {Log ('V8i scan unavailable: '+$_.Exception.Message)}
+  finally {if($scanProcess){$scanProcess.Dispose()}}
+  if($scanCode -ne 0){Log 'V8i scan not verified. Open/save the DGN and run Kiem_tra_quet_DGN.cmd; send its report if it fails.'}
+  Start-Process -FilePath (Join-Path $InstallRoot 'start_topology.cmd') -WorkingDirectory $InstallRoot
+ }
  exit 0
 } catch {
  if(-not $committed -and $backup) {

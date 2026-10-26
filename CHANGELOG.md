@@ -1,5 +1,15 @@
 # Phiên bản SonMap+
 
+## V10.6
+
+- Sửa lệnh quét DGN từ COM ngoài V8i: tạo ElementScanCriteria qua ứng dụng rồi truyền rõ vào Scan.
+- Áp dụng cho cả đọc ranh và quét các phần tử cần thay trên bản sao.
+- Tách chẩn đoán thành tạo tiêu chí, bắt đầu quét, chuyển phần tử và lấy phần tử hiện tại.
+- Trình cài thử quét trực tiếp trên V8i đang mở, so với bản sao chỉ đọc và ghi báo cáo; không coi lỗi hoặc số phần tử 0 là kiểm thử đạt.
+- Không đổi cách nhập nhiều lớp: 10,23,32 vẫn hợp lệ; giữ V10.5 để phục hồi.
+
+Cần chạy xác minh trên V8i thực tế; kiểm thử đối tượng giả không thay thế COM thật.
+
 ## V10.5
 
 - Phân biệt Python đã cài và Python phù hợp với thư viện SonMap; báo rõ 3.15/32-bit/thiếu thành phần.

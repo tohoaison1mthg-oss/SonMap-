@@ -45,7 +45,7 @@ của file đó yêu cầu data/source.json riêng.
 ## Quy tắc nâng cấp
 
 Người dùng đã xác nhận nhánh codex/sonmap-topology-ui là đúng bản giao diện cần
-đóng gói. Phiên bản hiện tại là V10.5; lần nâng cấp kế tiếp tăng lên V10.6 nếu
+đóng gói. Phiên bản hiện tại là V10.6; lần nâng cấp kế tiếp tăng lên V10.7 nếu
 chưa có bản cao hơn trên GitHub. Đọc AGENTS.md, VERSION và CHANGELOG.md trước khi
 phát hành. Không dùng dev-v1/v2 thay số phiên bản app.
 
@@ -66,3 +66,9 @@ python_setup.ps1 có timeout và chuẩn bị Python 3.12 riêng nếu được 
 Chỉ thực thi bộ cài có chữ ký hợp lệ của Python Software Foundation; không tắt
 TLS/chữ ký. Không gỡ bản 3.15 hay đổi PATH. Nếu đã có 3.12 hỏng/thiếu thành phần,
 báo sửa bản đó thay vì tự ghi đè. Chưa xác minh trên Windows thật.
+
+V10.6 xử lý lỗi người dùng gửi: scan-model / Index was outside the bounds of the
+array khi lớp 10,23,32. Lớp nhập đúng. dgn_scan.ps1 tạo ElementScanCriteria trong
+V8i, truyền tham số Scan rõ ràng cho COM; giữ tham chiếu tiêu chí tới hết lượt
+quét. Các bước tạo/bắt đầu/MoveNext/Current được báo riêng. Chưa được chạy trên
+V8i thật; nếu vẫn lỗi phải đọc dgn-topology-last.log, không coi bản đồ rỗng.

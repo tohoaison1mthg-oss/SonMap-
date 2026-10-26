@@ -47,7 +47,9 @@ def build(output,root=ROOT):
 2. Nhan dup Cai_dat.cmd. Khong chay file ben trong cua so xem ZIP.
 3. Lan dau can Internet; trinh cai tu chuan bi Python 3.12 rieng neu thieu.
 4. Trinh cai tu tao moi truong Python rieng va loi tat SonMap+ tren Desktop.
-5. Mo bang loi tat, kiem tra tieu de SonMap+ V{version}.
+5. Mo V8i va luu DGN truoc khi cai. Trinh cai thu quet truc tiep tren V8i.
+   Mo bang loi tat, kiem tra tieu de SonMap+ V{version}.
+   Neu can thu lai: chay Kiem_tra_quet_DGN.cmd. Bao cao o data/v8i-scan-*.json.
 6. Mo MicroStation va DGN, chay Kiem_tra_V8i.cmd neu can kiem tra ket noi
    va tham khao cau hinh C:\\VietMapXM (chi doc). Bao cao o thu muc cai\\data\\vietmapxm-diagnostic.json.
 
@@ -66,6 +68,7 @@ Cau noi V8i/Jet va trinh cai moi van can kiem chung tren Windows thuc te.
         installer.write(root/'installer/update.cmd','Cai_dat.cmd')
         installer.write(root/'installer/update.ps1','Cai_dat.ps1')
         installer.write(root/'Kiem_tra_V8i.cmd','Kiem_tra_V8i.cmd')
+        installer.write(root/'Kiem_tra_quet_DGN.cmd','Kiem_tra_quet_DGN.cmd')
         installer.writestr('payload.zip',stream.getvalue())
         installer.writestr('HUONG_DAN.txt',guide.encode('utf-8-sig'))
     with zipfile.ZipFile(destination) as installer:

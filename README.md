@@ -1,6 +1,6 @@
 # SonMap+
 
-Phần mềm địa chính cho Windows + MicroStation V8i. Phiên bản hiện tại: **V10.5**.
+Phần mềm địa chính cho Windows + MicroStation V8i. Phiên bản hiện tại: **V10.6**.
 
 Tự nhận DGN đang mở và MDB cùng tên; tìm thửa, kiểm tra hình học, xuất trích lục/In GCN/Mẫu 03; địa chỉ từ Xudong + xã/phường + tỉnh; Reference tọa độ thực, bật/tắt bằng nút Ánh xạ. Giao diện gọn, danh sách thửa mở/thu gọn riêng. Có workspace SonMap V7 độc lập.
 

@@ -9,15 +9,19 @@
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "3d519dc87140f19e64192deee46069b980057f56c5559ec38ab79998a8d3d787"
+    "sha256": "8303e34637c9f9634fbaa79ed00a8ffcd47d131346de5d73d29acdccd382290d"
   },
   {
     "file": "CONTINUE.md",
-    "sha256": "16e8e1c2bb6e517dc8dbec59a018f8ab2ba705c36e660bad6c86a79373224973"
+    "sha256": "699812047b32d40da3b59899322ee5a6ce89321e4f1be56578b40b3d867ccd29"
   },
   {
     "file": "Kiem_tra_V8i.cmd",
     "sha256": "d352bf992b95c123d284cc7f7a88c9bd8dca5742f58ed6762cf02e7965711766"
+  },
+  {
+    "file": "Kiem_tra_quet_DGN.cmd",
+    "sha256": "dbecb90214e892c73b719c2822b1abb164143cd93cf9646ce109a3a70a593e4c"
   },
   {
     "file": "LH_DgnMonitor.cls",
@@ -29,15 +33,15 @@
   },
   {
     "file": "README.md",
-    "sha256": "1dca2f35b7bfc70759dd2142947e24b166d353e17210ad963d064acd0ae5b2e7"
+    "sha256": "d00d6de77778a189280062abbc692a6ef6cc7814f82a313863feb2d158f75bd6"
   },
   {
     "file": "TOPOLOGY.md",
-    "sha256": "1a4351b1d89d004e735a9ef6c497052e3428b38755e06ef5d49b732cad89b8c1"
+    "sha256": "c7e0d7fd0a87d5c4026c8c6e70a1d6e6903b78960739be8e1b51ed0c7eef27af"
   },
   {
     "file": "VERSION",
-    "sha256": "15247019562708f00d877aeae249852de6035546ba3c6e921b8dc5f76486cf39"
+    "sha256": "278449e9042e2ebb39a772061a61ffec0d3e29f2f7c1fdcead01b5abe5844c7c"
   },
   {
     "file": "active_dgn.ps1",
@@ -68,8 +72,12 @@
     "sha256": "23f5a164f1dacefbc8acc3e6d6301e3f6cdff7aae066662dc447ab7bfbf70266"
   },
   {
+    "file": "dgn_scan.ps1",
+    "sha256": "93f48469f60cf7e166a30b7e0152de7a9831342aca0e3bc7740ab1671c7daf4b"
+  },
+  {
     "file": "dgn_topology.ps1",
-    "sha256": "0fa0b1265e860dc6ae02731e0645cdcfa36fe70294ed384557b0e9837123ff23"
+    "sha256": "d574e7dd5b11aa35f385cb57f71de7b9cf1dc35b83913909f2b2ebd978c58e7d"
   },
   {
     "file": "installer/Setup.cs",
@@ -85,7 +93,7 @@
   },
   {
     "file": "installer/package_update.py",
-    "sha256": "6ed397bcde118a03faab22e97dcee2fe850d7dbe934611157682fac5d50fcf91"
+    "sha256": "ddc3d4ef73136b7a74bf344c8d5279e170c4f03516b22c02d451c1da57c5d1f7"
   },
   {
     "file": "installer/restore.cmd",
@@ -105,7 +113,7 @@
   },
   {
     "file": "installer/update.ps1",
-    "sha256": "04b4bc1a040b64418662f2fc7f6ab086301d217f39a720ff2a798ee8f3dae017"
+    "sha256": "2153f6c617fa5acff8387766657108ad52208ea85d7693e70edc087295f4b40d"
   },
   {
     "file": "installer/update_vba.ps1",
@@ -176,12 +184,20 @@
     "sha256": "d6c0edac99b35c61095f8558a251263f371319090ca62981684552eb0b192292"
   },
   {
+    "file": "test_dgn_scan.ps1",
+    "sha256": "dddb4dcf67b904bfb5bebfe325c5590f3a5ebbd57f8fa569dc1ce95c75c19230"
+  },
+  {
     "file": "test_python_probe.py",
     "sha256": "fe045751c7267a02f66fd8827c18cefe4c2071981672b534a2588b849a317e47"
   },
   {
     "file": "test_release.py",
-    "sha256": "e8a60174ed63a25151c22f282089df3c8ec6d6183449bb748b7c5b53186085a9"
+    "sha256": "11d633d272bea5c3fcb3334512e203e90a99bb2cf90bcb92be76c7be902ff1a9"
+  },
+  {
+    "file": "test_scan_v8i.ps1",
+    "sha256": "959d664a1e59f21396a21ed095ff7ca178d55e331a283a8e60859bd065b77a1f"
   },
   {
     "file": "test_topology.py",

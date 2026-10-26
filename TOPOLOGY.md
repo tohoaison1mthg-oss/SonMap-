@@ -166,3 +166,11 @@ Software Foundation. Python này được cài riêng trong SonMapPlus/Python312
 không gỡ 3.15 hay đổi PATH. Cần Internet và chứng thư hệ thống hoạt động. Nếu
 đã có đăng ký Python 3.12 nhưng thiếu thành phần, chương trình báo cần Modify/Repair
 bản đó thay vì tự ghi đè. Probe có giới hạn 15 giây để tránh treo vô hạn.
+
+## V10.6 — kiểm tra lỗi quét dùng chung
+
+Trước khi cài, mở MicroStation V8i và lưu DGN. Sau khi cài, trình cài tự thử
+quét model đang mở và bản sao tạm chỉ đọc trên lớp 10,23,32. Kết quả ở
+`data/v8i-scan-*.json`; chỉ `scan_passed` mới xác nhận phép quét qua. Phép thử này
+chưa xác nhận hình học hoặc ghi MDB. Có thể chạy lại Kiem_tra_quet_DGN.cmd.
+Nếu số phần tử khác giữa bản đang mở và bản đã lưu, lưu DGN rồi thử lại.
