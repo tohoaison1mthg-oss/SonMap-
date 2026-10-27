@@ -9,6 +9,21 @@ function InitializeSonMapInterop {
 using System;
 using B = Bentley.Interop.MicroStationDGN;
 public static class SonMapV8iRecords {
+ public static void Focus(object value,double x,double y,double span) {
+  B.Application a=(B.Application)value;
+  foreach(B.View view in a.ActiveDesignFile.Views) {
+   if(!view.IsOpen)continue;
+   B.Point3d p=new B.Point3d();p.X=x;p.Y=y;
+   B.Point3d ext=view.get_Extents();
+   double smallest=Math.Min(Math.Abs(ext.X),Math.Abs(ext.Y));
+   if(smallest<=0)throw new InvalidOperationException("Invalid view extents.");
+   ext.X=Math.Abs(ext.X)*span/smallest;ext.Y=Math.Abs(ext.Y)*span/smallest;
+   view.set_Extents(ref ext);view.set_Center(ref p);view.Redraw();
+   B.Point3d check=view.get_Center();
+   if(Math.Abs(check.X-x)>0.00001 || Math.Abs(check.Y-y)>0.00001)
+    throw new InvalidOperationException("View did not centre on the requested location.");
+  }
+ }
  public static double[] PickPoint(object value) {
   B.Application a=(B.Application)value;
   a.CommandState.StartDefaultCommand();
@@ -53,6 +68,11 @@ public static class SonMapV8iRecords {
   B.Point3d[] p=new B.Point3d[xy.Length];
   for(int i=0;i<p.Length;i++) {p[i].X=xy[i][0];p[i].Y=xy[i][1];}
   return ((B.Application)app).CreateLineElement1(null,ref p);
+ }
+ public static object StyledLine(object app,double[][] xy,object template) {
+  B.Point3d[] p=new B.Point3d[xy.Length];
+  for(int i=0;i<p.Length;i++){p[i].X=xy[i][0];p[i].Y=xy[i][1];}
+  return ((B.Application)app).CreateLineElement1((B.Element)template,ref p);
  }
  public static object TextCell(object app,string label,double x,double y,object level,int color,double height) {
   B.Application a=(B.Application)app;

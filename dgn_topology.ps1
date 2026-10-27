@@ -1,5 +1,5 @@
-param(
- [Parameter(Mandatory=$true)][ValidateSet('Extract','WriteDrawing','WritePreview','WriteMdb','CleanDrawing','TopologyDrawing','SaveActive','ApplyDrawing','ApplyClean','RestoreActive')][string]$Action,
+﻿param(
+ [Parameter(Mandatory=$true)][ValidateSet('Extract','WriteDrawing','WritePreview','WriteMdb','CleanDrawing','TopologyDrawing','SaveActive','ApplyDrawing','ApplyClean','ApplyPreview','RestoreActive')][string]$Action,
  [Parameter(Mandatory=$true)][string]$InputPath,
  [Parameter(Mandatory=$true)][string]$OutputPath,
  [string]$ModelName,
@@ -34,15 +34,15 @@ function WriteJson($path,$value) {
  [IO.File]::WriteAllText($path,(ConvertTo-Json -InputObject $value -Depth 30),(New-Object Text.UTF8Encoding($false)))
 }
 function XY($p) { return ,@([double]$p.X,[double]$p.Y) }
-if((Test-Path -LiteralPath $OutputPath) -and $Action -notin @('ApplyDrawing','ApplyClean','RestoreActive')){throw 'Output already exists; refusing to overwrite.'}
+if((Test-Path -LiteralPath $OutputPath) -and $Action -notin @('ApplyDrawing','ApplyClean','ApplyPreview','RestoreActive')){throw 'Output already exists; refusing to overwrite.'}
 if($Action -eq 'WriteMdb') {
- $rows=@(Get-Content -LiteralPath $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+ $rows=Get-Content -LiteralPath $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json
  if($rows.Count -eq 0 -and -not $AllowEmpty){throw 'No parcels.'}
  $catalog=$null;$connection=$null;$transaction=$null
  try {
   $script:Stage='create-mdb'
   $catalog=New-Object -ComObject ADOX.Catalog
-  $catalog.Create('Provider=Microsoft.Jet.OLEDB.4.0;Data Source='+$OutputPath+';Jet OLEDB:Engine Type=5;')
+  [void]$catalog.Create('Provider=Microsoft.Jet.OLEDB.4.0;Data Source='+$OutputPath+';Jet OLEDB:Engine Type=5;')
   $catalog.ActiveConnection.Close()
   [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($catalog);$catalog=$null
   $connection=New-Object System.Data.OleDb.OleDbConnection('Provider=Microsoft.Jet.OLEDB.4.0;Data Source='+$OutputPath+';')
@@ -152,7 +152,7 @@ if($Action -eq 'Extract') {
     $points=New-Object 'System.Collections.Generic.List[object]'
     foreach($vertex in $vertices){$points.Add($vertex)}
     if([int]$element.Type -eq 6){$points.Add($vertices[0])}
-    $elements.Add(@{kind='line';level=$level;id=$id;points=@($points.ToArray());approximate=$approximate})
+    $elements.Add(@{kind='line';level=$level;id=$id;points=@($points.ToArray());approximate=$approximate;color=[int]$element.Color;weight=[int]$element.LineWeight;line_style=[string]$element.LineStyle.Name})
    } catch {
     $elements.Add(@{kind=('unsupported-type-'+$element.Type);level=$level;id=$id;reason=$_.Exception.Message})
    }
@@ -171,9 +171,10 @@ if($Action -eq 'Extract') {
 $project=Get-Content -LiteralPath $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json
 if(-not $project.working_dgn){throw 'Missing working-copy path.'}
 if([IO.Path]::GetFullPath($project.working_dgn) -eq [IO.Path]::GetFullPath($project.source.path)){throw 'Refusing to edit source.'}
-$direct=$Action -in @('ApplyDrawing','ApplyClean')
+$direct=$Action -in @('ApplyDrawing','ApplyClean','ApplyPreview')
 $mutationStarted=$false
 if($direct) {
+ if([string]$app.ActiveModelReference.Name -ne [string]$project.model){throw 'Active model changed; analyse the drawing again.'}
  if([IO.Path]::GetFullPath($OutputPath) -ne [IO.Path]::GetFullPath($project.source.path) -or [IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($OutputPath)){throw 'Direct write requires the original DGN to remain active.'}
  if(-not $project.direct_backup -or -not (Test-Path -LiteralPath $project.direct_backup)){throw 'A verified DGN backup is required before direct write.'}
  if((Get-FileHash -LiteralPath $project.direct_backup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $project.source.sha256 -or (Get-FileHash -LiteralPath $OutputPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $project.source.sha256){throw 'Source or backup changed before direct write.'}
@@ -188,14 +189,23 @@ try {
  $script:Stage='select-output-model: '+$project.model
  $model=ResolveSonMapModel $design $project.model ([bool]$project.model_is_default)
  if($model.Is3D){throw 'Only 2D cadastral models are supported.'}
+ if($Action -eq 'ApplyPreview') {
+  $scanContext=NewSonMapScan $app $model 'marker-scan'
+  $oldMarkers=New-Object 'System.Collections.Generic.List[object]'
+  while(MoveSonMapScan $scanContext){$element=ReadSonMapScanCurrent $scanContext;if([int]$element.Type -eq 2 -and [string]$element.AsCellElement.Name -eq 'SMERR'){$oldMarkers.Add($element)}}
+  $mutationStarted=$true
+  foreach($element in $oldMarkers){$model.RemoveElement($element)}
+ }
  if($Action -in @('WriteDrawing','CleanDrawing','TopologyDrawing','ApplyDrawing','ApplyClean')) {
  $boundary=@(([string]$project.options.boundary_levels).Split(',') | ForEach-Object {[int]$_.Trim()})
  $centreLevel=[int]$project.options.centre_level
  if($boundary -contains $centreLevel){throw 'Centre and boundary levels must differ.'}
  $scanContext=NewSonMapScan $app $model 'output-scan'
  $remove=New-Object 'System.Collections.Generic.List[object]'
+ $templates=@{}
  while(MoveSonMapScan $scanContext) {
   $element=ReadSonMapScanCurrent $scanContext
+  $templates[[SonMapV8iRecords]::Id($element)]=$element
   $generated=$false
   if([int]$element.Type -eq 2){
    $name=[string]$element.AsCellElement.Name
@@ -205,12 +215,29 @@ try {
    if($generated -and [SonMapV8iRecords]::CellInScope($element,[double[][][]]$project.scope_rings)){$remove.Add($element)}
   } elseif(($boundary -contains [int]$element.Level.Number) -or $generated){$remove.Add($element)}
  }
+ # Construct replacement elements while original templates are still valid.
+ $pending=New-Object 'System.Collections.Generic.List[object]'
+ if(-not $project.scope_rings -and $project.noded_lines) {
+  foreach($line in $project.noded_lines) {
+   $template=$templates[[string]$line.source_id]
+   if($template){$element=[SonMapV8iRecords]::StyledLine($app,[double[][]]$line.points,$template)}
+   else {
+    $element=[SonMapV8iRecords]::Line($app,[double[][]]$line.points)
+    $element.Color=[int]$line.color;$element.LineWeight=[int]$line.weight
+    $element.LineStyle=$design.LineStyles.Item([string]$line.line_style)
+   }
+   $element.Level=(FindLevel $design ([int]$line.level));$pending.Add($element)
+  }
+ }
  # Retain text and unsupported elements: export validation has already rejected unsupported boundaries.
  $mutationStarted=$true
  $script:Stage='replace-boundary-elements'
  foreach($element in $remove){if([int]$element.Type -notin @(7,17)){$model.RemoveElement($element)}}
  $script:Stage='create-boundary-lines'
  if(-not $project.scope_rings) {
+ if($project.noded_lines) {
+ foreach($element in $pending){$model.AddElement($element)}
+ } else {
  foreach($line in $project.cleaned_lines) {
   if($project.options.join_lines) {
    $element=[SonMapV8iRecords]::Line($app,[double[][]]$line)
@@ -221,6 +248,7 @@ try {
    $element=[SonMapV8iRecords]::Line($app,[double[][]]@($line[$i-1],$line[$i]))
    $element.Level=(FindLevel $design $boundary[0]);$model.AddElement($element)
   }
+ }
  }
  }
  if($Action -notin @('CleanDrawing','ApplyClean')) {
@@ -237,7 +265,7 @@ try {
  $script:Stage='create-error-markers'
  foreach($issue in $project.issues) {
   if($issue.resolved_by_manual_edit){continue}
-  if($issue.code -in @('DUPLICATE_REMOVED','ZERO_LENGTH_REMOVED','SNAPPED_ENDPOINT')){continue}
+  if($issue.code -in @('DUPLICATE_REMOVED','ZERO_LENGTH_REMOVED','SNAPPED_ENDPOINT','INTERSECTION_NODE')){continue}
   $point=$null
   if($issue.point){$point=$issue.point}
   elseif($issue.points){$point=$issue.points[0]}
@@ -248,6 +276,7 @@ try {
   $marker.Level=(FindLevel $design ([int]$project.options.error_level));$marker.Color=[int]$project.options.error_color;$model.AddElement($marker)
  }
  $script:Stage='save-output-dgn'
+ if($direct){foreach($view in $design.Views){if($view.IsOpen){$view.ShowLevel((FindLevel $design ([int]$project.options.error_level)));$view.Redraw()}}}
  $design.Save()
 } catch {
  $failure=$_

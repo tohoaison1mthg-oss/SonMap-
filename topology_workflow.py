@@ -7,11 +7,72 @@ import shutil
 import subprocess
 import uuid
 import tempfile
+import math
 from pathlib import Path
 
 from topology import build, export_rows, save_project, levels, finite
 
 ROOT = Path(__file__).resolve().parent
+
+
+def display_levels(source, selected, restore=False):
+    """Change view display only; preserve the exact prior per-view level states."""
+    source=str(Path(source).resolve());selected=levels(selected)
+    folder=ROOT/'data'/'view-states';folder.mkdir(parents=True,exist_ok=True)
+    state=folder/(hashlib.sha256(source.casefold().encode()).hexdigest()+'.json')
+    if restore and not state.is_file():raise ValueError('Chưa có trạng thái lớp đã lưu cho bản vẽ này.')
+    with tempfile.TemporaryDirectory(prefix='sonmap-view-') as directory:
+        plan=Path(directory)/'view.json'
+        plan.write_text(json.dumps({'source':source,'levels':selected,'state':str(state)}),encoding='utf-8')
+        powershell('dgn_view.ps1','-Action','Restore' if restore else 'Hide','-PlanPath',plan)
+    if restore:state.unlink()
+    return str(state)
+
+
+def focus_geometry(source, points, model=None, minimum=2):
+    if not points:raise ValueError('Lỗi này chưa có tọa độ để tìm trên DGN.')
+    xs=[float(p[0]) for p in points];ys=[float(p[1]) for p in points]
+    if not all(math.isfinite(v) for v in xs+ys):raise ValueError('Tọa độ không hợp lệ.')
+    with tempfile.TemporaryDirectory(prefix='sonmap-focus-') as directory:
+        plan=Path(directory)/'focus.json'
+        plan.write_text(json.dumps({'source':str(Path(source).resolve()),'model':model,
+                                   'x':(min(xs)+max(xs))/2,'y':(min(ys)+max(ys))/2,
+                                   'span':max(max(xs)-min(xs),max(ys)-min(ys),minimum)*1.5}),encoding='utf-8')
+        return powershell('dgn_view.ps1','-Action','Focus','-PlanPath',plan)
+
+
+def focus_parcel(selection):
+    from app import geometry
+    return focus_geometry(selection['source'],geometry(selection['row']['Geometry']),selection.get('model'))
+
+
+def validate_parcel_context(selection):
+    with tempfile.TemporaryDirectory(prefix='sonmap-context-') as directory:
+        plan=Path(directory)/'context.json'
+        plan.write_text(json.dumps({'source':str(Path(selection['source']).resolve()),'model':selection.get('model')}),encoding='utf-8')
+        return powershell('dgn_view.ps1','-Action','Check','-PlanPath',plan)
+
+
+def focus_issue(project, issue):
+    points=issue.get('points') or ([issue['point']] if issue.get('point') else [])
+    if not points and issue.get('parcel'):
+        points=next((p['points'] for p in project['parcels'] if p['ID']==issue['parcel']),[])
+    return focus_geometry(project['source']['path'],points,project.get('model'),2/float(project['options']['metres_per_unit']))
+
+
+def mark_errors(project_path):
+    project_path=Path(project_path);project=json.loads(project_path.read_text(encoding='utf-8'))
+    source=Path(project['source']['path'])
+    if digest(source)!=project['source']['sha256']:raise ValueError('DGN đã đổi; kiểm tra lại trước khi ghi dấu lỗi.')
+    folder=source.parent/'SonMap_backups'/('markers-'+uuid.uuid4().hex);folder.mkdir(parents=True)
+    backup=folder/source.name;shutil.copyfile(source,backup)
+    if digest(backup)!=project['source']['sha256']:raise ValueError('Sao lưu DGN không khớp.')
+    project['direct_backup']=str(backup);plan=folder/'markers.json';save_project(plan,project)
+    powershell('dgn_topology.ps1','-Action','ApplyPreview','-InputPath',plan,'-OutputPath',source)
+    project['source']['sha256']=digest(source)
+    shutil.copyfile(source,project['working_dgn']);project['working_sha256']=digest(project['working_dgn'])
+    save_project(project_path,project)
+    return backup
 
 
 def digest(path):
@@ -176,14 +237,16 @@ def inspect_database(path):
     with tempfile.TemporaryDirectory(prefix='sonmap-mdb-') as directory:
         target=Path(directory)/'rows.json'
         snapshot=Path(directory)/'source.mdb'
+        schema_path=Path(directory)/'schema.json'
         shutil.copyfile(path,snapshot)
         if digest(snapshot)!=original or digest(path)!=original:raise RuntimeError('MDB thay đổi trong lúc sao chép. Hãy lưu và kết nối lại.')
-        powershell('read_mdb.ps1','-MdbPath',snapshot,'-JsonPath',target)
+        powershell('read_mdb.ps1','-MdbPath',snapshot,'-JsonPath',target,'-SchemaPath',schema_path)
         rows=json.loads(target.read_text(encoding='utf-8-sig'))
+        columns=json.loads(schema_path.read_text(encoding='utf-8-sig')) if schema_path.exists() else []
     if isinstance(rows,dict):rows=[rows]
     if not isinstance(rows,list):raise ValueError('MDB trả dữ liệu không hợp lệ.')
     if digest(path)!=original:raise RuntimeError('MDB đã thay đổi khi đọc. Kết nối lại sau khi lưu dữ liệu.')
-    return {'path':str(path),'rows':rows,'count':len(rows),'sha256':original}
+    return {'path':str(path),'rows':rows,'count':len(rows),'sha256':original,'columns':columns}
 
 
 def create_database(path):

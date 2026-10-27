@@ -41,7 +41,7 @@ def build(snapshot, options):
     if sheet <= 0:
         raise ValueError('Số tờ phải lớn hơn 0.')
     selected = set(levels(options.get('boundary_levels', '10')))
-    issues, segments, seen = [], [], set()
+    issues, segments, seen, styles = [], [], set(), []
 
     def issue(code, **kw):
         issues.append(dict(code=code, **kw))
@@ -70,6 +70,8 @@ def build(snapshot, options):
                 continue
             seen.add(key)
             segments.append((a, b))
+            styles.append({k:element.get(k,default) for k,default in
+                           [('level',min(selected)),('color',0),('weight',0),('line_style','0'),('source_id',element.get('id'))]})
     if not segments:
         raise ValueError('Không có đường ranh trên các lớp đã chọn.')
     # Snap only isolated endpoints to ONE existing endpoint within the explicit tolerance.
@@ -102,15 +104,33 @@ def build(snapshot, options):
                 replacements[max(p, q)] = min(p, q)
     for p, q in replacements.items():
         issue('SNAPPED_ENDPOINT', point=p, target=q, displacement_m=math.dist(p, q) * scale)
-    repaired = [(replacements.get(a, a), replacements.get(b, b)) for a, b in segments]
-    repaired = [(a, b) for a, b in repaired if a != b]
+    repaired_with_style = [(replacements.get(a,a),replacements.get(b,b),style)
+                           for (a,b),style in zip(segments,styles) if replacements.get(a,a)!=replacements.get(b,b)]
+    repaired = [(a,b) for a,b,_ in repaired_with_style]
     if not repaired:
         raise ValueError('Không còn đường ranh sau xử lý.')
     network = unary_union([LineString(pair) for pair in repaired])
+    # Save every crossing/T-junction as actual segment endpoints while retaining source symbology.
+    source_lines=[LineString((a,b)) for a,b,_ in repaired_with_style]
+    source_tree=STRtree(source_lines)
+    noded_lines=[]
+    for part in (list(network.geoms) if hasattr(network,'geoms') else [network]):
+        for a,b in zip(part.coords,list(part.coords)[1:]):
+            middle=Point((a[0]+b[0])/2,(a[1]+b[1])/2)
+            candidates=sorted(int(i) for i in source_tree.query(middle.buffer(1e-7))
+                              if source_lines[int(i)].distance(middle)<=1e-7)
+            if not candidates:raise ValueError('Không xác định được thuộc tính ranh tại giao điểm; chưa ghi DGN.')
+            noded_lines.append(dict(points=[list(a),list(b)],**repaired_with_style[candidates[0]][2]))
+    original_vertices=set(vertices)
+    for point in sorted({tuple(p) for row in noded_lines for p in row['points']}-original_vertices):
+        issue('INTERSECTION_NODE',point=point)
+    noded_degree=Counter(tuple(p) for row in noded_lines for p in (row['points'][0],row['points'][-1]))
     polygons, cuts, dangles, invalid = polygonize_full(network)
     for code, collection in [('CUT_EDGE', cuts), ('DANGLE', dangles), ('INVALID_RING', invalid)]:
         for geom in collection.geoms:
-            issue(code, points=list(geom.coords))
+            coords=list(geom.coords)
+            free=[p for p in (coords[0],coords[-1]) if noded_degree[tuple(p)]==1]
+            issue(code, points=coords,point=(free or coords)[0])
     parcels = []
     for polygon in sorted(polygons.geoms, key=lambda g: (-g.representative_point().y, g.representative_point().x)):
         index = len(parcels) + 1
@@ -154,11 +174,21 @@ def build(snapshot, options):
         from shapely.ops import linemerge
         if hasattr(network, 'geoms'):
             drawing_network = linemerge(network)
+        groups={}
+        for row in noded_lines:
+            key=(row['level'],row['color'],row['weight'],row['line_style'],row['source_id'])
+            groups.setdefault(key,[]).append(LineString(row['points']))
+        merged=[]
+        for key,group in groups.items():
+            geometry=linemerge(group)
+            for part in (list(geometry.geoms) if hasattr(geometry,'geoms') else [geometry]):
+                merged.append(dict(zip(('level','color','weight','line_style','source_id'),key),points=list(part.coords)))
+        noded_lines=merged
     lines = list(drawing_network.geoms) if hasattr(drawing_network, 'geoms') else [drawing_network]
     return dict(version=1, source=snapshot.get('source'), model=snapshot.get('model'),
                 model_is_default=bool(snapshot.get('model_is_default',False)),
                 unit=snapshot.get('unit'), options=options, parcels=parcels,
-                cleaned_lines=[list(line.coords) for line in lines], issues=issues,
+                cleaned_lines=[list(line.coords) for line in lines],noded_lines=noded_lines, issues=issues,
                 input_summary={str(level):sum(int(e['level'])==level for e in snapshot['elements']) for level in sorted(selected)})
 
 

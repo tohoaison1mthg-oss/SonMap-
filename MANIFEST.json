@@ -1,31 +1,27 @@
 [
   {
-    "file": ".gitignore",
-    "sha256": "2adabb840a8fb2a9222e7cf695f327438b5476e5ed0a471a64a974f422719031"
-  },
-  {
     "file": "AGENTS.md",
-    "sha256": "4e35f72937be3b86294d82936c5acf1723a176b96e5b35b957569858483d1725"
+    "sha256": "63aeb6e8980c1183d270692b9f2045d2545faf142e9b0fd623eea737f77a43d2"
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "1d12e402ac517d4b65542fda1afed1dbf5ae9d457689de1512c950faaffad3e6"
+    "sha256": "36e247574cfa3a6a636a734a29c508ceab6a0d2051a23a31c77010936d916ded"
   },
   {
     "file": "CONTINUE.md",
-    "sha256": "bc31c2854b7a413661bd626c4e7265db3828af51e696f2ba1d3e6416d97e10ff"
+    "sha256": "211093fae39c088ae42d829e1ab6fb8e11fe45d969455aa68f8799b5f39e8e23"
   },
   {
     "file": "Gui_len_GitHub.cmd",
-    "sha256": "3275744f99ddbae427dc8ee59474e59102dc1dde3d04ee6563f9cc57b1851cc2"
+    "sha256": "3ba8838ea77c5cf7ff6a5dd7b9e96acd96ec44c0339e8bc43dbcd051c28c0d68"
   },
   {
     "file": "Kiem_tra_V8i.cmd",
-    "sha256": "d352bf992b95c123d284cc7f7a88c9bd8dca5742f58ed6762cf02e7965711766"
+    "sha256": "b0ed10458b2659e8ffdcb91e533c8fb4a2ce3085cc7f3aedbd4baa4d01068c6a"
   },
   {
     "file": "Kiem_tra_quet_DGN.cmd",
-    "sha256": "dbecb90214e892c73b719c2822b1abb164143cd93cf9646ce109a3a70a593e4c"
+    "sha256": "1da0974f351a4ca2913157aff20b1fffcac5b72b3de0bd4f99adb85d5249d1ee"
   },
   {
     "file": "LH_DgnMonitor.cls",
@@ -33,15 +29,15 @@
   },
   {
     "file": "Lam_viec_laptop.cmd",
-    "sha256": "4606e903f8488bc3824a580bc64ee6f184cd4833c85d83ed7902699a9bfe5488"
+    "sha256": "58ec7d46e53d51d42523c1cadaa1d1b50b9489eab67a36c83bdda48f5d8c75a0"
   },
   {
     "file": "Lay_ban_moi_tu_GitHub.cmd",
-    "sha256": "f058c2b1fca45cc11f80714a1acd51d77b6bfeb9f4a165195bf375da8b131816"
+    "sha256": "4e76274c722ea040cd21fab89635ad60633237e3b3585a7738bdeeb4a30191b5"
   },
   {
     "file": "Mo_Codex_laptop.cmd",
-    "sha256": "a30ccacbed2d44d9568dc5cd7a0470e560f93914b76189da7250fbeaaa2af236"
+    "sha256": "7b6f3cf0ba013c94bb90bd08cd0f6fc81079f1670ba0b5fd1f15a1b367ad805e"
   },
   {
     "file": "PROJECT.md",
@@ -53,19 +49,27 @@
   },
   {
     "file": "SonMap.code-workspace",
-    "sha256": "6d9ec27f66a574bbb17c61726fa5e25cacd0af4f78ecfd7b6c09e5645afe0ed8"
+    "sha256": "d58b60e33c85078ea06617d63adeaef0da87239d1a2452c1097c52ec53fe9fbb"
   },
   {
     "file": "TOPOLOGY.md",
-    "sha256": "529f912cc4f5a44e12ea30d08578d1ce4abed65ea0e33a48243df66dd96fa2da"
+    "sha256": "8c29acb70e3b267ed7794d172ca7c5ca62d564cd873e51f370554a1e56111e09"
+  },
+  {
+    "file": "V10_13_VALIDATION.md",
+    "sha256": "85f2334f125ecfc84dbdf266f32f6ef26dc5bc40a1f15f2bc127960dd64b2495"
   },
   {
     "file": "VERSION",
-    "sha256": "1f50d767ada78a3d186af456a10696a849cb426464252a030d591346bb076292"
+    "sha256": "f995f732020ec948409b5421232c2926d5a431bb6e5e2105aca02994c7b1e884"
+  },
+  {
+    "file": "VIETMAPXM_STUDY.md",
+    "sha256": "ecf6592ae2757538d0419a69481f07737ab4ff3690b5367753231a84449c12b1"
   },
   {
     "file": "active_dgn.ps1",
-    "sha256": "474e971e711be44647c6e453a901ac93e3e62a1545b2bce196cfca3300670e40"
+    "sha256": "fc6419825e97a5c915bad33c1c3e87c29bcc1dba03b49343ac6bfd1ceead64d5"
   },
   {
     "file": "admin_catalog.json",
@@ -73,7 +77,7 @@
   },
   {
     "file": "app.py",
-    "sha256": "d977d2f166375170ed73a75e17373b029057c40c0cc91f067419cde47827a744"
+    "sha256": "2d17e1fc63e7087f6c060f6c7245a140529cd753f24221412d3145d6b6a8f26c"
   },
   {
     "file": "bootstrap.template.bas",
@@ -85,23 +89,31 @@
   },
   {
     "file": "check_connection.ps1",
-    "sha256": "bf7077326e89ff70992391728eb7725334a2076d4aab9c3b35306bebaca66a92"
+    "sha256": "f67626513e5e3199cfde3688695cbc885026f688d884604488f771715d9cc05a"
   },
   {
     "file": "database_topology.py",
-    "sha256": "af67e4e233504ea4c5c3275023db31c934c0f637c25e96c887efc984dc99da4c"
+    "sha256": "1ccb147b3817b79e5000e27bd647ddbca8f54893efb4a280e5aeeef3edb99cdc"
+  },
+  {
+    "file": "dgn_interop.ps1",
+    "sha256": "eebc63118834f2f6ab466b0a8db0164c3a9720dcff1abfb33980f4a2356d1125"
   },
   {
     "file": "dgn_models.ps1",
-    "sha256": "23f5a164f1dacefbc8acc3e6d6301e3f6cdff7aae066662dc447ab7bfbf70266"
+    "sha256": "b5ec7529ea5c16709007a5290efff3039201a779117d650ecad8760d83ee7d14"
   },
   {
     "file": "dgn_scan.ps1",
-    "sha256": "93f48469f60cf7e166a30b7e0152de7a9831342aca0e3bc7740ab1671c7daf4b"
+    "sha256": "955bdabd5a2b2d0e9f016798dc2185c5ef436b9eac642a21669b002b93c740e6"
   },
   {
     "file": "dgn_topology.ps1",
-    "sha256": "cb61b0719d6a85b29ddc7c3dc1be81aa3fc4adb1f4ee11443ec9973c81065131"
+    "sha256": "0bf43e28184123d7bc39e8c598bea041df5ee46ff5f2c792128abb58ced2e310"
+  },
+  {
+    "file": "dgn_view.ps1",
+    "sha256": "3b714c253594eb5e96a9af2a6384a93bc0f8d262233ebca3967bf306778eef38"
   },
   {
     "file": "installer/Setup.cs",
@@ -117,19 +129,19 @@
   },
   {
     "file": "installer/package_update.py",
-    "sha256": "c4bc8dd44017ec2e3d84fa1e9faea064f5613d88db19a6487d9fb64251ab95fb"
+    "sha256": "0cd94634f75f3e374219c9c6b1c9aeb324188a16fcb57cad4f874c0053000920"
   },
   {
     "file": "installer/package_workspace.py",
-    "sha256": "95334453c989024cc14ff4293dcf0345c4fdf0d7057858ba02f551a134a9220c"
+    "sha256": "d35a8719ece6f1cf9a7597431ed3e821d605da9ef764567e4c36cad8ba1959ef"
   },
   {
     "file": "installer/restore.cmd",
-    "sha256": "85facca71fbac05d9db00f319cf5a1152fba62782165608fd0efc0d98c8598dc"
+    "sha256": "69cc010832a4753dda69e41be4a9908091baade8eb007a2364492dfbb1ef7045"
   },
   {
     "file": "installer/restore.ps1",
-    "sha256": "b6cbea2c7de4b54d379bfaacfb7f985332a3f893e0cd0e6bfc435bb083fb773e"
+    "sha256": "90ea27527ab3d5d33cea99ec6c1f55b51740376d30ac6253c3c75d63d7afdc46"
   },
   {
     "file": "installer/setup_prepare.py",
@@ -137,11 +149,11 @@
   },
   {
     "file": "installer/update.cmd",
-    "sha256": "9b6fa75cfe7f744636691b6b89d107db01fb5dc7aa838735f0d8840629ac1f26"
+    "sha256": "a06106209c04e1d0cbdb15e199118eee7e6c1b8f63fe34d2bd145d1f4703ceba"
   },
   {
     "file": "installer/update.ps1",
-    "sha256": "2153f6c617fa5acff8387766657108ad52208ea85d7693e70edc087295f4b40d"
+    "sha256": "474c552370a129aa4b81b78e5cd035b6ac1fd8387260566c8de72c0406a2d2f9"
   },
   {
     "file": "installer/update_vba.ps1",
@@ -149,51 +161,63 @@
   },
   {
     "file": "installer/workspace.cmd",
-    "sha256": "3d083408830cb847c3ce24fbd30c3f05f89c7e299eee75a5fc7e4d92562f85fa"
+    "sha256": "a5629c22e212961dee26071f84b12eb17574f412bb590a1fe2b22d3793fc2421"
   },
   {
     "file": "installer/workspace.ps1",
-    "sha256": "13529d4e69c31ff5731d720af85688dd6d7840ec2854c7def3a838642c1b052c"
+    "sha256": "21b35ac37942a772638cf7afac0f83dffbaa718b4407c5883f137fe281cbb790"
   },
   {
     "file": "launch.py",
-    "sha256": "fe944ccecf4192b1dd82a4a24c4e5142b1398f7d87c3947512761887c5dc0f4e"
+    "sha256": "18f37b5ec6e04b2d5c35655338d09d42b7fc6f3207f8314a54336583a33e369b"
   },
   {
     "file": "mau03_engine.bas",
     "sha256": "11ce33c02013021369fb516105601838a3c9131673cd868f63a0e2801cd52f6e"
   },
   {
+    "file": "parcel_info.py",
+    "sha256": "8202a27f36d494851599e6829dae0fe301a041003c6209c4311fa0b3a2f43f6c"
+  },
+  {
+    "file": "parcel_info_ui.py",
+    "sha256": "ae8680c28b073b83e9f4f40b19c7640490777289364ba0270a80f773880bf003"
+  },
+  {
+    "file": "pick_dgn_point.ps1",
+    "sha256": "fdc591fcb38a9c5c112f0f00e20a180e367c8e20131ff560e0de66827468f8cf"
+  },
+  {
     "file": "python_probe.py",
-    "sha256": "5201d414769d86857882c244aafebaa0124c737d46454db5404a48cfc9213d80"
+    "sha256": "39e5f7f901e9a9b6b0487fca8d6a02a4227df048d4b161f16717b4c8caab2f3e"
   },
   {
     "file": "python_setup.ps1",
-    "sha256": "282cc405e279a25e9b311555148a6192ee68a8d17e28fd037d9d5d5952daf428"
+    "sha256": "12324e797e5826d48adbd47523654fd39d0f28bc9adc10539478bc93b5c2abe1"
   },
   {
     "file": "quality.py",
-    "sha256": "c923a9d0e538bb0500bd1f7e9b807aa70adb82c2affb4dddf94a70e8657a1412"
+    "sha256": "2033aeec7c1259a827592cc2f4d12703ec5998808ac21f08571155f494bfa61c"
   },
   {
     "file": "read_mdb.ps1",
-    "sha256": "f4b7b3cd7c3f5338fa1cc1866c8adc922136abbd162eb633f1b7dc7d9adfcfe0"
+    "sha256": "f4aa94b45f14d17c7232d38e0fc7010a5fc7df220b12603b0d3eb0da9a5fcb76"
   },
   {
     "file": "reference_map.ps1",
-    "sha256": "7d073d944af2f943da4ad25479a26dce456923340bfe82e5ba9ebd3f81edb4e9"
+    "sha256": "01188b654feae5c9227bd7a0ec3613ef5879708245c8772f86589283167a50c8"
   },
   {
     "file": "requirements-topology.txt",
-    "sha256": "49adae2cf5fffba6a5963873964a46141450b6425e69d60eca5b9dfd735b47ff"
+    "sha256": "948b584494e1f470d9e27d41813fb90283bfb499e83136557dc2cb830f5e7761"
   },
   {
     "file": "run_export.ps1",
-    "sha256": "18d5f7518d32b1632c7357d86cd26882104d8f58f63e5d90d334440d8e782c3b"
+    "sha256": "7297b365669b3af6c7be4c5cfd0a21b41f193ba688c552bddb27c5a39b238fb0"
   },
   {
     "file": "setup_fast_workspace.ps1",
-    "sha256": "b9677578bc6e349336eb390d1eda8fbcf5346a1f6676200ec965b2af03a8cba0"
+    "sha256": "44a9131256f711ce6961c10a12a34695f6428e425a3013186604d019aa62e612"
   },
   {
     "file": "sonmap.ico",
@@ -201,75 +225,99 @@
   },
   {
     "file": "start_topology.cmd",
-    "sha256": "6166e8c81d42c288ea79ca740457b2936ba9cc6acbe9726cc0d3bd7dda7d5f46"
+    "sha256": "7a4b6926ab727bf53addac092ba531dd930e686e512c04eea5a8becac38dc035"
   },
   {
     "file": "start_topology.ps1",
-    "sha256": "c50a5c783925e1b6bb555ae50795296e61ebe7221a3ad7bd9d6fbb130c1f619e"
+    "sha256": "fb87d631358e940c856338950ac1e35b7aa5eba112e261eab802c02cb6609844"
   },
   {
     "file": "start_v8i.ps1",
-    "sha256": "0df4dbedb03e260ef3dfed3170d802e30f4002a6cca1c0b3e287d32443a92c36"
+    "sha256": "94d74bf379105d4c54cb70eaa413750ecd4209a9c53ff72402bca00cd8a9b42f"
   },
   {
     "file": "sync_github.ps1",
-    "sha256": "d2aa159cf11b48bdc5dac582cc8ae558c36b05e8b5c4046bad48dcbbe01c6640"
+    "sha256": "046152ad7a57142a148551a8a8d9ab33c654e8eaf7e40b93be48371d8e6d6be1"
   },
   {
     "file": "template_engine.bas",
     "sha256": "709ddf129dadfafbb35c7819bfd3a09d364e298bedec19f81a8128cde8ec6325"
   },
   {
+    "file": "test_cad_upgrade.py",
+    "sha256": "1598f9272571728afd1d5e1ad27423bd3f7c29778a5d5afb70035901c1e0b85e"
+  },
+  {
     "file": "test_database_topology.py",
-    "sha256": "2d7ca29e6da919ff66ecabf5f8c71c79cf7c3103d47535e4f56730833aa2eef3"
+    "sha256": "51aa9732da3063c980a7263a17e496322ba66783da105efc3a480a162a2a3e5e"
+  },
+  {
+    "file": "test_dgn_interop.ps1",
+    "sha256": "d955f6bd66506104007f17292b5118c3fdb7e0c7ac29e1fe5f2b5e0dd34487c2"
   },
   {
     "file": "test_dgn_models.ps1",
-    "sha256": "d6c0edac99b35c61095f8558a251263f371319090ca62981684552eb0b192292"
+    "sha256": "ff6960222c1ff7a8e21b3af1539abca8bc0b8b9444053e82725d2a84b9eb9364"
   },
   {
     "file": "test_dgn_scan.ps1",
-    "sha256": "dddb4dcf67b904bfb5bebfe325c5590f3a5ebbd57f8fa569dc1ce95c75c19230"
+    "sha256": "6ed99b57769de3e2bf14ca43c42af0d4bfa84167e8a9cf2c54856b965be10ea6"
+  },
+  {
+    "file": "test_parcel_info.py",
+    "sha256": "bd959e030aa9f622d5b7c45ffbc291572c4c020b5049fb4b5e6a1c2b1c62de70"
+  },
+  {
+    "file": "test_parcel_info_ui.py",
+    "sha256": "db44a39231c58b45e350c4c9387abeef741de096a5b5968fa3d956608d07242e"
   },
   {
     "file": "test_python_probe.py",
-    "sha256": "fe045751c7267a02f66fd8827c18cefe4c2071981672b534a2588b849a317e47"
+    "sha256": "ee35d99f11b65d99e573cf55e7c9c7bf756cb5bd4fab1dfad50d7651985f1bc7"
   },
   {
     "file": "test_release.py",
-    "sha256": "11d633d272bea5c3fcb3334512e203e90a99bb2cf90bcb92be76c7be902ff1a9"
+    "sha256": "d7a592dbcf9b4320e29510347aa91d12d8af57a303aedf1aad77ad0ae87052ad"
   },
   {
     "file": "test_scan_v8i.ps1",
-    "sha256": "959d664a1e59f21396a21ed095ff7ca178d55e331a283a8e60859bd065b77a1f"
+    "sha256": "b40280c6c0d655d364041c59f565f99d6d6ee2c935535633a2abf504792efcd0"
   },
   {
     "file": "test_topology.py",
-    "sha256": "fb38e5809d48204735fee4720d68079b7d69177e99e77138c64f99f6d8da0d4f"
+    "sha256": "3b9f92510d5ae3245e5503b6e79299d454e9e8c81e6a81e687efb1104b370768"
   },
   {
     "file": "test_topology_ui.py",
-    "sha256": "1297211f56c9057f9eb17fac9d5f1503c883ba06d25cf4b927c6de40ef1c9bd0"
+    "sha256": "793ff29965fb7504f1a1cbd3927d874b873149f6edcfc70f6d07fe13e47133a2"
   },
   {
     "file": "test_upgrade.py",
-    "sha256": "e54ddecd15b0d44495ee21c247538c29186f1df04744f7cf0e9f86400e5ebc98"
+    "sha256": "704689d11d3394fa7c68c01aa1b6527444090fc3898f62c0d5ececbf8e966ca8"
   },
   {
     "file": "topology.py",
-    "sha256": "479c2cb485129ad5c60ccdf0b735ee65efb13689035e5ce7ebff3c94ee58a1b5"
+    "sha256": "bfb704cc404050ce31b67e56e840987f9bf7ae30bdb6daae2cb3a4546e04b26e"
   },
   {
     "file": "topology_ui.py",
-    "sha256": "dbcc09081910b7f021ad13eb6b149feac9ba737c999bc90b6523b8b21493e1e9"
+    "sha256": "55562f0211c008e805e0a703674d5b8954ecbd323707097d37bfd903a48de808"
   },
   {
     "file": "topology_workflow.py",
-    "sha256": "44cf7e4b7e380d106c9433bd6b822a873faebfdac25c0502cbe4ca6ec7ac4bbd"
+    "sha256": "d955c154f5edf00ec01cbe9b2de3e0180af37246a8dc0248d6b46d5a17c3ad7e"
   },
   {
     "file": "update_mdb_topology.ps1",
-    "sha256": "dbc54508eda5b51ac56c9eef042875479a78b7b70da96b51353db16f0ee1b973"
+    "sha256": "e702fb0c7495a6f592c0294674f70e46dd7ea75c023d3c11c1c5aaaedf4f3a7a"
+  },
+  {
+    "file": "update_parcel_attributes.ps1",
+    "sha256": "efc89fb638831d7dbfee250f699aa1a58facf3b8240f44b87056be08198512d6"
+  },
+  {
+    "file": "update_parcel_owner.ps1",
+    "sha256": "6e617ab6214def2abf02ed81b935aa0c8201f8216bf3c7d5775b1c348f07987c"
   },
   {
     "file": "workflow.py",

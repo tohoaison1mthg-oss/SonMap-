@@ -1,5 +1,16 @@
 # Phiên bản SonMap+
 
+## V10.13
+
+- Làm gọn bản vẽ chỉ ẩn các lớp không tham gia; có khôi phục đúng trạng thái hiển thị từng view, không xóa phần tử.
+- Sửa ranh tạo giao điểm thực, giữ lớp/màu/độ đậm/kiểu nét; giữ đoạn dư và ranh hở để báo lỗi, không tự xóa đoạn dư hay nối khe hở mặc định.
+- Báo lỗi có Trước/Sau, tìm vị trí trên DGN, ghi dấu lỗi có sao lưu và kiểm tra lại sau sửa thủ công.
+- Bảng thông tin thửa có nút con trỏ pick bên trong, pick lại nhiều thửa, tùy chọn zoom; hủy pick không cho lưu nhầm thửa trước.
+- Đọc toàn bộ thuộc tính MDB; chỉnh các trường văn bản/số/logic có sẵn, chọn riêng trường ghi và xóa nội dung bằng giá trị trống. ID, hình học và diện tích đo chỉ đọc; không tự thêm/xóa cột cơ sở dữ liệu.
+- Ghi thuộc tính trên MDB tạm, kiểm tra lại toàn bộ bản ghi trước khi thay tệp, giữ bản sao lưu và các bảng/cột khác.
+- Sửa lỗi tạo MDB nhiều thửa trong PowerShell 32-bit. Giữ V10.12, các gói/tag cũ và dữ liệu riêng để phục hồi.
+- Kiểm thử Python/Tk và kiểm tra gói đạt; đã thử Windows/V8i V7/Jet trên dữ liệu tổng hợp trong bản sao seed: ẩn/khôi phục lớp không đổi phần tử/tệp, ghi giao điểm giữ nét, giữ đoạn dư, ghi dấu lỗi không trùng lặp, sửa thuộc tính Unicode không đổi thửa bên cạnh/hình học. DGN người dùng mở lại, hash không đổi. Chi tiết nghiệm thu trong V10_13_VALIDATION.md.
+
 ## V10.12
 
 - Thửa con tạm kế thừa số thửa và thông tin thửa cũ; mỗi vùng vẫn có ID MDB riêng và diện tích/hình học riêng.

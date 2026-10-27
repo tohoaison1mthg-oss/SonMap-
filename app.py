@@ -493,7 +493,7 @@ def gui():
     parcel_editor=ParcelInfoController(win,lambda busy:state.update(exporting=busy),database_connected,status.set)
     def edit_dgn_parcel():
         if state['exporting']:return
-        status.set('Nhấp bên trong thửa trên DGN; chuột phải để hủy.')
+        status.set('Bấm nút con trỏ trong bảng thông tin, rồi nhấp bên trong thửa trên DGN.')
         parcel_editor.start(state.get('drawing',''),variables['mdb'].get())
     ttk.Button(primary,text='Thông tin thửa trên DGN',command=edit_dgn_parcel,width=26).pack(side='left',padx=8,pady=10)
     tree.grid_remove();searchbar.grid_remove();panel.grid_remove()

@@ -7,7 +7,8 @@ from pathlib import Path
 
 from topology import BLOCKING, finite, save_project
 from topology_workflow import (prepare, export_project, preview_project, drawing_project,
-                               inspect_database, create_database, assign_labels, validate_options, apply_current)
+                               inspect_database, create_database, assign_labels, validate_options, apply_current,
+                               display_levels, focus_issue, mark_errors)
 
 ISSUES = {
  'UNSUPPORTED':'Phần tử ranh chưa hỗ trợ', 'SHORT_SEGMENT':'Đoạn ngắn',
@@ -18,6 +19,7 @@ ISSUES = {
  'NO_PARCELS':'Chưa tạo được vùng', 'SMALL_PARCEL':'Vùng diện tích nhỏ',
  'LABEL_MISSING':'Thiếu nhãn', 'LABEL_AMBIGUOUS':'Nhãn trùng / nằm trên ranh',
  'LABEL_INVALID':'Số thửa không hợp lệ', 'ARC_APPROXIMATED':'Đã chia cung'
+ ,'INTERSECTION_NODE':'Đã tạo giao điểm ranh'
 }
 DEFAULTS = dict(boundary_levels='10',sheet='1',metres_per_unit='1',short_length='.001',
  min_area='.3',near_distance='.1',snap_tolerance='.01',chord_tolerance='.001',
@@ -161,6 +163,7 @@ class TopologyWorkspace:
             count=len(self.project['parcels']);errors=sum(i['code'] in BLOCKING for i in self.project['issues'])
             evidence='; '.join('lớp '+k+': '+str(v)+' phần tử' for k,v in self.project.get('input_summary',{}).items())
             self.status.set(f'Đọc {evidence}. Tạo {count} vùng; {errors} lỗi ranh.')
+            if kind=='inspect':self.show_report();return
             if kind=='topology' and errors:self.show_report();return
             if kind=='clean' and any(i['code']=='UNSUPPORTED' for i in self.project['issues']):self.show_report();return
             if options['in_place']:
@@ -177,11 +180,14 @@ class TopologyWorkspace:
             text+=f"MDB: {result['before_count']} → {result['after_count']} thửa; {len(result['splits'])} thửa được tách."
             if result['unnumbered']:text+=f" {result['unnumbered']} thửa chờ nhập số hiệu chính thức."
         else:text+='Chưa cập nhật MDB (chưa kết nối CSDL hoặc đang sửa ranh).'
+        errors=sum(i['code'] in BLOCKING for i in self.project['issues'])
+        if errors:text+=f' Còn {errors} lỗi ranh cần tìm và sửa thủ công.'
         if self.project.get('scope_rings'):
             outside=sum(i['code'] in BLOCKING for i in self.project.get('excluded_issues',[]))
             text+=f' Cập nhật cục bộ; {outside} lỗi ranh ngoài phạm vi chưa xử lý.'
         self.status.set(text)
         messagebox.showinfo('Đã cập nhật',text+'\nSao lưu trước thay đổi: '+result['backup'],parent=self.parent)
+        if errors:self.show_report()
 
     def drawing_done(self,kind,path):
         from tkinter import messagebox
@@ -192,13 +198,16 @@ class TopologyWorkspace:
 
     def clean(self):
         from tkinter import ttk
-        win=self.window('clean','Tự động tìm sửa lỗi','630x575')
+        win=self.window('clean','Tìm và sửa lỗi ranh','630x650')
         if not win:return
         self.source_box(win)
+        view=ttk.LabelFrame(win,text='Làm gọn bản vẽ — chỉ ẩn lớp, giữ nguyên phần tử');view.pack(fill='x',padx=12,pady=4)
+        self.button(view,'Ẩn lớp ngoài danh sách',lambda:self.change_display(False)).pack(side='left',padx=6,pady=6)
+        self.button(view,'Khôi phục hiển thị lớp',lambda:self.change_display(True)).pack(side='left',padx=6,pady=6)
         top=ttk.Frame(win);top.pack(fill='x',padx=8)
         duplicates=ttk.LabelFrame(top,text='Tùy chọn sửa lỗi trùng đè');duplicates.grid(row=0,column=0,padx=4,pady=5,sticky='nsew')
-        ttk.Label(duplicates,text='Xóa đoạn trùng chính xác').pack(anchor='w',padx=10,pady=10)
-        ttk.Label(duplicates,text='Giữ lại các đường không trùng.').pack(anchor='w',padx=10,pady=(0,10))
+        ttk.Label(duplicates,text='Tạo giao điểm trên ranh giao nhau.').pack(anchor='w',padx=10,pady=10)
+        ttk.Label(duplicates,text='Đoạn dư / thiếu: báo để sửa tay.').pack(anchor='w',padx=10,pady=(0,10))
         markers=ttk.LabelFrame(top,text='Thuộc tính cell báo lỗi');markers.grid(row=0,column=1,padx=4,pady=5,sticky='nsew')
         self.entry(markers,'error_level',0,'Lớp',combo=True)
         self.entry(markers,'error_color',1,'Màu')
@@ -221,8 +230,13 @@ class TopologyWorkspace:
         self.button(links,'Báo lỗi…',self.show_report).pack(side='left',padx=3)
         self.button(links,'Ghi cell báo lỗi…',self.preview).pack(side='left',padx=3)
         self.button(links,'Đơn vị / sai số cung…',self.advanced).pack(side='left',padx=3)
-        check=ttk.Checkbutton(win,text='Sửa ngay DGN hiện tại (có sao lưu)',variable=self.in_place);check.pack(anchor='w',padx=14);self.controls.append(check)
-        self.footer(win,lambda:self.process('clean'))
+        check=ttk.Checkbutton(win,text='Ghi giao điểm ranh vào DGN hiện tại (có sao lưu)',variable=self.in_place);check.pack(anchor='w',padx=14);self.controls.append(check)
+        self.footer(win,lambda:self.process('clean'),'Sửa ranh')
+
+    def change_display(self,restore):
+        source=self.source.get();selected=self.vars['boundary_levels'].get()
+        self.launch(lambda:display_levels(source,selected,restore),lambda _:self.status.set(
+            'Đã khôi phục trạng thái hiển thị lớp.' if restore else 'Đã ẩn lớp không tham gia. Phần tử bản vẽ được giữ nguyên.'))
 
     def topology(self):
         from tkinter import ttk
@@ -304,16 +318,39 @@ class TopologyWorkspace:
         table.configure(yscrollcommand=scroll.set);table.pack(fill='both',expand=True,padx=8,pady=8)
         self.report_table=table
         self.refresh_report()
-        self.button(win,'Ghi cell báo lỗi vào bản sao…',self.preview).pack(pady=10)
+        actions=ttk.Frame(win);actions.pack(fill='x',padx=8,pady=10)
+        self.button(actions,'◀ Trước',lambda:self.navigate_error(-1)).pack(side='left',padx=3)
+        self.button(actions,'Tìm trên DGN',lambda:self.navigate_error(0)).pack(side='left',padx=3)
+        self.button(actions,'Sau ▶',lambda:self.navigate_error(1)).pack(side='left',padx=3)
+        self.button(actions,'Ghi dấu lỗi',self.mark_current).pack(side='left',padx=3)
+        self.button(actions,'Kiểm tra lại sau sửa tay',lambda:self.process('inspect')).pack(side='left',padx=3)
+        table.bind('<Double-1>',lambda _:self.navigate_error(0))
+
+    def navigate_error(self,direction):
+        table=self.report_table;items=table.get_children()
+        if not items:return
+        selected=table.selection();index=items.index(selected[0]) if selected else (-1 if direction>0 else 0)
+        index=(index+direction)%len(items);iid=items[index]
+        table.selection_set(iid);table.see(iid)
+        issue=self.project['issues'][int(iid)]
+        self.launch(lambda:focus_issue(self.project,issue),lambda _:self.status.set(
+            f"Lỗi / thông báo {index+1}/{len(items)}: {ISSUES.get(issue['code'],issue['code'])}. Sửa trong V8i rồi kiểm tra lại."))
+
+    def mark_current(self):
+        def done(backup):
+            self.project=json.loads(Path(self.path).read_text(encoding='utf-8'))
+            self.status.set('Đã ghi dấu lỗi. Sao lưu: '+str(backup))
+        if self.require_project():self.launch(lambda:mark_errors(self.path),done)
 
     def refresh_report(self):
         table=getattr(self,'report_table',None)
         if table is None or not table.winfo_exists():return
         table.delete(*table.get_children())
         if not self.project:return
-        for item in self.project['issues']:
+        for index,item in enumerate(self.project['issues']):
+            if item['code'] in ('INTERSECTION_NODE','DUPLICATE_REMOVED','ZERO_LENGTH_REMOVED','SNAPPED_ENDPOINT'):continue
             label=('Đã sửa tay: ' if item.get('resolved_by_manual_edit') else '')+ISSUES.get(item['code'],item['code'])
-            table.insert('','end',values=(label,item.get('parcel',''),self.report_detail(item)))
+            table.insert('','end',iid=str(index),values=(label,item.get('parcel',''),self.report_detail(item)))
 
     def preview(self):
         if not self.require_project():return
