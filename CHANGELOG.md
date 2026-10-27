@@ -1,5 +1,13 @@
 # Phiên bản SonMap+
 
+## V10.11
+
+- Nút Thông tin thửa trên DGN: nhấp bên trong thửa trong V8i để mở bảng thông tin theo ID MDB và hình học.
+- Sửa tên, địa chỉ chủ sử dụng và lưu trực tiếp vào MDB bằng câu lệnh có tham số, transaction, đọc lại kiểm tra và sao lưu trước ghi.
+- Chặn điểm trên ranh, vùng chồng lấn, ID trùng và dữ liệu MDB đã thay đổi trong lúc mở bảng; chuột phải để hủy chọn.
+- Không thay ranh, diện tích, số thửa hoặc các bản ghi khác khi sửa chủ sử dụng. Giữ V10.10 để phục hồi.
+- Đã thử chọn điểm trong V8i thật và mở đúng bảng thửa; Jet ghi/đọc Unicode trên MDB bản sao đạt, giữ nguyên dữ liệu gốc. 66 kiểm thử Python và kiểm thử PowerShell đạt.
+
 ## V10.10
 
 - Cột Diện tích trong danh sách thửa luôn hiển thị một chữ số thập phân, dùng dấu phẩy: 682,7; 918,3; 100,0.

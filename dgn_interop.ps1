@@ -9,6 +9,15 @@ function InitializeSonMapInterop {
 using System;
 using B = Bentley.Interop.MicroStationDGN;
 public static class SonMapV8iRecords {
+ public static double[] PickPoint(object value) {
+  B.Application a=(B.Application)value;
+  a.CommandState.StartDefaultCommand();
+  a.ShowPrompt("SonMap: Click inside a parcel; right-click to cancel.");
+  B.CadInputMessage m=a.CadInputQueue.GetInput(B.MsdCadInputType.DataPoint,B.MsdCadInputType.Reset,B.MsdCadInputType.Keyin,B.MsdCadInputType.Command);
+  if(m.InputType!=B.MsdCadInputType.DataPoint)return null;
+  B.Point3d p=m.Point;
+  return new double[]{p.X,p.Y};
+ }
  public static bool CellInScope(object value,double[][][] rings) {
   B.Point3d p=((B.Element)value).AsCellElement().Origin;
   foreach(double[][] ring in rings) {

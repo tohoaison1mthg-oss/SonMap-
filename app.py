@@ -486,6 +486,13 @@ def gui():
     primary=ttk.LabelFrame(win,text='BẢN ĐỒ ĐỊA CHÍNH');primary.grid(row=2,column=0,columnspan=3,sticky='ew',padx=10,pady=6)
     for title,mode in [('Sửa lỗi','clean'),('Tạo topology','topology'),('Kết nối CSDL','database')]:
         ttk.Button(primary,text=title,command=lambda selected_mode=mode:dgn_tools(selected_mode),width=24).pack(side='left',padx=8,pady=10)
+    from parcel_info_ui import ParcelInfoController
+    parcel_editor=ParcelInfoController(win,lambda busy:state.update(exporting=busy),database_connected,status.set)
+    def edit_dgn_parcel():
+        if state['exporting']:return
+        status.set('Nhấp bên trong thửa trên DGN; chuột phải để hủy.')
+        parcel_editor.start(state.get('drawing',''),variables['mdb'].get())
+    ttk.Button(primary,text='Thông tin thửa trên DGN',command=edit_dgn_parcel,width=26).pack(side='left',padx=8,pady=10)
     tree.grid_remove();searchbar.grid_remove();panel.grid_remove()
     buttons=ttk.Frame(win);buttons.grid(row=6,column=0,columnspan=3,sticky='w',padx=10,pady=8)
     for title,kind,command in [('Trích lục','export',request),('In GCN','print',lambda:request('GCN')),('Mẫu 03/CLBĐ','sheet',lambda:request('Mau03')),('Địa chỉ thửa','address',edit_address),('Thư mục hồ sơ','export',open_output_folder)]:

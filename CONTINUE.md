@@ -1,5 +1,20 @@
 # Tiếp tục phát triển SonMap+ trên máy khác
 
+## V10.11
+
+`parcel_info.py`, `parcel_info_ui.py`, `pick_dgn_point.ps1` và
+`update_parcel_owner.ps1` cung cấp nút chọn điểm trong thửa DGN và bảng sửa
+tên/địa chỉ chủ ghi trực tiếp MDB. Bắt điểm qua GetInput có đủ bốn tham số,
+đọc Point3d bằng interop; chuột phải hủy. Không đoán thửa bằng số nhãn.
+Ghi theo ID, kiểm tra SHA nguồn, sao lưu đầy đủ trước transaction và đọc lại.
+Không ghi tọa độ, số thửa/diện tích từ bảng sửa chủ. Không tự điền thông tin
+chủ giả vào dữ liệu gốc khi kiểm thử: dùng MDB bản sao để thử thay đổi nội dung.
+Phiên bản kế tiếp là V10.12 nếu chưa có bản cao hơn trên GitHub/laptop.
+Đã kiểm tra chọn điểm thật trong V8i và hiện đúng thông tin thửa. Ghi tên/địa
+chỉ Unicode, dấu nháy trên MDB bản sao bằng Jet đạt; kiểm tra backup, hình học,
+bản ghi khác và chặn SHA cũ đạt. 66 kiểm thử Python cùng kiểm thử PowerShell
+model/scan/interop đạt. Nội dung chủ của MDB gốc không bị thay bằng dữ liệu thử.
+
 ## V10.10
 
 Cột Diện tích trên danh sách chính dùng `app.format_area`: một chữ số thập
