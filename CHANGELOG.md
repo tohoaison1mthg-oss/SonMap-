@@ -1,5 +1,13 @@
 # Phiên bản SonMap+
 
+## V10.14
+
+- Thu gọn ba bảng Sửa lỗi, Tạo topology và Sửa thông tin thửa theo bố cục mẫu; bỏ các dòng mô tả kỹ thuật và tab toàn bộ cột MDB khỏi bảng sửa thửa.
+- Chỉ hiện các thuộc tính địa chính được yêu cầu: số tờ/thửa/tạm, diện tích, đất ở, diện tích pháp lý, mục đích/đối tượng sử dụng, địa chỉ, chủ/vợ chồng, thông tin giấy tờ và ghi chú. Cột kỹ thuật, ID, tọa độ và cột bổ sung khác được giữ trong MDB, không đưa lên form.
+- Diện tích tại các ô, danh sách thửa và báo lỗi luôn hiển thị một chữ số sau dấu phẩy (568,7). Không làm tròn dữ liệu lưu; chọn một ô diện tích chưa sửa cũng giữ nguyên độ chính xác gốc.
+- Giữ chức năng pick trong thửa, chọn từng trường để lưu, sao lưu và kiểm tra MDB; thuộc tính chưa có trong cấu trúc MDB hiển thị trống, không tự tạo cột.
+- Kiểm thử Python/Tk và toàn vẹn gói cài đạt. Đây là thay đổi giao diện/định dạng; không sửa thuật toán COM/V8i/Jet đã kiểm thử ở V10.13. Giữ gói/tag/bản cài V10.13 để khôi phục.
+
 ## V10.13
 
 - Làm gọn bản vẽ chỉ ẩn các lớp không tham gia; có khôi phục đúng trạng thái hiển thị từng view, không xóa phần tử.

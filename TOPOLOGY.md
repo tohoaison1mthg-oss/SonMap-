@@ -1,8 +1,8 @@
-# SonMap+ V10.13 — làm trực tiếp trên laptop
+# SonMap+ V10.14 — làm trực tiếp trên laptop
 
 ## Cài hoặc nâng cấp ứng dụng
 
-Giải nén SonMapPlus_V10_13_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
+Giải nén SonMapPlus_V10_14_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
 Lối tắt SonMap+ dùng chương trình ở `%LOCALAPPDATA%\SonMapPlus\App`.
 Trình cài giữ các phiên bản trước, sao lưu mã cũ và có công cụ Khôi phục.
 Nếu thiếu CPython 3.12 64-bit phù hợp, chuẩn bị bản riêng cho SonMap từ bộ cài
@@ -15,12 +15,13 @@ và **Sửa ranh** (tạo giao điểm thật, giữ nét, có sao lưu). Đoạ
 báo lỗi và sửa thủ công. Mở **Báo lỗi** để tìm từng lỗi trên DGN, ghi dấu và kiểm
 tra lại sau khi sửa. Chỉ tạo topology khi đã kiểm tra ranh hoặc phạm vi cập nhật hợp lệ.
 
-**Thông tin thửa trên DGN** mở bảng có nút **↖ Pick trong thửa**. Nhấp nút này,
+**Thông tin thửa trên DGN** mở bảng có nút con trỏ **↖** và nút **Chọn**. Nhấp một nút,
 sau đó nhấp bên trong thửa; chuột phải hủy. Bảng nạp thuộc tính theo hình học và ID,
 không dùng số thửa làm khóa. Sửa giá trị sẽ đánh dấu trường cần ghi; có thể bỏ dấu
 để giữ giá trị cũ. Để trống trường đã chọn để xóa nội dung nếu kiểu dữ liệu cho phép.
-Diện tích đo, ID và hình học chỉ đọc. Tab **Toàn bộ thuộc tính** hiển thị cả cột
-chưa hỗ trợ chỉnh sửa. Nút pick dùng lại để chuyển sang thửa khác; các chỉnh sửa
+Diện tích hiển thị đúng một chữ số sau dấu phẩy; dữ liệu lưu giữ độ chính xác gốc.
+Bảng chỉ hiển thị các thuộc tính địa chính cần dùng theo mẫu, không hiện cột kỹ thuật.
+Thuộc tính chưa có trong MDB để trống và vô hiệu hóa. Nút pick dùng lại để chuyển sang thửa khác; các chỉnh sửa
 chưa lưu được nhắc trước khi bỏ. Chương trình giữ nguyên cấu trúc cột MDB.
 
 1. Mở đúng DGN trong MicroStation V8i. SonMap tự nhận MDB cùng tên; hoặc chọn

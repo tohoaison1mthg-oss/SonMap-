@@ -5,7 +5,7 @@
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "36e247574cfa3a6a636a734a29c508ceab6a0d2051a23a31c77010936d916ded"
+    "sha256": "6a62f98edf907988460678f7991b87cf307ec0eacadf8957f9de3814e0ae1e25"
   },
   {
     "file": "CONTINUE.md",
@@ -53,15 +53,19 @@
   },
   {
     "file": "TOPOLOGY.md",
-    "sha256": "8c29acb70e3b267ed7794d172ca7c5ca62d564cd873e51f370554a1e56111e09"
+    "sha256": "f8d76fb95002ac7cf0620edb3b8253e9fb0117a519245cb61f427405c72edbc9"
   },
   {
     "file": "V10_13_VALIDATION.md",
     "sha256": "85f2334f125ecfc84dbdf266f32f6ef26dc5bc40a1f15f2bc127960dd64b2495"
   },
   {
+    "file": "V10_14_VALIDATION.md",
+    "sha256": "36470edd133c8eeceee47114d7444fd6f08ba5314fe4f170b5a779efd856fd11"
+  },
+  {
     "file": "VERSION",
-    "sha256": "f995f732020ec948409b5421232c2926d5a431bb6e5e2105aca02994c7b1e884"
+    "sha256": "cacb7e88fb6cb7ff71a27cd067c2bf6c486972346d48ff1badc8c037ecf2799e"
   },
   {
     "file": "VIETMAPXM_STUDY.md",
@@ -181,7 +185,7 @@
   },
   {
     "file": "parcel_info_ui.py",
-    "sha256": "ae8680c28b073b83e9f4f40b19c7640490777289364ba0270a80f773880bf003"
+    "sha256": "718863a96280ecba480f18ebd251e15672cb3e2d249a3100245a8e9280b0c9fc"
   },
   {
     "file": "pick_dgn_point.ps1",
@@ -269,7 +273,7 @@
   },
   {
     "file": "test_parcel_info_ui.py",
-    "sha256": "db44a39231c58b45e350c4c9387abeef741de096a5b5968fa3d956608d07242e"
+    "sha256": "fc8fe357b7a303e032487aca2a6552274a8fd9e432b6c1b26b545c8e617a5f3f"
   },
   {
     "file": "test_python_probe.py",
@@ -289,7 +293,7 @@
   },
   {
     "file": "test_topology_ui.py",
-    "sha256": "793ff29965fb7504f1a1cbd3927d874b873149f6edcfc70f6d07fe13e47133a2"
+    "sha256": "22b9f56bed788782a3d006044039e948c637cf4e9001142e1328412b23325d8e"
   },
   {
     "file": "test_upgrade.py",
@@ -301,7 +305,7 @@
   },
   {
     "file": "topology_ui.py",
-    "sha256": "55562f0211c008e805e0a703674d5b8954ecbd323707097d37bfd903a48de808"
+    "sha256": "be159c2fda698f793633945cdad7ebac521e75eca86864c0b22533d80276878d"
   },
   {
     "file": "topology_workflow.py",

@@ -59,7 +59,8 @@ class DialogTests(unittest.TestCase):
             win=self.workspace.windows[key]
             self.assertLessEqual(win.winfo_width(),650)
             self.assertLessEqual(win.winfo_reqheight(),win.winfo_height())
-            self.assertFalse(any(isinstance(w,ttk.Notebook) for w in self.widgets(win)))
+            if key in ('clean','topology'):
+                self.assertEqual(len(next(w for w in self.widgets(win) if isinstance(w,ttk.Notebook)).tabs()),1)
         self.assertNotEqual(self.workspace.windows['clean'],self.workspace.windows['topology'])
 
     def test_clean_and_topology_dispatch_different_drawing_operations(self):
@@ -101,6 +102,14 @@ class DialogTests(unittest.TestCase):
         self.workspace.source.set('other.dgn');self.root.update()
         self.assertIsNone(self.workspace.project)
         self.assertEqual(self.workspace.parcel_table.get_children(),())
+
+    def test_parcel_area_display_has_one_decimal_without_rounding_project(self):
+        self.workspace.project=copy.deepcopy(self.data);self.workspace.path=self.path
+        self.workspace.project['parcels'][0]['DienTich']=568.74321
+        self.workspace.parcels();self.root.update()
+        self.assertEqual(self.workspace.parcel_table.item('0','values')[3],'568,7')
+        self.assertEqual(self.workspace.project['parcels'][0]['DienTich'],568.74321)
+        self.assertIn('568,7 m²',self.workspace.report_detail({'area_m2':568.74321}))
 
     def test_default_direct_topology_updates_connected_mdb(self):
         self.workspace.current_mdb='current.mdb'

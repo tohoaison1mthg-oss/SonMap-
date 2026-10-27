@@ -198,40 +198,59 @@ class TopologyWorkspace:
 
     def clean(self):
         from tkinter import ttk
-        win=self.window('clean','Tìm và sửa lỗi ranh','630x650')
+        win=self.window('clean','Tự động tìm sửa lỗi','565x480')
         if not win:return
-        self.source_box(win)
-        view=ttk.LabelFrame(win,text='Làm gọn bản vẽ — chỉ ẩn lớp, giữ nguyên phần tử');view.pack(fill='x',padx=12,pady=4)
-        self.button(view,'Ẩn lớp ngoài danh sách',lambda:self.change_display(False)).pack(side='left',padx=6,pady=6)
-        self.button(view,'Khôi phục hiển thị lớp',lambda:self.change_display(True)).pack(side='left',padx=6,pady=6)
-        top=ttk.Frame(win);top.pack(fill='x',padx=8)
-        duplicates=ttk.LabelFrame(top,text='Tùy chọn sửa lỗi trùng đè');duplicates.grid(row=0,column=0,padx=4,pady=5,sticky='nsew')
-        ttk.Label(duplicates,text='Tạo giao điểm trên ranh giao nhau.').pack(anchor='w',padx=10,pady=10)
-        ttk.Label(duplicates,text='Đoạn dư / thiếu: báo để sửa tay.').pack(anchor='w',padx=10,pady=(0,10))
-        markers=ttk.LabelFrame(top,text='Thuộc tính cell báo lỗi');markers.grid(row=0,column=1,padx=4,pady=5,sticky='nsew')
-        self.entry(markers,'error_level',0,'Lớp',combo=True)
-        self.entry(markers,'error_color',1,'Màu')
-        self.entry(markers,'error_radius',2,'Bán kính',unit='m')
-        top.columnconfigure(0,weight=1);top.columnconfigure(1,weight=1)
-        grid=ttk.Frame(win);grid.pack(fill='x',padx=10,pady=5)
+        self.status.set('')
+        tabs=ttk.Notebook(win);tabs.pack(fill='both',expand=True,padx=8,pady=8)
+        body=ttk.Frame(tabs);tabs.add(body,text='Tự động tìm sửa lỗi')
+        top=ttk.Frame(body);top.pack(fill='x',padx=4,pady=6)
+        duplicates=ttk.LabelFrame(top,text='Tùy chọn sửa lỗi trùng đè');duplicates.pack(side='left',fill='both',expand=True,padx=(0,5))
+        ttk.Combobox(duplicates,values=('Giữ một đoạn trùng chính xác',),state='readonly',width=28).pack(fill='x',padx=8,pady=9)
+        duplicates.winfo_children()[0].current(0)
+        markers=ttk.LabelFrame(top,text='Thuộc tính cell báo lỗi');markers.pack(side='left',fill='both',expand=True)
+        self.entry(markers,'error_level',0,'Lớp',width=10,combo=True)
+        self.entry(markers,'error_color',1,'Màu',width=10)
+        self.entry(markers,'error_radius',2,'Bán kính',width=10)
+        grid=ttk.Frame(body);grid.pack(fill='x',padx=4,pady=3)
         self.checkbox(grid,'break_arcs','Phá vỡ Arc',0)
         self.checkbox(grid,'break_complex','Phá vỡ ComplexShape',0,2)
-        self.checkbox(grid,'short_enabled','Báo đoạn ngắn hơn',1)
-        self.entry(grid,'short_length',1,'',column=1,unit='m')
-        self.checkbox(grid,'area_enabled','Báo vùng nhỏ hơn',2)
-        self.entry(grid,'min_area',2,'',column=1,unit='m²')
+        self.checkbox(grid,'short_enabled','Báo đoạn thẳng ngắn hơn',1)
+        ttk.Entry(grid,textvariable=self.vars['short_length'],width=10).grid(row=1,column=3,padx=4,pady=4)
+        ttk.Label(grid,text='m').grid(row=1,column=4)
+        self.checkbox(grid,'area_enabled','Báo vùng diện tích nhỏ hơn',2)
+        ttk.Entry(grid,textvariable=self.vars['min_area'],width=10).grid(row=2,column=3,padx=4,pady=4)
+        ttk.Label(grid,text='m²').grid(row=2,column=4)
         self.checkbox(grid,'join_lines','Kết nối LineString',3)
         self.checkbox(grid,'snap','Nối cặp đầu hở',3,2)
-        self.checkbox(grid,'near_enabled','Kiểm tra các nút gần nhau',4)
-        self.entry(grid,'near_distance',4,'',column=1,unit='m')
-        self.entry(grid,'snap_tolerance',5,'Sai số tiếp xúc',unit='m')
-        self.entry(grid,'boundary_levels',6,'Các lớp tham gia',width=24)
-        links=ttk.Frame(win);links.pack(fill='x',padx=12)
-        self.button(links,'Báo lỗi…',self.show_report).pack(side='left',padx=3)
-        self.button(links,'Ghi cell báo lỗi…',self.preview).pack(side='left',padx=3)
-        self.button(links,'Đơn vị / sai số cung…',self.advanced).pack(side='left',padx=3)
-        check=ttk.Checkbutton(win,text='Ghi giao điểm ranh vào DGN hiện tại (có sao lưu)',variable=self.in_place);check.pack(anchor='w',padx=14);self.controls.append(check)
-        self.footer(win,lambda:self.process('clean'),'Sửa ranh')
+        self.checkbox(grid,'near_enabled','Kiểm tra nút gần nhau',4)
+        ttk.Entry(grid,textvariable=self.vars['near_distance'],width=7).grid(row=4,column=1,padx=4)
+        ttk.Label(grid,text='Sai số tiếp xúc').grid(row=4,column=2,sticky='w',padx=7)
+        ttk.Entry(grid,textvariable=self.vars['snap_tolerance'],width=10).grid(row=4,column=3,padx=4)
+        levels_box=ttk.LabelFrame(body,text='Danh sách các lớp tham gia');levels_box.pack(fill='x',padx=6,pady=8)
+        ttk.Entry(levels_box,textvariable=self.vars['boundary_levels']).pack(fill='x',padx=8,pady=8)
+        self.compact_footer(win,lambda:self.process('clean'),clean=True)
+
+    def compact_footer(self,win,command,clean=False):
+        import tkinter as tk
+        from tkinter import ttk
+        ttk.Label(win,textvariable=self.status,wraplength=535).pack(fill='x',padx=10,pady=3)
+        actions=ttk.Frame(win);actions.pack(fill='x',padx=10,pady=(4,10))
+        if clean:
+            self.button(actions,'Ẩn lớp',lambda:self.change_display(False),width=8).pack(side='left',padx=2)
+            self.button(actions,'Hiện lại',lambda:self.change_display(True),width=8).pack(side='left',padx=2)
+        self.button(actions,'Báo lỗi…',self.show_report,width=10).pack(side='left',padx=2)
+        options=ttk.Menubutton(actions,text='Tùy chọn…',width=10);options.pack(side='left',padx=3)
+        menu=tk.Menu(options,tearoff=False);options.configure(menu=menu)
+        menu.add_command(label='Gán thông tin từ nhãn…',command=lambda:None if self.busy else self.labels())
+        menu.add_command(label='Danh sách thửa dự án…',command=lambda:None if self.busy else self.parcels())
+        menu.add_command(label='Đơn vị và sai số cung…',command=lambda:None if self.busy else self.advanced())
+        self.button(actions,'Thực hiện',command,width=14).pack(side='right',padx=2)
+        self.button(actions,'Đóng',win.destroy,width=10).pack(side='right',padx=4)
+        def track(parent):
+            for widget in parent.winfo_children():
+                if isinstance(widget,(ttk.Entry,ttk.Combobox,ttk.Checkbutton,ttk.Radiobutton,ttk.Button,ttk.Menubutton)) and widget not in self.controls:self.controls.append(widget)
+                track(widget)
+        track(win)
 
     def change_display(self,restore):
         source=self.source.get();selected=self.vars['boundary_levels'].get()
@@ -240,30 +259,31 @@ class TopologyWorkspace:
 
     def topology(self):
         from tkinter import ttk
-        win=self.window('topology','Tạo topology','630x490')
+        win=self.window('topology','Tạo topology','550x475')
         if not win:return
-        self.source_box(win)
-        fields=ttk.Frame(win);fields.pack(fill='x',padx=10)
+        self.status.set('')
+        tabs=ttk.Notebook(win);tabs.pack(fill='both',expand=True,padx=8,pady=8)
+        body=ttk.Frame(tabs);tabs.add(body,text='Tạo topology')
+        fields=ttk.Frame(body);fields.pack(fill='x',padx=4,pady=6)
         self.entry(fields,'boundary_levels',0,'Lớp tạo vùng (nhập số)',width=30)
-        self.entry(fields,'sheet',1,'Tờ bản đồ số',width=15)
-        mode=ttk.LabelFrame(win,text='Cơ sở dữ liệu thửa');mode.pack(fill='x',padx=12,pady=8)
-        ttk.Label(mode,text='Dựng lại vùng và tâm thửa từ ranh DGN.').pack(anchor='w',padx=10,pady=5)
-        ttk.Label(mode,text='Chưa có số thửa: tâm tạm hiển thị ID, chờ gán thông tin.').pack(anchor='w',padx=10,pady=(0,5))
-        middle=ttk.Frame(win);middle.pack(fill='x',padx=8)
+        self.entry(fields,'sheet',1,'Tờ bản đồ số (nhập số)',width=30)
+        self.controls.append(ttk.Radiobutton(body,text='Cập nhật DGN và CSDL đang kết nối',variable=self.in_place,value=True))
+        self.controls[-1].pack(anchor='w',padx=12,pady=3)
+        mode=ttk.LabelFrame(body,text='Thuộc tính khi ranh thửa thay đổi');mode.pack(fill='x',padx=12,pady=4)
+        for row,pair in enumerate((('✓ Đo lại diện tích','✓ Giữ số hiệu thửa'),('✓ Giữ thông tin chủ','✓ Giữ loại đất, địa chỉ'))):
+            for col,text in enumerate(pair):ttk.Label(mode,text=text).grid(row=row,column=col,sticky='w',padx=12,pady=4)
+        self.controls.append(ttk.Radiobutton(body,text='Tạo DGN bản riêng',variable=self.in_place,value=False))
+        self.controls[-1].pack(anchor='w',padx=12,pady=3)
+        middle=ttk.Frame(body);middle.pack(fill='x',padx=8,pady=4)
         centre=ttk.LabelFrame(middle,text='Cell tâm thửa');centre.pack(side='left',fill='both',expand=True,padx=4)
-        self.entry(centre,'centre_level',0,'Lớp',combo=True)
-        self.entry(centre,'centre_color',1,'Màu')
-        self.entry(centre,'centre_height',2,'Cỡ chữ')
+        self.entry(centre,'centre_level',0,'Lớp',width=9,combo=True)
+        self.entry(centre,'centre_color',1,'Màu',width=9)
+        self.entry(centre,'centre_height',2,'Tỷ lệ / cỡ chữ',width=9)
         markers=ttk.LabelFrame(middle,text='Báo lỗi tạo vùng');markers.pack(side='left',fill='both',expand=True,padx=4)
-        self.entry(markers,'error_level',0,'Lớp',combo=True)
-        self.entry(markers,'error_color',1,'Màu')
-        self.entry(markers,'error_radius',2,'Bán kính',unit='m')
-        links=ttk.Frame(win);links.pack(fill='x',padx=12,pady=10)
-        self.button(links,'Gán nhãn…',self.labels).pack(side='left',padx=3)
-        self.button(links,'Thông tin thửa…',self.parcels).pack(side='left',padx=3)
-        self.button(links,'Báo lỗi…',self.show_report).pack(side='left',padx=3)
-        check=ttk.Checkbutton(win,text='Ghi DGN hiện tại và cập nhật MDB kết nối (có sao lưu)',variable=self.in_place);check.pack(anchor='w',padx=14);self.controls.append(check)
-        self.footer(win,lambda:self.process('topology'))
+        self.entry(markers,'error_level',0,'Lớp',width=9,combo=True)
+        self.entry(markers,'error_color',1,'Màu',width=9)
+        self.entry(markers,'error_radius',2,'Bán kính',width=9)
+        self.compact_footer(win,lambda:self.process('topology'))
 
     def advanced(self):
         from tkinter import ttk
@@ -301,7 +321,9 @@ class TopologyWorkspace:
         if item.get('field'):parts.append('Trường: '+{'TCT':'Số thửa','LRD':'Loại đất','TenChu':'Tên chủ','Xudong':'Xứ đồng'}.get(item['field'],item['field']))
         point=item.get('point') or (item.get('points') or [None])[0]
         if point:parts.append(f'X={point[0]:.4f}; Y={point[1]:.4f}')
-        if 'area_m2' in item:parts.append(f"Diện tích {item['area_m2']:.4f} m²")
+        if 'area_m2' in item:
+            from app import format_area
+            parts.append("Diện tích "+format_area(item['area_m2'])+" m²")
         if 'length_m' in item:parts.append(f"Dài {item['length_m']:.5f} m")
         if item.get('reason'):parts.append(item['reason'])
         if item.get('detail'):parts.append(str(item['detail']))
@@ -382,7 +404,8 @@ class TopologyWorkspace:
             if not table.selection() or not self.project:return
             p=self.project['parcels'][int(table.selection()[0])]
             for key,var in entries.items():var.set('' if p.get(key) is None else p.get(key,''))
-            area.set(f"Diện tích đo: {p['DienTich']:.3f} m²")
+            from app import format_area
+            area.set("Diện tích đo: "+format_area(p['DienTich'])+" m²")
         table.bind('<<TreeviewSelect>>',select)
         def save():
             from tkinter import messagebox
@@ -407,12 +430,13 @@ class TopologyWorkspace:
         self.refresh_parcels();self.footer(win,save,'Lưu')
 
     def refresh_parcels(self):
+        from app import format_area
         table=getattr(self,'parcel_table',None)
         if table is None or not table.winfo_exists():return
         table.delete(*table.get_children())
         if not self.project:return
         for i,p in enumerate(self.project['parcels']):
-            table.insert('','end',iid=str(i),values=[p.get(k,'') for k in ('ID','ToBD','TCT','DienTich','TenChu','LRD')])
+            table.insert('','end',iid=str(i),values=[format_area(p.get(k)) if k=='DienTich' else p.get(k,'') for k in ('ID','ToBD','TCT','DienTich','TenChu','LRD')])
 
     def load_project(self):
         from tkinter import filedialog,messagebox

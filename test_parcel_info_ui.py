@@ -62,3 +62,20 @@ class OwnerDialogTests(unittest.TestCase):
         with patch('parcel_info_ui.validate_parcel_context',side_effect=ValueError('Active DGN changed')),patch('parcel_info_ui.update_attributes') as write,patch('tkinter.messagebox.showerror'):
             c.save();self.wait();write.assert_not_called()
         self.assertEqual(self.saved,[])
+
+    def test_form_hides_technical_columns_and_formats_all_areas_once(self):
+        selection=copy.deepcopy(self.selection)
+        selection['row'].update(DienTich=568.74321,DTPhapLy=123.4567,TamX=900,ExtraInt=99)
+        selection['connected']['columns']+= [dict(name='TamX',type='System.Double',size=8,nullable=True),dict(name='ExtraInt',type='System.Int32',size=4,nullable=True)]
+        c=self.controller;c.show(selection)
+        self.assertEqual(c._vars['DienTich'].get(),'568,7')
+        self.assertEqual(c.values['DTPhapLy'].get(),'123,5')
+        for name in ('TamX','ExtraInt','ID','Geometry','DienTich'):self.assertNotIn(name,c.values)
+        self.assertEqual(c.selection['row']['DienTich'],568.74321)
+
+    def test_unchanged_selected_area_keeps_full_precision_on_save(self):
+        selection=copy.deepcopy(self.selection);selection['row']['DTPhapLy']=123.4567
+        c=self.controller;c.show(selection);c.enabled['DTPhapLy'].set(True)
+        with patch('parcel_info_ui.update_attributes',return_value={'connected':selection['connected'],'backup':'','status':'unchanged'}) as write:
+            c.save();self.wait()
+            self.assertEqual(write.call_args.args[3],{'DTPhapLy':123.4567})
