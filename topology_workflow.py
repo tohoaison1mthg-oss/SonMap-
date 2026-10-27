@@ -290,7 +290,7 @@ def apply_current(project_path, database_path=None,clean_only=False):
         # Geometry must remain exportable, but new parcels may wait for official numbering.
         if clean_only:
             if any(i['code']=='UNSUPPORTED' for i in project['issues']):raise ValueError('Còn phần tử ranh chưa hỗ trợ; không ghi đè.')
-        else:export_rows(project,allow_unnumbered=True,allow_zero_id=bool(delta))
+        else:export_rows(project,allow_unnumbered=True,allow_zero_id=bool(delta),allow_duplicate_numbers=bool(delta))
         project['direct_backup']=str(dgn_backup)
         save_project(project_path,project)
         if target and digest(target)!=db_before:raise ValueError('MDB đang bị thay đổi bởi chương trình khác. Chưa ghi thay đổi.')

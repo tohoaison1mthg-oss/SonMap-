@@ -59,7 +59,9 @@ class DatabaseTopologyTests(unittest.TestCase):
         self.assertEqual((result['before_count'],result['after_count']),(1,2))
         self.assertEqual(result['delete_ids'],[20])
         self.assertEqual({r['ID'] for r in result['insert_rows']},{21,22})
-        self.assertEqual(result['unnumbered'],2)
+        self.assertEqual(result['unnumbered'],0)
+        self.assertEqual([r['TCT'] for r in result['final_rows']],[12,12])
+        self.assertTrue(all(r['_parent_id']==20 for r in result['insert_rows']))
         self.assertEqual(sum(r['DienTich'] for r in result['final_rows']),100)
         self.assertTrue(all(r['ToBD']==89 and r['TenChu']=='Original owner' for r in result['final_rows']))
         self.assertEqual(result['splits'][0]['old_id'],20)
@@ -77,6 +79,28 @@ class DatabaseTopologyTests(unittest.TestCase):
         self.assertEqual(result['project']['parcels'][0]['ID'],20)
         self.assertEqual(result['project']['parcels'][0]['TCT'],12)
         self.assertIn(outside,result['final_rows'])
+
+    def test_three_children_keep_parent_number_and_attributes_but_recompute_areas(self):
+        old=old_rows();old[0].update(TCT=10,DiaChi='Owner address',DiaChiThuaDatChiTiet='Parcel address',Xudong='Field',MaLD='Legacy code')
+        new=project([line(rect(x=0,y=0)),line([(3,0),(3,10)]),line([(7,0),(7,10)])],label_levels={})
+        result=reconcile(new,old)
+        self.assertEqual(len(result['final_rows']),3)
+        self.assertEqual(len({r['ID'] for r in result['final_rows']}),3)
+        self.assertEqual(sorted(r['DienTich'] for r in result['final_rows']),[30,30,40])
+        for r in result['final_rows']:
+            for k in ('ToBD','TCT','TenChu','DiaChi','DiaChiThuaDatChiTiet','Xudong','LRD','MaLD'):
+                self.assertEqual(r[k],old[0][k])
+        self.assertTrue(all('_parent_id' not in r for r in result['final_rows']))
+        repeated=reconcile(result['project'],result['final_rows'])
+        self.assertEqual(repeated['insert_rows'],[])
+        self.assertEqual(repeated['delete_ids'],[])
+        self.assertEqual([r['TCT'] for r in repeated['final_rows']],[10,10,10])
+
+    def test_explicit_new_number_is_preserved_over_inherited_temporary_number(self):
+        new=project([line(rect(x=0,y=0)),line([(5,0),(5,10)])],label_levels={})
+        new['parcels'][0].update(TCT=99,manual_fields=['TCT'])
+        result=reconcile(new,old_rows())
+        self.assertEqual([r['TCT'] for r in result['final_rows']],[99,12])
 
     def test_partial_old_parcel_coverage_refuses_deletion(self):
         new=project([line(rect(x=0,y=0,w=5))],label_levels={})

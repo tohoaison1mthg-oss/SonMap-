@@ -1,5 +1,20 @@
 # Tiếp tục phát triển SonMap+ trên máy khác
 
+## V10.12
+
+Theo yêu cầu người dùng, tách 1 thành nhiều thửa phải tạm giữ cùng số thửa
+và thông tin cũ. ID MDB luôn riêng; diện tích/hình học tính theo vùng mới.
+`reconcile` cho phép số tờ/thửa trùng tạm khi ghi MDB, nhưng vẫn chặn ID trùng.
+Khi chèn thửa con, `update_mdb_topology.ps1` sao chép các cột thuộc tính của
+thửa cha trước khi xóa cha; không làm mất cột ngoài danh sách SonMap biết.
+`parcel_info_ui.py` có ô Số thửa; ghi số/tên/địa chỉ bằng ID duy nhất. Chọn
+thửa trùng số bằng điểm/hình học. Xuất hồ sơ vẫn kiểm tra số chính thức.
+Giữ bản V10.11; nâng cấp kế tiếp là V10.13 nếu chưa có bản cao hơn.
+71 kiểm thử Python đạt; kiểm thử Jet thật trên bản sao xác minh kế thừa số
+và các cột ngoài schema SonMap, đổi riêng số/tên con và bảo toàn thửa còn lại.
+Các thửa con từ lần tách trước nếu còn trống số được điền lại số cha từ bản
+sao lưu đã xác minh, có kiểm tra hình học và giữ nguyên thông tin đã sửa.
+
 ## V10.11
 
 `parcel_info.py`, `parcel_info_ui.py`, `pick_dgn_point.ps1` và

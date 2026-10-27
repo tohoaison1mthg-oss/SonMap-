@@ -1,5 +1,14 @@
 # Phiên bản SonMap+
 
+## V10.12
+
+- Thửa con tạm kế thừa số thửa và thông tin thửa cũ; mỗi vùng vẫn có ID MDB riêng và diện tích/hình học riêng.
+- Cho phép số thửa trùng tạm trong MDB; chọn bằng điểm trên DGN vẫn phân biệt theo hình học và ID.
+- Bảng thông tin trên DGN có ô Số thửa để đổi riêng số thửa, tên và địa chỉ chủ sử dụng; sao lưu trước khi lưu.
+- Sao chép các cột thuộc tính khác của thửa cha vào thửa con, giữ cấu trúc MDB và bản ghi ngoài phạm vi.
+- Giữ V10.11 và các bản sao dữ liệu để phục hồi.
+- Kiểm thử Windows/Jet thực trên bản sao đã xác nhận số trùng tạm, kế thừa cả cột bổ sung, đổi riêng số/tên một thửa con và giữ nguyên thửa còn lại; 71 kiểm thử Python đạt.
+
 ## V10.11
 
 - Nút Thông tin thửa trên DGN: nhấp bên trong thửa trong V8i để mở bảng thông tin theo ID MDB và hình học.

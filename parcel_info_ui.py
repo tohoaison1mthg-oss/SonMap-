@@ -25,7 +25,7 @@ class ParcelInfoController:
             if ok:done(value)
             else:
                 if self.dialog and self.dialog.winfo_exists():
-                    self.save_button.configure(state='normal');self.status.set('Chưa lưu. Kiểm tra thông báo rồi chọn lại thửa nếu MDB đã đổi.')
+                    self.set_editable(True);self.status.set('Chưa lưu. Kiểm tra thông báo rồi chọn lại thửa nếu MDB đã đổi.')
                 else:self.on_status('Chưa chọn được thửa. Kiểm tra thông báo và thử lại.')
                 messagebox.showerror('Thông tin thửa',value,parent=self.dialog if self.dialog and self.dialog.winfo_exists() else self.parent)
         threading.Thread(target=worker,daemon=True).start();self.parent.after(100,poll)
@@ -50,18 +50,23 @@ class ParcelInfoController:
         from app import format_area
         self.selection=selection;row=selection['row']
         dialog=tk.Toplevel(self.parent);self.dialog=dialog
-        dialog.title('Thông tin thửa — cập nhật MDB');dialog.geometry('700x340');dialog.resizable(False,False)
+        dialog.title('Thông tin thửa — cập nhật MDB');dialog.geometry('700x390');dialog.resizable(False,False)
         dialog.protocol('WM_DELETE_WINDOW',lambda:None if self.busy else dialog.destroy())
-        ttk.Label(dialog,text=f"Tờ {row['ToBD']}  |  Thửa {row.get('TCT') or 'Chờ số'}  |  ID MDB {row['ID']}  |  Diện tích {format_area(row['DienTich'])} m²").pack(anchor='w',padx=14,pady=(12,6))
+        self.metadata=lambda p:f"Tờ {p['ToBD']}  |  Thửa {p.get('TCT') or 'Chờ số'}  |  ID MDB {p['ID']}  |  Diện tích {format_area(p['DienTich'])} m²"
+        self.header=tk.StringVar(master=dialog,value=self.metadata(row))
+        ttk.Label(dialog,textvariable=self.header).pack(anchor='w',padx=14,pady=(12,6))
         ttk.Label(dialog,text='MDB: '+selection['connected']['path'],wraplength=665).pack(anchor='w',padx=14,pady=(0,10))
         fields=ttk.Frame(dialog);fields.pack(fill='x',padx=14)
+        self.number=tk.StringVar(master=dialog,value='' if row.get('TCT') is None else str(row['TCT']))
         self.owner=tk.StringVar(master=dialog,value=row.get('TenChu') or '')
         self.address=tk.StringVar(master=dialog,value=row.get('DiaChi') or '')
-        for i,(label,var) in enumerate((('Chủ sử dụng',self.owner),('Địa chỉ chủ sử dụng',self.address))):
+        self.entries=[]
+        for i,(label,var) in enumerate((('Số thửa',self.number),('Chủ sử dụng',self.owner),('Địa chỉ chủ sử dụng',self.address))):
             ttk.Label(fields,text=label).grid(row=i,column=0,sticky='w',padx=(0,10),pady=8)
-            ttk.Entry(fields,textvariable=var,width=65).grid(row=i,column=1,sticky='ew',pady=8)
+            entry=ttk.Entry(fields,textvariable=var,width=65);entry.grid(row=i,column=1,sticky='ew',pady=8)
+            self.entries.append(entry)
         fields.columnconfigure(1,weight=1)
-        self.status=tk.StringVar(master=dialog,value='Lưu trực tiếp vào MDB; tự sao lưu trước khi ghi.')
+        self.status=tk.StringVar(master=dialog,value='Các thửa tách có thể tạm cùng số cũ. Lưu theo ID MDB riêng, có sao lưu.')
         ttk.Label(dialog,textvariable=self.status,wraplength=665).pack(fill='x',padx=14,pady=12)
         buttons=ttk.Frame(dialog);buttons.pack(fill='x',padx=14,pady=8)
         ttk.Button(buttons,text='Đóng',command=lambda:None if self.busy else dialog.destroy()).pack(side='right')
@@ -69,13 +74,21 @@ class ParcelInfoController:
         self.save_button.pack(side='right',padx=8)
         dialog.lift();dialog.focus_force()
 
+    def set_editable(self,enabled):
+        for entry in self.entries:entry.configure(state='normal' if enabled else 'disabled')
+        self.save_button.configure(state='normal' if enabled else 'disabled')
+
     def save(self):
         if self.busy:return
-        selected=self.selection;owner=self.owner.get();address=self.address.get()
-        self.save_button.configure(state='disabled');self.status.set('Đang sao lưu và cập nhật MDB…')
+        selected=self.selection;owner=self.owner.get();address=self.address.get();number=self.number.get()
+        self.set_editable(False);self.status.set('Đang sao lưu và cập nhật MDB…')
         def done(result):
             self.selection['connected']=result['connected']
+            row=next(r for r in result['connected']['rows'] if r['ID']==selected['row']['ID'])
+            self.selection['row']=row;self.header.set(self.metadata(row))
+            self.number.set('' if row.get('TCT') is None else str(row['TCT']))
+            self.owner.set(row.get('TenChu') or '');self.address.set(row.get('DiaChi') or '')
             self.on_saved(result['connected'])
             self.status.set('Đã lưu vào MDB. Sao lưu: '+result['backup'])
-            self.save_button.configure(state='normal');self.dialog.lift()
-        self.run(lambda:update_owner(selected['connected']['path'],selected['connected']['sha256'],selected['row']['ID'],owner,address),done)
+            self.set_editable(True);self.dialog.lift()
+        self.run(lambda:update_owner(selected['connected']['path'],selected['connected']['sha256'],selected['row']['ID'],owner,address,number=number),done)

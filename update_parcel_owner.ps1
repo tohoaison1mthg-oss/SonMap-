@@ -10,7 +10,9 @@ $transaction=$null
 try {
  $connection.Open();$transaction=$connection.BeginTransaction()
  $command=$connection.CreateCommand();$command.Transaction=$transaction
- $command.CommandText='UPDATE ThuaDat SET TenChu=?, DiaChi=? WHERE ID=?'
+ $command.CommandText='UPDATE ThuaDat SET TCT=?, TenChu=?, DiaChi=? WHERE ID=?'
+ $parameter=$command.Parameters.Add('@TCT',[Data.OleDb.OleDbType]::Integer)
+ if($null -eq $plan.TCT){$parameter.Value=[DBNull]::Value}else{$parameter.Value=[int]$plan.TCT}
  foreach($name in @('TenChu','DiaChi')) {
   $parameter=$command.Parameters.Add('@'+$name,[Data.OleDb.OleDbType]::VarWChar,255)
   $parameter.Value=[string]$plan.$name
@@ -19,10 +21,11 @@ try {
  if($command.ExecuteNonQuery() -ne 1){throw 'Owner update must affect exactly one parcel.'}
  $command.Dispose()
  $command=$connection.CreateCommand();$command.Transaction=$transaction
- $command.CommandText='SELECT TenChu,DiaChi FROM ThuaDat WHERE ID=?'
+ $command.CommandText='SELECT TCT,TenChu,DiaChi FROM ThuaDat WHERE ID=?'
  $parameter=$command.Parameters.Add('@ID',[Data.OleDb.OleDbType]::Integer);$parameter.Value=[int]$plan.ID
  $reader=$command.ExecuteReader()
  if(-not $reader.Read() -or [string]$reader['TenChu'] -cne [string]$plan.TenChu -or [string]$reader['DiaChi'] -cne [string]$plan.DiaChi){throw 'Owner readback mismatch.'}
+ if(($null -eq $plan.TCT -and -not ($reader['TCT'] -is [DBNull])) -or ($null -ne $plan.TCT -and ($reader['TCT'] -is [DBNull] -or [int]$reader['TCT'] -ne [int]$plan.TCT))){throw 'Parcel number readback mismatch.'}
  $reader.Close();$command.Dispose()
  $transaction.Commit();$transaction=$null
  Write-Output 'OWNER_UPDATED_VERIFIED'

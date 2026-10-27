@@ -3,11 +3,25 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from parcel_info import locate_parcel, update_owner
+from parcel_info import locate_parcel, update_owner, parcel_number
 from test_database_topology import old_rows
 
 
 class ParcelInfoTests(unittest.TestCase):
+    def test_number_edit_is_optional_positive_integer(self):
+        self.assertIsNone(parcel_number(''))
+        self.assertEqual(parcel_number(' 10 '),10)
+        for value in ('0','-1','1.5','1e2','2147483648',True):
+            with self.assertRaises(ValueError):parcel_number(value)
+
+    def test_duplicate_parcel_number_still_selects_unique_geometry_and_id(self):
+        from test_topology import project,line,rect
+        from topology import export_rows
+        other=export_rows(project([line(rect(x=20,y=0))]),allow_unnumbered=True)[0]
+        other.update(ID=21,TCT=12)
+        rows=old_rows()+[other]
+        self.assertEqual(locate_parcel(rows,[25,5])['ID'],21)
+        self.assertEqual(locate_parcel(rows,[5,5])['ID'],20)
     def test_interior_point_finds_id_even_when_number_pending(self):
         rows=old_rows();rows[0].update(ID=0,TCT=None)
         result=locate_parcel(rows,[5,5])

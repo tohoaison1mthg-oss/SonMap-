@@ -26,12 +26,14 @@ class OwnerDialogTests(unittest.TestCase):
 
     def test_save_uses_exact_record_and_refreshes_hash_for_next_save(self):
         c=self.controller;c.show(copy.deepcopy(self.selection))
-        c.owner.set('Nguyễn Văn Mới');c.address.set('Địa chỉ mới')
-        connected={**self.selection['connected'],'sha256':'after'}
+        c.owner.set('Nguyễn Văn Mới');c.address.set('Địa chỉ mới');c.number.set('99')
+        connected={**self.selection['connected'],'sha256':'after','rows':[dict(old_rows()[0],TCT=99,TenChu='Nguyễn Văn Mới',DiaChi='Địa chỉ mới')]}
         with patch('parcel_info_ui.update_owner',return_value={'connected':connected,'backup':'backup'}) as write:
             c.save();self.wait()
-            write.assert_called_once_with('test.mdb','before',20,'Nguyễn Văn Mới','Địa chỉ mới')
+            write.assert_called_once_with('test.mdb','before',20,'Nguyễn Văn Mới','Địa chỉ mới',number='99')
             self.assertEqual(self.saved,[connected])
+            self.assertIn('Thửa 99',c.header.get())
+            self.assertEqual(c.number.get(),'99')
             c.save();self.wait()
             self.assertEqual(write.call_args.args[1],'after')
         self.assertEqual(self.busy,[True,False,True,False])

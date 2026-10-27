@@ -8,6 +8,16 @@ from pathlib import Path
 from shapely.geometry import Point, Polygon
 from topology_workflow import inspect_database, powershell, digest
 
+KEEP_NUMBER=object()
+
+
+def parcel_number(value):
+    if value is None or isinstance(value,str) and not value.strip():return None
+    text=str(value).strip()
+    if not text.isascii() or not text.isdigit() or not 1<=int(text)<=2147483647:
+        raise ValueError('Số thửa phải là số nguyên dương; có thể để trống nếu chưa có số.')
+    return int(text)
+
 
 def locate_parcel(rows, point):
     from app import geometry
@@ -35,13 +45,15 @@ def pick_parcel(source, mdb):
     return {'source':str(source),'connected':connected,'row':locate_parcel(connected['rows'],result['point'])}
 
 
-def update_owner(mdb, expected_hash, record_id, owner, address):
+def update_owner(mdb, expected_hash, record_id, owner, address, number=KEEP_NUMBER):
     target=Path(mdb).resolve()
     for value in (owner,address):
         if not isinstance(value,str) or len(value)>255 or '\x00' in value:raise ValueError('Tên và địa chỉ chủ sử dụng tối đa 255 ký tự, không chứa ký tự NUL.')
     before=inspect_database(target)
     if before['sha256']!=expected_hash:raise ValueError('MDB đã đổi. Đóng bảng và chọn lại thửa trước khi lưu.')
     if isinstance(record_id,bool) or sum(r['ID']==record_id for r in before['rows'])!=1:raise ValueError('Không xác định duy nhất được ID thửa.')
+    current=next(r for r in before['rows'] if r['ID']==record_id)
+    number=current.get('TCT') if number is KEEP_NUMBER else parcel_number(number)
     backup=target.parent/'SonMap_backups'/('owner-'+uuid.uuid4().hex)
     backup.mkdir(parents=True)
     shutil.copyfile(target,backup/target.name)
@@ -49,11 +61,12 @@ def update_owner(mdb, expected_hash, record_id, owner, address):
     try:
         with tempfile.TemporaryDirectory(prefix='sonmap-owner-') as folder:
             plan=Path(folder)/'plan.json'
-            plan.write_text(json.dumps({'sha256':expected_hash,'ID':record_id,'TenChu':owner,'DiaChi':address},ensure_ascii=False),encoding='utf-8')
+            plan.write_text(json.dumps({'sha256':expected_hash,'ID':record_id,'TCT':number,'TenChu':owner,'DiaChi':address},ensure_ascii=False),encoding='utf-8')
             powershell('update_parcel_owner.ps1','-MdbPath',target,'-PlanPath',plan)
         connected=inspect_database(target)
         row=next(r for r in connected['rows'] if r['ID']==record_id)
         if (row.get('TenChu') or '',row.get('DiaChi') or '')!=(owner,address):raise RuntimeError('MDB đọc lại không khớp thông tin vừa lưu.')
+        if row.get('TCT')!=number:raise RuntimeError('MDB đọc lại không khớp số thửa vừa lưu.')
     except Exception as exc:raise RuntimeError(str(exc)+'\nSao lưu trước thay đổi: '+str(backup)) from exc
     receipt={'ID':record_id,'backup':str(backup),'mdb':str(target),'status':'owner_updated'}
     (backup/'receipt.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2),encoding='utf-8')

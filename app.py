@@ -125,6 +125,9 @@ def prepare(config,parcels,rejected):
     expected=source_key(config['mdb'],sha(config['mdb']))
     if any(p.get('_source_key')!=expected for p in parcels):
         raise ValueError('MDB đã đổi hoặc dữ liệu không thuộc nguồn đang chọn. Đọc lại MDB trước khi xuất.')
+    numbered=[(p['ToBD'],p.get('TCT')) for p in parcels if p.get('TCT') is not None]
+    if len(set(numbered))!=len(numbered):
+        raise ValueError('Có thửa đang dùng chung số tạm. Đổi số thửa mới trước khi xuất hồ sơ.')
     for parcel in parcels:
         if parcel.get('TCT') is None:raise ValueError('Thửa mới chưa có số hiệu chính thức. Nhập số thửa trước khi xuất hồ sơ.')
         errors=ring_issues(parcel['points'])

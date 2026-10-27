@@ -165,7 +165,7 @@ def build(snapshot, options):
 BLOCKING = {'UNSUPPORTED', 'CUT_EDGE', 'DANGLE', 'INVALID_RING', 'HOLE_UNSUPPORTED', 'NO_PARCELS'}
 
 
-def export_rows(project,allow_unnumbered=False,allow_zero_id=False):
+def export_rows(project,allow_unnumbered=False,allow_zero_id=False,allow_duplicate_numbers=False):
     """Refuse incomplete topology; preserve DGN coordinates for existing world-coordinate export."""
     if any(i['code'] in BLOCKING for i in project['issues']):
         raise ValueError('Còn lỗi topology/kiểu phần tử chưa hỗ trợ. Xem báo cáo và sửa ranh trước khi tạo MDB.')
@@ -192,7 +192,7 @@ def export_rows(project,allow_unnumbered=False,allow_zero_id=False):
             if not isinstance(p.get(field, ''), str) or len(p.get(field, '')) > 255:
                 raise ValueError(f'{field}: cần chuỗi tối đa 255 ký tự.')
         key = (p['ToBD'], p['TCT'])
-        if p['TCT'] is not None and key in seen:
+        if p['TCT'] is not None and key in seen and not allow_duplicate_numbers:
             raise ValueError(f'Trùng số tờ/thửa {key}.')
         if p['TCT'] is not None:seen.add(key)
         if p.get('holes') or ring_issues(p['points']):
@@ -207,7 +207,7 @@ def export_rows(project,allow_unnumbered=False,allow_zero_id=False):
         blob = b'\0' + struct.pack('<III', 3, 1, len(closed))
         blob += b''.join(struct.pack('<dd', *point) for point in closed)
         p['Geometry'] = base64.b64encode(blob).decode('ascii')
-        p['MaLD'] = p.get('LRD', '')
+        p['MaLD'] = p.get('MaLD', p.get('LRD', ''))
         rows.append({k: p.get(k) for k in ('ID', 'ToBD', 'TCT', 'DienTich', 'TenChu', 'DiaChi', 'DiaChiThuaDatChiTiet', 'Xudong', 'LRD', 'MaLD', 'Geometry')})
     if not rows:
         raise ValueError('Chưa có thửa để xuất.')

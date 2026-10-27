@@ -4,6 +4,20 @@ import app
 from quality import ring_issues, area, audit, matches, read_edits, merge_edits
 
 class UpgradeTests(unittest.TestCase):
+    def test_duplicate_temporary_numbers_block_export_before_files_are_written(self):
+        import tempfile
+        from topology import export_rows
+        from test_topology import project,line,rect
+        with tempfile.TemporaryDirectory() as folder:
+            mdb=Path(folder)/'test.mdb';mdb.write_bytes(b'synthetic MDB')
+            p=project([line(rect(x=0,y=0)),line([(5,0),(5,10)])],label_levels={})
+            for row in p['parcels']:row['TCT']=10
+            rows=export_rows(p,allow_duplicate_numbers=True)
+            parcels,rejected=app.decode_mdb_rows(rows,str(mdb),app.sha(mdb))
+            with self.assertRaisesRegex(ValueError,'số tạm'):
+                app.prepare({'mdb':str(mdb)},parcels,rejected)
+            self.assertEqual(list(Path(folder).iterdir()),[mdb])
+
     def test_valid_large_coordinates_and_orientation(self):
         p=[(500000,1000000),(500010,1000000),(500010,1000010),(500000,1000010)]
         self.assertEqual(ring_issues(p),[]);self.assertEqual(area(p),100)

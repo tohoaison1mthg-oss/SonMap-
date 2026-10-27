@@ -91,7 +91,6 @@ def reconcile(project, old_rows):
             if 'TCT' not in parcel.get('manual_fields',[]) and 'TCT' not in parcel.get('label_sources',{}):parcel['TCT']=None
         if inherited:
             for field in FIELDS:
-                if field=='TCT' and not exact:continue
                 if field in parcel.get('manual_fields',[]) or field in parcel.get('label_sources',{}):continue
                 parcel[field]=inherited.get(field) if field in ('ToBD','TCT') else (inherited.get(field) or '')
         parcel['parent_ids']=[int(old_rows[i]['ID']) for i in candidates]
@@ -99,10 +98,14 @@ def reconcile(project, old_rows):
     # Re-key parcel-index diagnostics after stable MDB IDs are assigned.
     for item in updated['issues']:
         if item.get('parcel') and 0<int(item['parcel'])<=len(new):item['parcel']=new[int(item['parcel'])-1]['ID']
-    rows=export_rows(updated,allow_unnumbered=True,allow_zero_id=0 in ids)
+    rows=export_rows(updated,allow_unnumbered=True,allow_zero_id=0 in ids,allow_duplicate_numbers=True)
     delete=[int(old_rows[i]['ID']) for i in sorted(touched-matched)]
     existing_ids=set(ids)
-    inserts=[r for r in rows if r['ID'] not in existing_ids]
+    inserts=[dict(r) for r in rows if r['ID'] not in existing_ids]
+    by_id={p['ID']:p for p in new}
+    for row in inserts:
+        parents=by_id[row['ID']].get('parent_ids',[])
+        if len(parents)==1:row['_parent_id']=parents[0]
     updates=[r for r in rows if r['ID'] in existing_ids]
     final=[dict(r) for i,r in enumerate(old_rows) if i not in touched]+rows
     splits=[{'old_id':int(old_rows[i]['ID']),'new_ids':[p['ID'] for p,c in zip(new,parents_for_new) if i in c]}
