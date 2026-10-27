@@ -1,7 +1,7 @@
 import copy
 import unittest
 from topology import export_rows
-from database_topology import reconcile
+from database_topology import reconcile, scope_splits
 from test_topology import project,line,rect,text
 
 
@@ -12,6 +12,26 @@ def old_rows():
 
 
 class DatabaseTopologyTests(unittest.TestCase):
+    def test_scope_split_ignores_only_errors_outside_complete_parent(self):
+        new=project([line(rect(x=0,y=0)),line([(5,0),(5,10)]),line([(50,50),(51,51)])],label_levels={})
+        scoped=scope_splits(new,old_rows())
+        self.assertEqual(len(scoped['parcels']),2)
+        self.assertEqual(scoped['issues'],[])
+        self.assertTrue(any(i['code']=='DANGLE' for i in scoped['excluded_issues']))
+        self.assertEqual(reconcile(scoped,old_rows())['after_count'],2)
+        self.assertNotIn('scope_rings',new)
+
+    def test_scope_split_rejects_error_inside_parent(self):
+        new=project([line(rect(x=0,y=0)),line([(5,0),(5,10)]),line([(1,1),(2,2)])],label_levels={})
+        with self.assertRaisesRegex(ValueError,'phạm vi'):scope_splits(new,old_rows())
+
+    def test_scope_split_requires_complete_parent_and_supported_geometry(self):
+        new=project([line(rect(x=0,y=0,w=5)),line([(2,0),(2,10)])],label_levels={})
+        with self.assertRaises(ValueError):scope_splits(new,old_rows())
+        new=project([line(rect(x=0,y=0)),line([(5,0),(5,10)])],label_levels={})
+        new['issues'].append({'code':'UNSUPPORTED'})
+        with self.assertRaises(ValueError):scope_splits(new,old_rows())
+
     def test_world_coordinate_roundoff_preserves_unchanged_ids_including_zero(self):
         from app import geometry
         old=old_rows()

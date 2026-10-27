@@ -148,7 +148,13 @@ class TopologyWorkspace:
         try:options=self.options()
         except Exception as exc:messagebox.showerror('Thông số chưa đúng',str(exc),parent=self.parent);return
         source=self.source.get();target=self.current_mdb;self.project=None;self.path=None;self.refresh_parcels();self.refresh_report()
-        def work():return prepare(source,options)
+        def work():
+            path,project=prepare(source,options)
+            if kind=='topology' and target and options['in_place'] and any(i['code'] in BLOCKING for i in project['issues']):
+                from database_topology import scope_splits
+                project=scope_splits(project,inspect_database(target)['rows'])
+                save_project(path,project)
+            return path,project
         def done(value):
             self.path,self.project=value
             self.refresh_report();self.refresh_parcels()
@@ -171,6 +177,9 @@ class TopologyWorkspace:
             text+=f"MDB: {result['before_count']} → {result['after_count']} thửa; {len(result['splits'])} thửa được tách."
             if result['unnumbered']:text+=f" {result['unnumbered']} thửa chờ nhập số hiệu chính thức."
         else:text+='Chưa cập nhật MDB (chưa kết nối CSDL hoặc đang sửa ranh).'
+        if self.project.get('scope_rings'):
+            outside=sum(i['code'] in BLOCKING for i in self.project.get('excluded_issues',[]))
+            text+=f' Cập nhật cục bộ; {outside} lỗi ranh ngoài phạm vi chưa xử lý.'
         self.status.set(text)
         messagebox.showinfo('Đã cập nhật',text+'\nSao lưu trước thay đổi: '+result['backup'],parent=self.parent)
 

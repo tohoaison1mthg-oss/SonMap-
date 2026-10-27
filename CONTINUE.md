@@ -1,5 +1,30 @@
 # Tiếp tục phát triển SonMap+ trên máy khác
 
+## Trạng thái mới nhất: V10.9 trên Windows laptop
+
+V10.8 đã sửa COM record Point3d/Matrix3d/ID bằng thư viện interop của V8i
+đã cài, không đóng gói DLL Bentley. V10.9 bổ sung `scope_splits` trong
+database_topology.py: khi bản đồ có lỗi ở xa, chỉ cập nhật các vùng tách kín
+phủ đủ thửa MDB cũ. Lỗi chạm phạm vi, ranh chưa hỗ trợ, hoặc ranh đã được nối
+sẽ chặn chế độ này. Giữ nguyên mọi đường ranh DGN và bản ghi ngoài phạm vi.
+Thông báo kết quả vẫn nêu số lỗi ngoài phạm vi chưa xử lý.
+
+Đã kiểm thử thực V8i/Jet trên bản sao, sau đó áp dụng lên DGN/MDB hiện tại:
+đọc lại các vùng/tâm, so sánh toàn bộ đường ranh, xác minh bản ghi ngoài phạm
+vi không đổi và có sao lưu trước ghi. Báo cáo dữ liệu thực chỉ nằm
+trong data/ bị Git bỏ qua. Không đưa các báo cáo/snapshot/DGN/MDB lên GitHub.
+Kết quả Python hiện có 60 kiểm thử đạt, cộng kiểm thử PowerShell model/scan
+và `test_dgn_interop.ps1` trên V8i thật. Cloud không thay thế các kiểm thử này.
+
+Khi gọi OpenDesignFile từ COM, truyền MsdV7Action.Workmode (=3) rõ ràng để
+giữ định dạng V7 và mở chỉnh sửa. Bỏ tham số này sẽ hiện hộp thoại hỏi nâng cấp
+hoặc mở chỉ đọc. Không tự chuyển dữ liệu gốc sang V8. Ghi file V7 qua model
+nền không được hỗ trợ: dùng bản vẽ đang hoạt động, có backup/rollback.
+
+Nhánh vẫn là codex/sonmap-topology-ui. Giữ các tag/gói cũ; bản tiếp theo sau
+V10.9 là V10.10 nếu GitHub/bản cài chưa có bản cao hơn. Các ghi chú V10.7 trở
+xuống bên dưới là lịch sử, bao gồm trạng thái chưa kiểm chứng ở các bản cũ.
+
 ## Mã và điểm tiếp tục
 
 Giao diện chính đã có Sửa lỗi, Tạo topology, Kết nối CSDL; các công cụ xuất hồ sơ

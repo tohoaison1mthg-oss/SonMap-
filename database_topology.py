@@ -1,13 +1,51 @@
 """Plan a scoped MDB parcel update; retain records outside the rebuilt footprint."""
 import copy
 import math
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point, LineString
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 from app import geometry
 from topology import export_rows
 
 FIELDS=('ToBD','TCT','TenChu','DiaChi','DiaChiThuaDatChiTiet','Xudong','LRD','MaLD')
+
+
+def scope_splits(project, old_rows):
+    """Rebuild complete split parcels only; reject errors touching their footprint."""
+    from topology import BLOCKING
+    if any(i['code'] in ('UNSUPPORTED','SNAPPED_ENDPOINT') for i in project['issues']):
+        raise ValueError('Không thể cập nhật cục bộ khi có phần tử chưa hỗ trợ hoặc đã nối ranh.')
+    faces=[Polygon(p['points']) for p in project['parcels']]
+    selected=set();parents=[]
+    for row in old_rows:
+        parent=Polygon(geometry(row['Geometry']))
+        tolerance=max(1e-8,parent.length*1e-7)
+        children=[i for i,p in enumerate(faces) if p.intersection(parent).area>tolerance
+                  and p.difference(parent).area<=tolerance]
+        if len(children)<2:continue
+        union=unary_union([faces[i] for i in children])
+        if union.symmetric_difference(parent).area>tolerance:continue
+        if union.boundary.hausdorff_distance(parent.boundary)>1e-7:continue
+        selected.update(children);parents.append(row['ID'])
+    if not selected:raise ValueError('Chưa có thửa tách kín và phủ đủ thửa MDB cũ để cập nhật cục bộ.')
+    footprint=unary_union([faces[i] for i in selected])
+    chosen_ids={project['parcels'][i]['ID'] for i in selected}
+    issues=[];excluded=[]
+    for issue in project['issues']:
+        location=None
+        if issue.get('points'):location=LineString(issue['points'])
+        elif issue.get('point'):location=Point(issue['point'])
+        relevant=(location is not None and location.distance(footprint)<=1e-7) or issue.get('parcel') in chosen_ids
+        if issue['code'] in BLOCKING and (relevant or (location is None and not issue.get('parcel'))):
+            raise ValueError('Còn lỗi ranh trong phạm vi thửa tách: '+issue['code'])
+        (issues if relevant else excluded).append(copy.deepcopy(issue))
+    result=copy.deepcopy(project)
+    result['parcels']=[copy.deepcopy(project['parcels'][i]) for i in sorted(selected)]
+    result['issues']=issues
+    result['scope_rings']=[p['points'] for p in result['parcels']]
+    result['scope_parent_ids']=parents
+    result['excluded_issues']=excluded
+    return result
 
 
 def reconcile(project, old_rows):

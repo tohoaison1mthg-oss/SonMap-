@@ -90,9 +90,9 @@ if($Action -eq 'SaveActive') {
 if($Action -eq 'RestoreActive') {
  $script:Stage='restore-active-source'
  if([IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($OutputPath)){throw 'Active DGN changed; restore cancelled. Use the saved backup manually.'}
- $temporary=$app.OpenDesignFile($InputPath,$true)
+ $temporary=$app.OpenDesignFile($InputPath,$true,3)
  Copy-Item -LiteralPath $InputPath -Destination $OutputPath -Force
- $restored=$app.OpenDesignFile($OutputPath,$false)
+ $restored=$app.OpenDesignFile($OutputPath,$false,3)
  Write-Output 'ACTIVE_SOURCE_RESTORED';exit 0
 }
 if($Action -eq 'Extract') {
@@ -201,13 +201,16 @@ try {
    $name=[string]$element.AsCellElement.Name
    $generated=($name -eq 'SMERR' -or ($name -eq 'SMPARC' -and $Action -notin @('CleanDrawing','ApplyClean')))
   }
-  if(($boundary -contains [int]$element.Level.Number) -or $generated){$remove.Add($element)}
+  if($project.scope_rings) {
+   if($generated -and [SonMapV8iRecords]::CellInScope($element,[double[][][]]$project.scope_rings)){$remove.Add($element)}
+  } elseif(($boundary -contains [int]$element.Level.Number) -or $generated){$remove.Add($element)}
  }
  # Retain text and unsupported elements: export validation has already rejected unsupported boundaries.
  $mutationStarted=$true
  $script:Stage='replace-boundary-elements'
  foreach($element in $remove){if([int]$element.Type -notin @(7,17)){$model.RemoveElement($element)}}
  $script:Stage='create-boundary-lines'
+ if(-not $project.scope_rings) {
  foreach($line in $project.cleaned_lines) {
   if($project.options.join_lines) {
    $element=[SonMapV8iRecords]::Line($app,[double[][]]$line)
@@ -218,6 +221,7 @@ try {
    $element=[SonMapV8iRecords]::Line($app,[double[][]]@($line[$i-1],$line[$i]))
    $element.Level=(FindLevel $design $boundary[0]);$model.AddElement($element)
   }
+ }
  }
  if($Action -notin @('CleanDrawing','ApplyClean')) {
  $script:Stage='create-parcel-centres'
@@ -250,9 +254,9 @@ try {
  if($direct) {
   if($mutationStarted) {
    try {
-    $temporary=$app.OpenDesignFile($project.direct_backup,$true)
+    $temporary=$app.OpenDesignFile($project.direct_backup,$true,3)
     Copy-Item -LiteralPath $project.direct_backup -Destination $OutputPath -Force
-    $restored=$app.OpenDesignFile($OutputPath,$false)
+    $restored=$app.OpenDesignFile($OutputPath,$false,3)
    } catch {throw ('Direct write failed; automatic DGN restore also failed. Backup: '+$project.direct_backup+'. Original error: '+$failure.Exception.Message+'. Restore error: '+$_.Exception.Message)}
   }
  } else {

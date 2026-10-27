@@ -9,6 +9,18 @@ function InitializeSonMapInterop {
 using System;
 using B = Bentley.Interop.MicroStationDGN;
 public static class SonMapV8iRecords {
+ public static bool CellInScope(object value,double[][][] rings) {
+  B.Point3d p=((B.Element)value).AsCellElement().Origin;
+  foreach(double[][] ring in rings) {
+   bool inside=false;
+   for(int i=0,j=ring.Length-1;i<ring.Length;j=i++) {
+    double xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
+    if((yi>p.Y)!=(yj>p.Y) && p.X<(xj-xi)*(p.Y-yi)/(yj-yi)+xi) inside=!inside;
+   }
+   if(inside)return true;
+  }
+  return false;
+ }
  public static string Id(object value) {
   return ((B.Element)value).ID.ToString();
  }

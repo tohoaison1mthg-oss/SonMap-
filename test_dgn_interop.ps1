@@ -15,4 +15,8 @@ $point=[SonMapV8iRecords]::TextOrigin($children.Current)
 if($point[0] -ne 600005 -or $point[1] -ne 1000005){throw 'Text origin record mismatch.'}
 $marker=[SonMapV8iRecords]::ErrorCell($app,600005,1000005,.01,$level,3)
 if($marker.Name -ne 'SMERR'){throw 'Error cell constructor failed.'}
+$rings=[double[][][]](ConvertFrom-Json '{"rings":[[[600000,1000000],[600010,1000000],[600010,1000010],[600000,1000010]]]}').rings
+if(-not [SonMapV8iRecords]::CellInScope($cell,$rings)){throw 'Cell scope failed for inside point.'}
+$outside=[SonMapV8iRecords]::TextCell($app,'outside',600050,1000050,$level,3,1)
+if([SonMapV8iRecords]::CellInScope($outside,$rings)){throw 'Cell scope included an outside point.'}
 Write-Output 'PASS: real V8i line vertices, text origin and marker records; no elements added or files saved.'

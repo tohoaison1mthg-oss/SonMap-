@@ -1,5 +1,15 @@
 # Phiên bản SonMap+
 
+## V10.9
+
+- Cập nhật cục bộ thửa tách đã khép kín và phủ đủ thửa MDB cũ khi lỗi topology nằm ngoài phạm vi đó.
+- Dừng nếu lỗi chạm phạm vi thửa tách, thiếu diện tích, có phần tử ranh chưa hỗ trợ hoặc đã nối ranh.
+- Giữ nguyên đường ranh DGN và các thửa MDB ngoài phạm vi; chỉ thay tâm SonMap trong vùng và cập nhật delta của thửa tách.
+- Mở/khôi phục DGN bằng chế độ V7 Workmode rõ ràng, giữ định dạng và quyền chỉnh sửa thay vì hiện hộp thoại nâng cấp/chỉ đọc.
+- Kiểm thử Windows/V8i/Jet trên bản sao thực đã đạt: MDB tăng một bản ghi, hai tâm mới đúng vị trí, đường ranh không đổi.
+- Đã áp dụng và đọc lại cặp DGN/MDB hiện tại trên laptop: hai thửa con đúng hình học/tâm, mọi bản ghi ngoài phạm vi giữ nguyên; có sao lưu trước ghi.
+- Giữ V10.8, bản sao dữ liệu trước cập nhật và các gói nguồn để phục hồi.
+
 ## V10.8
 
 - Đọc/ghi Point3d, Matrix3d và ID qua interop V8i đã cài trên laptop; sửa lỗi COM khiến đường lớp 10/23/32 bị coi là phần tử không hỗ trợ.
