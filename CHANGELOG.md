@@ -1,5 +1,11 @@
 # Phiên bản SonMap+
 
+## V10.10
+
+- Cột Diện tích trong danh sách thửa luôn hiển thị một chữ số thập phân, dùng dấu phẩy: 682,7; 918,3; 100,0.
+- Áp dụng khi đọc, lọc và cập nhật dòng; giữ nguyên độ chính xác của giá trị MDB và dữ liệu xuất.
+- Giữ V10.9 và sao lưu mã trước cập nhật để phục hồi.
+
 ## V10.9
 
 - Cập nhật cục bộ thửa tách đã khép kín và phủ đủ thửa MDB cũ khi lỗi topology nằm ngoài phạm vi đó.

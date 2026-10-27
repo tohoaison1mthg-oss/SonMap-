@@ -115,6 +115,7 @@ def decode_mdb_rows(raw,path,before,allow_empty=False):
     return parcels,rejected
 
 def clean(value):return str('' if value is None else value).replace('\t',' ').replace('\r',' ').replace('\n',' ').strip()
+def format_area(value):return '' if value is None else f'{float(value):.1f}'.replace('.',',')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def vb_string(value):
     if any(ord(c)>127 for c in value):return 'U("'+' '.join(f'{ord(c):04X}' for c in value)+'")'
@@ -225,7 +226,7 @@ def gui():
         tree.delete(*tree.get_children())
         query={k:v.get() for k,v in search_vars.items()}
         for i,p in enumerate(state['parcels']):
-            if matches(p,**query):tree.insert('', 'end',iid=str(i),values=(p['ToBD'],p.get('TCT') or 'Chờ số',p['ID'],p.get('owner_override') or p.get('TenChu'),p['DienTich'],p.get('land_override') or p.get('LRD') or p.get('MaLD')))
+            if matches(p,**query):tree.insert('', 'end',iid=str(i),values=(p['ToBD'],p.get('TCT') or 'Chờ số',p['ID'],p.get('owner_override') or p.get('TenChu'),format_area(p['DienTich']),p.get('land_override') or p.get('LRD') or p.get('MaLD')))
         status.set(f'{len(tree.get_children())}/{len(state["parcels"])} kết quả. Thửa trùng số được giữ riêng theo ID.')
     def clear_search():
         for v in search_vars.values():v.set('')
@@ -309,7 +310,7 @@ def gui():
         try:
             parcels,rejected=load_mdb(variables['mdb'].get(),allow_empty=True);state.update(parcels=parcels,rejected=rejected)
             tree.delete(*tree.get_children())
-            for i,p in enumerate(parcels):tree.insert('', 'end',iid=str(i),values=(p['ToBD'],p.get('TCT') or 'Chờ số',p['ID'],p.get('TenChu'),p['DienTich'],p.get('LRD') or p.get('MaLD')))
+            for i,p in enumerate(parcels):tree.insert('', 'end',iid=str(i),values=(p['ToBD'],p.get('TCT') or 'Chờ số',p['ID'],p.get('TenChu'),format_area(p['DienTich']),p.get('LRD') or p.get('MaLD')))
             status.set(f'Đã đọc {len(parcels)} thửa; {len(rejected)} thửa không hỗ trợ. Chọn một dòng để bổ sung thông tin.')
         except Exception as exc:
             status.set('Chưa đọc được tờ mới. Kiểm tra đường dẫn Access MDB (.mdb).')
@@ -336,7 +337,7 @@ def gui():
             if state['parcels'][int(tree.selection()[0])].get('_source_key')!=source_key(variables['mdb'].get(),sha(variables['mdb'].get())):
                 raise ValueError('Nguồn MDB đã thay đổi. Đọc lại trước khi lưu chỉnh tay.')
             p=state['parcels'][int(tree.selection()[0])];p.update({k:v.get() for k,v in edit_vars.items() if k!='address_override'})
-            tree.item(tree.selection()[0],values=(p['ToBD'],p.get('TCT') or 'Chờ số',p['ID'],p['owner_override'],p['DienTich'],p['land_override']))
+            tree.item(tree.selection()[0],values=(p['ToBD'],p.get('TCT') or 'Chờ số',p['ID'],p['owner_override'],format_area(p['DienTich']),p['land_override']))
             try:
                 path=ROOT/'data/overrides.json'
                 saved=json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {}

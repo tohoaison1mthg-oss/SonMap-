@@ -1,5 +1,12 @@
 # Tiếp tục phát triển SonMap+ trên máy khác
 
+## V10.10
+
+Cột Diện tích trên danh sách chính dùng `app.format_area`: một chữ số thập
+phân với dấu phẩy, chỉ định dạng hiển thị; không làm tròn giá trị MDB/dữ liệu
+xuất. Áp dụng cả đọc/lọc/sửa dòng. Giữ bản V10.9; nâng cấp kế tiếp là V10.11
+nếu chưa có bản cao hơn trên GitHub/laptop.
+
 ## Trạng thái mới nhất: V10.9 trên Windows laptop
 
 V10.8 đã sửa COM record Point3d/Matrix3d/ID bằng thư viện interop của V8i
