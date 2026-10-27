@@ -165,7 +165,7 @@ def build(snapshot, options):
 BLOCKING = {'UNSUPPORTED', 'CUT_EDGE', 'DANGLE', 'INVALID_RING', 'HOLE_UNSUPPORTED', 'NO_PARCELS'}
 
 
-def export_rows(project,allow_unnumbered=False):
+def export_rows(project,allow_unnumbered=False,allow_zero_id=False):
     """Refuse incomplete topology; preserve DGN coordinates for existing world-coordinate export."""
     if any(i['code'] in BLOCKING for i in project['issues']):
         raise ValueError('Còn lỗi topology/kiểu phần tử chưa hỗ trợ. Xem báo cáo và sửa ranh trước khi tạo MDB.')
@@ -179,7 +179,8 @@ def export_rows(project,allow_unnumbered=False):
             for field in ('ToBD', 'TCT', 'ID'):
                 value = p[field]
                 if field=='TCT' and value is None and allow_unnumbered:continue
-                if isinstance(value, bool) or str(value).strip() != str(int(value)) or not 0 < int(value) <= 2147483647:
+                minimum=0 if field=='ID' and allow_zero_id else 1
+                if isinstance(value, bool) or str(value).strip() != str(int(value)) or not minimum <= int(value) <= 2147483647:
                     raise ValueError()
                 p[field] = int(value)
         except (TypeError, ValueError, KeyError):

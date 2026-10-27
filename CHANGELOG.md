@@ -1,5 +1,13 @@
 # Phiên bản SonMap+
 
+## V10.8
+
+- Đọc/ghi Point3d, Matrix3d và ID qua interop V8i đã cài trên laptop; sửa lỗi COM khiến đường lớp 10/23/32 bị coi là phần tử không hỗ trợ.
+- Giữ ID thửa không đổi khi hình học MDB và DGN lệch ở mức sai số số thực; hỗ trợ ID 0 có sẵn trong MDB cũ.
+- Kiểm tra quét V8i phải đọc được tọa độ đường, không chỉ đếm phần tử. Giữ lỗi COM gốc khi dọn bản sao thất bại.
+- Đã thử Windows/V8i thật: đọc 68 ranh trên bản sao, tạo 13 vùng từ MDB 12 thửa; Jet ghi/đọc lại bản sao đạt. Kiểm thử đối tượng hình học rời đạt.
+- Chưa xác nhận cập nhật cặp DGN/MDB người dùng đang mở. Ghi bản sao DGN V7 còn lỗi Bad modelRef, đang điều tra; không coi đây là bản đã nghiệm thu.
+
 ## V10.7
 
 - Chế độ mặc định ghi DGN hiện tại và cập nhật MDB đang kết nối, có sao lưu trước thay đổi.

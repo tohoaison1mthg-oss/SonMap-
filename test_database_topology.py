@@ -12,6 +12,25 @@ def old_rows():
 
 
 class DatabaseTopologyTests(unittest.TestCase):
+    def test_world_coordinate_roundoff_preserves_unchanged_ids_including_zero(self):
+        from app import geometry
+        old=old_rows()
+        ring=[(x+600000,y+1000000) for x,y in geometry(old[0]['Geometry'])]
+        ring.append(ring[0])
+        p=project([line(ring)],[text('12',600005,1000005,13)],label_levels={'TCT':'13'})
+        old=export_rows(p);old[0]['ID']=0
+        shifted=[(x+1.5e-8,y) for x,y in ring]
+        new=project([line(shifted)],label_levels={})
+        result=reconcile(new,old)
+        self.assertEqual(result['delete_ids'],[])
+        self.assertEqual(result['insert_rows'],[])
+        self.assertEqual(result['final_rows'][0]['ID'],0)
+        self.assertEqual(result['final_rows'][0]['TCT'],12)
+
+    def test_roundoff_allowance_does_not_hide_real_partial_coverage(self):
+        new=project([line(rect(x=.00001,y=0,w=9.99999))],label_levels={})
+        with self.assertRaisesRegex(ValueError,'một phần'):reconcile(new,old_rows())
+
     def test_line_on_level_10_splits_one_mdb_parcel_into_two(self):
         old=old_rows()
         new=project([line(rect(x=0,y=0)),line([(5,0),(5,10)],level=10)],label_levels={})

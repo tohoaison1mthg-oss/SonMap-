@@ -3,6 +3,7 @@ param([string]$Levels='10,23,32')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'dgn_models.ps1')
 . (Join-Path $PSScriptRoot 'dgn_scan.ps1')
+. (Join-Path $PSScriptRoot 'dgn_interop.ps1')
 $report=[ordered]@{version=([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'VERSION'))).Trim();status='not_run';levels=$Levels;source_unchanged=$false}
 $folder=Join-Path $PSScriptRoot 'data'
 [void](New-Item -ItemType Directory -Path $folder -Force)
@@ -10,20 +11,28 @@ $path=Join-Path $folder ('v8i-scan-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'.json
 $temp=$null;$design=$null;$code=1
 function CountScan($application,$model,$wanted,[string]$phase) {
  $scan=NewSonMapScan $application $model $phase
- $total=0;$selected=0;$timer=[Diagnostics.Stopwatch]::StartNew()
+ $total=0;$selected=0;$geometry=0;$timer=[Diagnostics.Stopwatch]::StartNew()
  while(MoveSonMapScan $scan) {
   if($timer.Elapsed.TotalSeconds -gt 120){throw 'Scan exceeded 120 seconds; this test is incomplete.'}
   $element=ReadSonMapScanCurrent $scan
   $total++
-  if($wanted -contains [int]$element.Level.Number){$selected++}
+  if($wanted -contains [int]$element.Level.Number){
+   $selected++
+   if([int]$element.Type -in @(3,4,6)) {
+    $points=[SonMapV8iRecords]::Vertices($element,$false,.001)
+    if($points.Count -lt 2){throw 'Selected boundary has fewer than two vertices.'}
+    $geometry++
+   }
+  }
  }
- return @{total=$total;selected=$selected}
+ return @{total=$total;selected=$selected;geometry_lines=$geometry}
 }
 try {
  $wanted=@($Levels.Split(',') | ForEach-Object {[int]$_.Trim()})
  if($wanted.Count -eq 0 -or @($wanted | Where-Object {$_ -lt 1 -or $_ -gt 63}).Count){throw 'Levels must be numbers 1 through 63.'}
  $script:Stage='connect-v8i'
  $app=[Runtime.InteropServices.Marshal]::GetActiveObject('MicroStationDGN.Application')
+ InitializeSonMapInterop
  $source=[string]$app.ActiveDesignFile.FullName
  if(-not (Test-Path -LiteralPath $source)){throw 'Open and save a DGN in V8i first.'}
  $report.source=$source;$report.model=[string]$app.ActiveModelReference.Name
@@ -43,7 +52,7 @@ try {
  if(-not $report.source_unchanged){throw 'Source changed during the test; results are not validated.'}
  if($report.live.total -ne $report.snapshot.total -or $report.live.selected -ne $report.snapshot.selected) {
   $report.status='counts_differ_save_dgn_and_retry';$code=3
- } elseif($report.snapshot.selected -eq 0) {
+ } elseif($report.snapshot.selected -eq 0 -or $report.snapshot.geometry_lines -eq 0) {
   $report.status='no_elements_on_selected_levels';$code=3
  } else {$report.status='scan_passed';$code=0}
 } catch {$report.status='failed';$report.stage=$script:Stage;$report.error=$_.Exception.Message;$report.line=$_.InvocationInfo.ScriptLineNumber}

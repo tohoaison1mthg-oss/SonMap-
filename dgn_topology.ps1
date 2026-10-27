@@ -21,6 +21,7 @@ trap {
 }
 . (Join-Path $PSScriptRoot 'dgn_models.ps1')
 . (Join-Path $PSScriptRoot 'dgn_scan.ps1')
+. (Join-Path $PSScriptRoot 'dgn_interop.ps1')
 function FindLevel($design,[int]$number) {
  foreach($level in $design.Levels){if([int]$level.Number -eq $number){return $level}}
  $level=$design.Levels.Add('SonMap_Level_'+$number)
@@ -78,6 +79,7 @@ if($Action -eq 'WriteMdb') {
 }
 $script:Stage='connect-microstation'
 $app=[Runtime.InteropServices.Marshal]::GetActiveObject('MicroStationDGN.Application')
+InitializeSonMapInterop
 if($Action -eq 'SaveActive') {
  $script:Stage='save-active-source'
  if([IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($SourcePath)){throw 'Open the selected source DGN first.'}
@@ -113,10 +115,10 @@ if($Action -eq 'Extract') {
    if($depth -gt 32){throw 'Complex element nesting exceeds 32.'}
    $script:Stage='read-element type='+$element.Type
    $level=if($forcedLevel -gt 0){$forcedLevel}else{[int]$element.Level.Number}
-   $id=[string]$element.ID.Low
+   $id=[SonMapV8iRecords]::Id($element)
    if([int]$element.Type -eq 17) {
     $text=$element.AsTextElement
-    $texts.Add(@{level=$level;id=$id;text=[string]$text.Text;point=(XY $text.Origin)})
+    $texts.Add(@{level=$level;id=$id;text=[string]$text.Text;point=([SonMapV8iRecords]::TextOrigin($element))})
     return
    }
    if([int]$element.Type -eq 7) {
@@ -141,15 +143,15 @@ if($Action -eq 'Extract') {
    try {
     $vertices=$null;$approximate=$false
     if([int]$element.Type -in @(3,4,6)) {
-     $vertices=@($element.AsVertexList.GetVertices())
+     $vertices=[SonMapV8iRecords]::Vertices($element,$false,$ChordTolerance)
     } elseif(([int]$element.Type -in @(15,16)) -and $BreakArcs) {
      if($ChordTolerance -le 0){throw 'Chord tolerance must be positive.'}
-     if([int]$element.Type -eq 15){$vertices=@($element.AsEllipseElement.ConstructVertexList($ChordTolerance))}else{$vertices=@($element.AsArcElement.ConstructVertexList($ChordTolerance))};$approximate=$true
+     $vertices=[SonMapV8iRecords]::Vertices($element,$true,$ChordTolerance);$approximate=$true
     }
     if($null -eq $vertices -or $vertices.Count -lt 2){throw 'Unsupported boundary element.'}
     $points=New-Object 'System.Collections.Generic.List[object]'
-    foreach($vertex in $vertices){$points.Add((XY $vertex))}
-    if([int]$element.Type -eq 6){$points.Add((XY $vertices[0]))}
+    foreach($vertex in $vertices){$points.Add($vertex)}
+    if([int]$element.Type -eq 6){$points.Add($vertices[0])}
     $elements.Add(@{kind='line';level=$level;id=$id;points=@($points.ToArray());approximate=$approximate})
    } catch {
     $elements.Add(@{kind=('unsupported-type-'+$element.Type);level=$level;id=$id;reason=$_.Exception.Message})
@@ -179,6 +181,10 @@ if($direct) {
 $design=$null
 try {
  if($direct){$design=$app.ActiveDesignFile}else{$design=$app.OpenDesignFileForProgram($OutputPath,$false)}
+ # V8i cannot AddElement to a program-only V7 design. Reject before removing ranh.
+ if(-not $direct -and [int]$design.Format -eq 1){
+  throw 'V7 DGN output requires the active design file. Use the backed-up update-current mode; program-only V7 output is not supported.'
+ }
  $script:Stage='select-output-model: '+$project.model
  $model=ResolveSonMapModel $design $project.model ([bool]$project.model_is_default)
  if($model.Is3D){throw 'Only 2D cadastral models are supported.'}
@@ -199,37 +205,32 @@ try {
  }
  # Retain text and unsupported elements: export validation has already rejected unsupported boundaries.
  $mutationStarted=$true
+ $script:Stage='replace-boundary-elements'
  foreach($element in $remove){if([int]$element.Type -notin @(7,17)){$model.RemoveElement($element)}}
+ $script:Stage='create-boundary-lines'
  foreach($line in $project.cleaned_lines) {
   if($project.options.join_lines) {
-   $vertices=New-Object 'System.Collections.Generic.List[object]'
-   foreach($coordinate in $line){$vertices.Add($app.Point3dFromXYZ([double]$coordinate[0],[double]$coordinate[1],0))}
-   $element=$app.CreateLineElement1($null,$vertices.ToArray())
+   $element=[SonMapV8iRecords]::Line($app,[double[][]]$line)
    $element.Level=(FindLevel $design $boundary[0]);$model.AddElement($element)
    continue
   }
   for($i=1;$i -lt $line.Count;$i++) {
-   $p=$app.Point3dFromXYZ([double]$line[$i-1][0],[double]$line[$i-1][1],0)
-   $q=$app.Point3dFromXYZ([double]$line[$i][0],[double]$line[$i][1],0)
-   $element=$app.CreateLineElement2($null,$p,$q)
+   $element=[SonMapV8iRecords]::Line($app,[double[][]]@($line[$i-1],$line[$i]))
    $element.Level=(FindLevel $design $boundary[0]);$model.AddElement($element)
   }
  }
  if($Action -notin @('CleanDrawing','ApplyClean')) {
+ $script:Stage='create-parcel-centres'
  foreach($parcel in $project.parcels) {
-  $origin=$app.Point3dFromXYZ([double]$parcel.centre[0],[double]$parcel.centre[1],0)
   $label=if($null -ne $parcel.TCT){[string]$parcel.TCT}else{'ID:'+ $parcel.ID}
-  $text=$app.CreateTextElement1($null,$label,$origin,$app.Matrix3dIdentity())
-  $text.Level=(FindLevel $design $centreLevel);$text.Color=[int]$project.options.centre_color
-  $text.TextStyle.Height=[double]$project.options.centre_height
-  $text.TextStyle.Width=[double]$project.options.centre_height
   # A named cell keeps the parcel number and representative point together.
-  $cell=$app.CreateCellElement1('SMPARC',@($text),$origin,$false)
+  $cell=[SonMapV8iRecords]::TextCell($app,$label,[double]$parcel.centre[0],[double]$parcel.centre[1],(FindLevel $design $centreLevel),[int]$project.options.centre_color,[double]$project.options.centre_height)
   $cell.Level=(FindLevel $design $centreLevel);$model.AddElement($cell)
  }
  }
  }
  # Error markers live only on the generated copy, on a level separate from boundaries and labels.
+ $script:Stage='create-error-markers'
  foreach($issue in $project.issues) {
   if($issue.resolved_by_manual_edit){continue}
   if($issue.code -in @('DUPLICATE_REMOVED','ZERO_LENGTH_REMOVED','SNAPPED_ENDPOINT')){continue}
@@ -238,13 +239,11 @@ try {
   elseif($issue.points){$point=$issue.points[0]}
   elseif($issue.parcel){$parcel=@($project.parcels | Where-Object {$_.ID -eq $issue.parcel} | Select-Object -First 1);if($parcel.Count){$point=$parcel[0].centre}}
   if(-not $point){continue}
-  $origin=$app.Point3dFromXYZ([double]$point[0],[double]$point[1],0)
   $radius=[double]$project.options.error_radius / [double]$project.options.metres_per_unit
-  $circle=$app.CreateEllipseElement2($null,$origin,$radius,$radius,$app.Matrix3dIdentity())
-  $circle.Level=(FindLevel $design ([int]$project.options.error_level));$circle.Color=[int]$project.options.error_color
-  $marker=$app.CreateCellElement1('SMERR',@($circle),$origin,$false)
-  $marker.Level=$circle.Level;$marker.Color=$circle.Color;$model.AddElement($marker)
+  $marker=[SonMapV8iRecords]::ErrorCell($app,[double]$point[0],[double]$point[1],$radius,(FindLevel $design ([int]$project.options.error_level)),[int]$project.options.error_color)
+  $marker.Level=(FindLevel $design ([int]$project.options.error_level));$marker.Color=[int]$project.options.error_color;$model.AddElement($marker)
  }
+ $script:Stage='save-output-dgn'
  $design.Save()
 } catch {
  $failure=$_
@@ -257,8 +256,9 @@ try {
    } catch {throw ('Direct write failed; automatic DGN restore also failed. Backup: '+$project.direct_backup+'. Original error: '+$failure.Exception.Message+'. Restore error: '+$_.Exception.Message)}
   }
  } else {
-  if($design){$design.Close();$design=$null}
-  if(Test-Path -LiteralPath $OutputPath){Remove-Item -LiteralPath $OutputPath}
+  # Preserve the original COM failure even when V8i still holds the output open.
+  try {if($design){$design.Close();$design=$null}} catch {}
+  try {if(Test-Path -LiteralPath $OutputPath){Remove-Item -LiteralPath $OutputPath}} catch {}
  }
  throw $failure
 } finally {if($design -and -not $direct){$design.Close()}}

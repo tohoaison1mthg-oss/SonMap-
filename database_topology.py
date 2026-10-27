@@ -1,5 +1,6 @@
 """Plan a scoped MDB parcel update; retain records outside the rebuilt footprint."""
 import copy
+import math
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
@@ -15,6 +16,15 @@ def reconcile(project, old_rows):
     polygons=[Polygon(p['points']) for p in new]
     if not polygons:raise ValueError('Chưa có vùng thửa mới.')
     old_polygons=[Polygon(geometry(r['Geometry'])) for r in old_rows]
+    # World-coordinate intersections lose a few ULPs near million-metre origins.
+    # This is floating-point roundoff only, independent of the user's snap setting.
+    magnitude=max(abs(v) for p in polygons+old_polygons for v in p.bounds)
+    epsilon=max(1e-7,16*math.ulp(magnitude))
+    def area_tolerance(p):
+        return max(1e-8,p.area*1e-10,p.length*epsilon)
+    def same_region(a,b):
+        return (a.equals(b) or (a.symmetric_difference(b).area<=max(area_tolerance(a),area_tolerance(b))
+                and a.boundary.hausdorff_distance(b.boundary)<=epsilon))
     if any(not p.is_valid for p in old_polygons):raise ValueError('MDB cũ chứa hình học không hợp lệ; chưa cập nhật.')
     ids=[int(r['ID']) for r in old_rows]
     if len(set(ids))!=len(ids):raise ValueError('MDB có ID trùng.')
@@ -22,7 +32,7 @@ def reconcile(project, old_rows):
     footprint=unary_union(polygons)
     touched=set()
     for i,p in enumerate(old_polygons):
-        tolerance=max(1e-8,p.area*1e-10)
+        tolerance=area_tolerance(p)
         overlap=p.intersection(footprint).area
         if overlap>tolerance:
             if p.difference(footprint).area>tolerance:
@@ -31,14 +41,14 @@ def reconcile(project, old_rows):
     next_id=max(ids,default=0)+1
     matched=set();parents_for_new=[];new_ids=[]
     for parcel,polygon in zip(new,polygons):
-        candidates=[int(i) for i in tree.query(polygon) if old_polygons[int(i)].intersection(polygon).area>max(1e-8,polygon.area*1e-10)]
-        exact=[i for i in candidates if polygon.equals(old_polygons[i])]
+        candidates=[int(i) for i in tree.query(polygon) if old_polygons[int(i)].intersection(polygon).area>area_tolerance(polygon)]
+        exact=[i for i in candidates if same_region(polygon,old_polygons[i])]
         inherited=None
         if len(exact)==1:
             i=exact[0];matched.add(i);parcel['ID']=int(old_rows[i]['ID']);inherited=old_rows[i]
         else:
             parcel['ID']=next_id;new_ids.append(next_id);next_id+=1
-            containers=[i for i in candidates if polygon.difference(old_polygons[i]).area<=max(1e-8,polygon.area*1e-10)]
+            containers=[i for i in candidates if polygon.difference(old_polygons[i]).area<=area_tolerance(polygon)]
             if len(containers)==1:inherited=old_rows[containers[0]]
             if 'TCT' not in parcel.get('manual_fields',[]) and 'TCT' not in parcel.get('label_sources',{}):parcel['TCT']=None
         if inherited:
@@ -51,7 +61,7 @@ def reconcile(project, old_rows):
     # Re-key parcel-index diagnostics after stable MDB IDs are assigned.
     for item in updated['issues']:
         if item.get('parcel') and 0<int(item['parcel'])<=len(new):item['parcel']=new[int(item['parcel'])-1]['ID']
-    rows=export_rows(updated,allow_unnumbered=True)
+    rows=export_rows(updated,allow_unnumbered=True,allow_zero_id=0 in ids)
     delete=[int(old_rows[i]['ID']) for i in sorted(touched-matched)]
     existing_ids=set(ids)
     inserts=[r for r in rows if r['ID'] not in existing_ids]
