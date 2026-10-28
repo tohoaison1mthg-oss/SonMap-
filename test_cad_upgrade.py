@@ -21,6 +21,10 @@ def columns():
 
 
 class RepairTests(unittest.TestCase):
+    def test_topology_only_rewrites_boundaries_when_noding_changes_them(self):
+        from test_topology import project,line,rect
+        self.assertFalse(project([line(rect())],label_levels={})['boundary_changed'])
+        self.assertTrue(project([line(rect()),line([(500005,1000000),(500005,1000010)])],label_levels={})['boundary_changed'])
     def test_crossings_create_real_nodes_and_keep_each_level_and_style(self):
         elements=[dict(line([(0,5),(10,5)],10),color=3,weight=2,line_style='0'),
                   dict(line([(5,0),(5,10)],23),color=4,weight=1,line_style='2')]

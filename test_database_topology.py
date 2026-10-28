@@ -151,12 +151,61 @@ class DirectUpdateTests(unittest.TestCase):
             def inspect(target):
                 target=Path(target)
                 return {'path':str(target),'sha256':flow.digest(target),'rows':old if target.read_bytes()==b'old-mdb' else delta['final_rows'],'count':1 if target.read_bytes()==b'old-mdb' else 2}
-            with patch.object(flow,'powershell',side_effect=execute),patch.object(flow,'inspect_database',side_effect=inspect):result=flow.apply_current(path,mdb)
+            with patch.object(flow,'powershell',side_effect=execute),patch.object(flow,'inspect_database',side_effect=inspect):result=flow.apply_current(path,mdb,keep_backup=True)
             self.assertEqual(result['after_count'],2)
             self.assertEqual(source.read_bytes(),b'new-dgn');self.assertEqual(mdb.read_bytes(),b'new-mdb')
             backup=Path(result['backup'])
             self.assertEqual((backup/'sheet.dgn').read_bytes(),b'old-dgn')
             self.assertEqual((backup/'sheet.mdb').read_bytes(),b'old-mdb')
+
+    def test_double_readback_roundoff_allows_split_without_retained_backup(self):
+        import topology_workflow as flow
+        import tempfile,copy,math
+        from pathlib import Path
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            path,source,mdb,old,delta=self.fixture(directory)
+            folders=[]
+            def execute(script,*args):
+                if script=='update_mdb_topology.ps1':
+                    staged=Path(args[args.index('-MdbPath')+1]);folders.append(staged.parent);staged.write_bytes(b'new-mdb')
+                elif args[args.index('-Action')+1]=='ApplyDrawing':source.write_bytes(b'new-dgn')
+            def inspect(target):
+                target=Path(target)
+                rows=copy.deepcopy(old if target.read_bytes()==b'old-mdb' else delta['final_rows'])
+                for row in rows:
+                    if target.read_bytes()!=b'old-mdb' and isinstance(row.get('DienTich'),float):row['DienTich']=math.nextafter(row['DienTich'],math.inf)
+                return {'path':str(target),'sha256':flow.digest(target),'rows':rows,'count':len(rows)}
+            with patch.object(flow,'powershell',side_effect=execute),patch.object(flow,'inspect_database',side_effect=inspect):result=flow.apply_current(path,mdb)
+            self.assertEqual(result['after_count'],2)
+            self.assertIsNone(result['backup'])
+            self.assertTrue(all(not p.exists() for p in folders))
+            self.assertFalse((Path(directory)/'SonMap_backups').exists())
+            self.assertTrue(flow.database_value_equal(431.93267938586115,431.9326793858611))
+            self.assertFalse(flow.database_value_equal(431.93267938586115,431.93268))
+            self.assertFalse(flow.database_value_equal(111,112))
+            self.assertFalse(flow.database_value_equal('geometry-a','geometry-b'))
+
+    def test_real_area_mismatch_is_rejected_before_dgn_write(self):
+        import topology_workflow as flow
+        import tempfile,copy
+        from pathlib import Path
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            path,source,mdb,old,delta=self.fixture(directory)
+            folders=[]
+            def execute(script,*args):
+                self.assertEqual(script,'update_mdb_topology.ps1')
+                staged=Path(args[args.index('-MdbPath')+1]);folders.append(staged.parent);staged.write_bytes(b'new-mdb')
+            def inspect(target):
+                target=Path(target);rows=copy.deepcopy(old if target==mdb else delta['final_rows'])
+                if target!=mdb:rows[0]['DienTich']+=0.001
+                return {'path':str(target),'sha256':flow.digest(target),'rows':rows,'count':len(rows)}
+            with patch.object(flow,'powershell',side_effect=execute),patch.object(flow,'inspect_database',side_effect=inspect):
+                with self.assertRaisesRegex(RuntimeError,'DienTich'):flow.apply_current(path,mdb)
+            self.assertEqual(source.read_bytes(),b'old-dgn')
+            self.assertEqual(mdb.read_bytes(),b'old-mdb')
+            self.assertTrue(all(not p.exists() for p in folders))
 
     def test_locked_mdb_restores_dgn_and_keeps_old_database(self):
         import topology_workflow as flow

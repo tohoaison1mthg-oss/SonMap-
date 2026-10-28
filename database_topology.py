@@ -77,13 +77,14 @@ def reconcile(project, old_rows):
                 raise ValueError(f"Ranh mới chỉ phủ một phần thửa ID {old_rows[i]['ID']}; không xóa hoặc thay thửa này.")
             touched.add(i)
     next_id=max(ids,default=0)+1
-    matched=set();parents_for_new=[];new_ids=[]
+    matched=set();parents_for_new=[];new_ids=[];unchanged_geometry={}
     for parcel,polygon in zip(new,polygons):
         candidates=[int(i) for i in tree.query(polygon) if old_polygons[int(i)].intersection(polygon).area>area_tolerance(polygon)]
         exact=[i for i in candidates if same_region(polygon,old_polygons[i])]
         inherited=None
         if len(exact)==1:
             i=exact[0];matched.add(i);parcel['ID']=int(old_rows[i]['ID']);inherited=old_rows[i]
+            unchanged_geometry[parcel['ID']]=old_rows[i]
         else:
             parcel['ID']=next_id;new_ids.append(next_id);next_id+=1
             containers=[i for i in candidates if polygon.difference(old_polygons[i]).area<=area_tolerance(polygon)]
@@ -99,6 +100,12 @@ def reconcile(project, old_rows):
     for item in updated['issues']:
         if item.get('parcel') and 0<int(item['parcel'])<=len(new):item['parcel']=new[int(item['parcel'])-1]['ID']
     rows=export_rows(updated,allow_unnumbered=True,allow_zero_id=0 in ids,allow_duplicate_numbers=True)
+    for row in rows:
+        if row['ID'] in unchanged_geometry:
+            # Keep the original binary geometry and measured value for an unchanged
+            # parcel; rebuilding topology must not rewrite every MDB record.
+            row['Geometry']=unchanged_geometry[row['ID']]['Geometry']
+            row['DienTich']=unchanged_geometry[row['ID']]['DienTich']
     delete=[int(old_rows[i]['ID']) for i in sorted(touched-matched)]
     existing_ids=set(ids)
     inserts=[dict(r) for r in rows if r['ID'] not in existing_ids]
@@ -106,7 +113,10 @@ def reconcile(project, old_rows):
     for row in inserts:
         parents=by_id[row['ID']].get('parent_ids',[])
         if len(parents)==1:row['_parent_id']=parents[0]
-    updates=[r for r in rows if r['ID'] in existing_ids]
+    old_by_id={int(r['ID']):r for r in old_rows}
+    updates=[r for r in rows if r['ID'] in existing_ids and any(
+        value!=old_by_id[r['ID']].get(key) and not (value in ('',None) and old_by_id[r['ID']].get(key) in ('',None))
+        for key,value in r.items())]
     final=[dict(r) for i,r in enumerate(old_rows) if i not in touched]+rows
     splits=[{'old_id':int(old_rows[i]['ID']),'new_ids':[p['ID'] for p,c in zip(new,parents_for_new) if i in c]}
             for i in sorted(touched) if sum(i in c for c in parents_for_new)>1]

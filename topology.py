@@ -122,6 +122,10 @@ def build(snapshot, options):
             if not candidates:raise ValueError('Không xác định được thuộc tính ranh tại giao điểm; chưa ghi DGN.')
             noded_lines.append(dict(points=[list(a),list(b)],**repaired_with_style[candidates[0]][2]))
     original_vertices=set(vertices)
+    original_edges=Counter((str(style.get('source_id')),tuple(sorted((a,b)))) for a,b,style in repaired_with_style)
+    noded_edges=Counter((str(row.get('source_id')),tuple(sorted(map(tuple,row['points'])))) for row in noded_lines)
+    boundary_changed=bool(replacements or options.get('join_lines') or original_edges!=noded_edges
+                          or any(i['code'] in ('DUPLICATE_REMOVED','ZERO_LENGTH_REMOVED','ARC_APPROXIMATED') for i in issues))
     for point in sorted({tuple(p) for row in noded_lines for p in row['points']}-original_vertices):
         issue('INTERSECTION_NODE',point=point)
     noded_degree=Counter(tuple(p) for row in noded_lines for p in (row['points'][0],row['points'][-1]))
@@ -188,7 +192,7 @@ def build(snapshot, options):
     return dict(version=1, source=snapshot.get('source'), model=snapshot.get('model'),
                 model_is_default=bool(snapshot.get('model_is_default',False)),
                 unit=snapshot.get('unit'), options=options, parcels=parcels,
-                cleaned_lines=[list(line.coords) for line in lines],noded_lines=noded_lines, issues=issues,
+                cleaned_lines=[list(line.coords) for line in lines],noded_lines=noded_lines,boundary_changed=boundary_changed, issues=issues,
                 input_summary={str(level):sum(int(e['level'])==level for e in snapshot['elements']) for level in sorted(selected)})
 
 

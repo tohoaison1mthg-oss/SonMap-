@@ -8,11 +8,22 @@ import subprocess
 import uuid
 import tempfile
 import math
+import time
 from pathlib import Path
 
 from topology import build, export_rows, save_project, levels, finite
 
 ROOT = Path(__file__).resolve().parent
+
+
+def database_value_equal(wanted, actual):
+    if wanted == actual or (wanted in ('', None) and actual in ('', None)):
+        return True
+    # Jet/Windows PowerShell JSON can round a Double by one or two ULPs.
+    # Keep IDs/text/binary geometry exact; never compare using displayed 0.1 m².
+    if isinstance(wanted, float) and isinstance(actual, (int, float)) and not isinstance(actual, bool):
+        return math.isfinite(wanted) and math.isfinite(actual) and abs(wanted-actual) <= 8*max(math.ulp(wanted), math.ulp(float(actual)))
+    return False
 
 
 def display_levels(source, selected, restore=False):
@@ -64,15 +75,18 @@ def mark_errors(project_path):
     project_path=Path(project_path);project=json.loads(project_path.read_text(encoding='utf-8'))
     source=Path(project['source']['path'])
     if digest(source)!=project['source']['sha256']:raise ValueError('DGN đã đổi; kiểm tra lại trước khi ghi dấu lỗi.')
-    folder=source.parent/'SonMap_backups'/('markers-'+uuid.uuid4().hex);folder.mkdir(parents=True)
+    folder=Path(tempfile.mkdtemp(prefix='sonmap-markers-'))
     backup=folder/source.name;shutil.copyfile(source,backup)
     if digest(backup)!=project['source']['sha256']:raise ValueError('Sao lưu DGN không khớp.')
     project['direct_backup']=str(backup);plan=folder/'markers.json';save_project(plan,project)
     powershell('dgn_topology.ps1','-Action','ApplyPreview','-InputPath',plan,'-OutputPath',source)
     project['source']['sha256']=digest(source)
-    shutil.copyfile(source,project['working_dgn']);project['working_sha256']=digest(project['working_dgn'])
+    if Path(project['working_dgn']).resolve()!=source.resolve():shutil.copyfile(source,project['working_dgn'])
+    project['working_sha256']=project['source']['sha256']
+    project.pop('direct_backup',None)
     save_project(project_path,project)
-    return backup
+    shutil.rmtree(folder)
+    return None
 
 
 def digest(path):
@@ -126,6 +140,7 @@ def validate_options(options):
 
 
 def prepare(source, options):
+    started=time.perf_counter()
     validate_options(options)
     from topology import _engine
     _engine()  # Fail before creating outputs when the optional dependency is missing.
@@ -134,27 +149,34 @@ def prepare(source, options):
         raise ValueError('Chọn tệp .dgn tồn tại và mở đúng tệp đó trong V8i.')
     if os.name != 'nt':
         raise RuntimeError('Chuẩn bị bản vẽ cần Windows + MicroStation V8i.')
-    folder = source.parent / (source.stem + '_SonMap_' + uuid.uuid4().hex[:10])
-    folder.mkdir()
+    folder = ROOT / 'data' / 'topology-jobs' / uuid.uuid4().hex
+    folder.mkdir(parents=True)
     if options.get('in_place'):
-        powershell('dgn_topology.ps1','-Action','SaveActive','-InputPath',source,'-SourcePath',source,'-OutputPath',folder/'before-save.dgn')
+        powershell('dgn_topology.ps1','-Action','SaveActive','-InputPath',source,'-SourcePath',source,'-OutputPath',folder/'unused.dgn','-SkipSaveBackup')
     original = digest(source)
-    working = folder / source.name
-    shutil.copyfile(source, working)
+    working = source if options.get('in_place') else folder / source.name
+    if working != source:shutil.copyfile(source, working)
     if digest(source) != original or digest(working) != original:
         raise RuntimeError('DGN thay đổi trong khi sao chép. Lưu bản vẽ và thử lại.')
     args = ['-Action', 'Extract', '-InputPath', working, '-OutputPath', folder / 'snapshot.json', '-SourcePath', source,
-            '-ChordTolerance', float(options['chord_tolerance']) / float(options['metres_per_unit'])]
+            '-ChordTolerance', float(options['chord_tolerance']) / float(options['metres_per_unit']),
+            '-BoundaryLevels', options['boundary_levels'],
+            '-TextLevels', ','.join(str(n) for n in sorted({n for spec in options.get('label_levels',{}).values() if str(spec).strip() for n in levels(spec)})) or 'none']
     if options.get('break_arcs'):
         args.append('-BreakArcs')
     if not options.get('break_complex',True):
         args.append('-KeepComplex')
     powershell('dgn_topology.ps1', *args)
+    scanned=time.perf_counter()
+    if digest(source)!=original:raise RuntimeError('DGN thay đổi trong khi quét; hãy chạy lại trên bản vẽ đã lưu.')
     snapshot = json.loads((folder / 'snapshot.json').read_text(encoding='utf-8-sig'))
+    snapshot['text_levels']=args[args.index('-TextLevels')+1]
+    (folder/'snapshot.json').write_text(json.dumps(snapshot,ensure_ascii=False),encoding='utf-8')
     snapshot['source'] = {'path': str(source), 'sha256': original}
     project = build(snapshot, options)
     project.update(working_dgn=str(working), working_sha256=original,
-                   references_excluded=snapshot.get('references_excluded', 0), status='review')
+                   references_excluded=snapshot.get('references_excluded', 0), status='review',
+                   timing={'scan_seconds':scanned-started,'build_seconds':time.perf_counter()-scanned})
     save_project(folder / 'project.json', project)
     return folder / 'project.json', project
 
@@ -286,6 +308,16 @@ def assign_labels(project_path, label_levels):
     if digest(old['working_dgn'])!=old['working_sha256']:
         raise ValueError('Bản sao DGN đã thay đổi; phân tích lại trước khi gán nhãn.')
     snapshot=json.loads((project_path.parent/'snapshot.json').read_text(encoding='utf-8-sig'))
+    requested={n for spec in label_levels.values() if str(spec).strip() for n in levels(spec)}
+    scanned=snapshot.get('text_levels','*')
+    if scanned!='*' and not requested.issubset(set() if scanned=='none' else set(levels(scanned))):
+        target=project_path.parent/('labels-'+uuid.uuid4().hex+'.json')
+        args=['-Action','Extract','-InputPath',old['working_dgn'],'-OutputPath',target,
+              '-ModelName',old['model'],'-BoundaryLevels',old['options']['boundary_levels'],
+              '-TextLevels',','.join(map(str,sorted(requested))) or 'none']
+        if old.get('model_is_default'):args.append('-DefaultModel')
+        powershell('dgn_topology.ps1',*args)
+        snapshot=json.loads(target.read_text(encoding='utf-8-sig'))
     snapshot['source']=old['source']
     options={**old['options'],'label_levels':label_levels}
     validate_options(options)
@@ -310,7 +342,7 @@ def assign_labels(project_path, label_levels):
     return new
 
 
-def apply_current(project_path, database_path=None,clean_only=False):
+def apply_current(project_path, database_path=None,clean_only=False,keep_backup=False):
     """Back up and update the active DGN and optionally its connected MDB, keeping filenames."""
     from database_topology import reconcile
     project_path=Path(project_path)
@@ -319,12 +351,12 @@ def apply_current(project_path, database_path=None,clean_only=False):
     source=Path(project['source']['path'])
     if digest(source)!=project['source']['sha256']:
         raise ValueError('DGN đã đổi từ lúc phân tích. Thực hiện topology lại trước khi cập nhật.')
-    backup=source.parent/'SonMap_backups'/uuid.uuid4().hex
-    backup.mkdir(parents=True)
+    backup=source.parent/'SonMap_backups'/uuid.uuid4().hex if keep_backup else Path(tempfile.mkdtemp(prefix='sonmap-transaction-'))
+    backup.mkdir(parents=True,exist_ok=True)
     dgn_backup=backup/source.name
     shutil.copyfile(source,dgn_backup)
     if digest(dgn_backup)!=project['source']['sha256']:raise RuntimeError('Bản sao lưu DGN không khớp nguồn.')
-    delta=None;target=None;staged=None;db_backup=None;db_before=None;db_applied=False;dgn_applied=False;new_db_digest=None
+    delta=None;target=None;staged=None;db_backup=None;db_before=None;db_applied=False;dgn_applied=False;dgn_attempted=False;new_db_digest=None
     try:
         if database_path:
             target=Path(database_path).resolve()
@@ -348,7 +380,7 @@ def apply_current(project_path, database_path=None,clean_only=False):
                 for key,value in row.items():
                     if key not in found[rid]:continue
                     other=found[rid][key]
-                    if value!=other and not (value in ('',None) and other in ('',None)):
+                    if not database_value_equal(value,other):
                         raise RuntimeError(f'MDB tạm không khớp trường {key} của ID {rid}.')
         # Geometry must remain exportable, but new parcels may wait for official numbering.
         if clean_only:
@@ -357,6 +389,7 @@ def apply_current(project_path, database_path=None,clean_only=False):
         project['direct_backup']=str(dgn_backup)
         save_project(project_path,project)
         if target and digest(target)!=db_before:raise ValueError('MDB đang bị thay đổi bởi chương trình khác. Chưa ghi thay đổi.')
+        dgn_attempted=True
         powershell('dgn_topology.ps1','-Action','ApplyClean' if clean_only else 'ApplyDrawing','-InputPath',project_path,'-OutputPath',source)
         dgn_applied=True
         if target:
@@ -369,14 +402,17 @@ def apply_current(project_path, database_path=None,clean_only=False):
         else:connected=None
         project['source']['sha256']=digest(source)
         # Refresh the analysis copy so a subsequent explicit operation does not use stale geometry.
-        shutil.copyfile(source,project['working_dgn']);project['working_sha256']=digest(project['working_dgn'])
+        if Path(project['working_dgn']).resolve()!=source.resolve():shutil.copyfile(source,project['working_dgn'])
+        project['working_sha256']=project['source']['sha256']
+        project.pop('direct_backup',None)
         save_project(project_path,project)
         receipt={'status':'updated_current','dgn':str(source),'mdb':str(target) if target else None,
-                 'backup':str(backup),'project':project,'connected':connected,
+                 'backup':str(backup) if keep_backup else None,'project':project,'connected':connected,
                  'before_count':delta['before_count'] if delta else None,
                  'after_count':delta['after_count'] if delta else None,
                  'splits':delta['splits'] if delta else [],'unnumbered':delta['unnumbered'] if delta else 0}
         (backup/'receipt.json').write_text(json.dumps({k:v for k,v in receipt.items() if k not in ('project','connected')},ensure_ascii=False,indent=2),encoding='utf-8')
+        if not keep_backup:shutil.rmtree(backup)
         return receipt
     except Exception as exc:
         failures=[]
@@ -385,8 +421,10 @@ def apply_current(project_path, database_path=None,clean_only=False):
                 if digest(target)!=new_db_digest:raise RuntimeError('MDB đã được tiến trình khác sửa sau khi ghi; không ghi đè dữ liệu mới của tiến trình đó.')
                 recovery=backup/'rollback.mdb';shutil.copyfile(db_backup,recovery);os.replace(recovery,target)
             except Exception as rollback:failures.append('Không tự khôi phục MDB: '+str(rollback))
-        if dgn_applied:
+        if dgn_applied or (dgn_attempted and digest(source)!=original_project['source']['sha256']):
             try:powershell('dgn_topology.ps1','-Action','RestoreActive','-InputPath',dgn_backup,'-OutputPath',source)
             except Exception as rollback:failures.append('Không tự khôi phục DGN: '+str(rollback))
         save_project(project_path,original_project)
-        raise RuntimeError(str(exc)+'\nSao lưu trước cập nhật: '+str(backup)+ ('\n'+'\n'.join(failures) if failures else '')) from exc
+        if not keep_backup and not failures:shutil.rmtree(backup)
+        recovery='\nTệp khôi phục: '+str(backup) if keep_backup or failures else ''
+        raise RuntimeError(str(exc)+recovery+ ('\n'+'\n'.join(failures) if failures else '')) from exc

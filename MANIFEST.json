@@ -5,7 +5,7 @@
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "eb41e48b264904aea2f23ce60715e4afdb0a9698f59c9f89ec49ed2bbf84e651"
+    "sha256": "2605de83c8a0be3c2bea687adcbb5db7eb2176b944e2b73a3ebcb5ceee60acb6"
   },
   {
     "file": "CONTINUE.md",
@@ -68,8 +68,12 @@
     "sha256": "81965df6c3d9d28ef3ea5ee6d78bd89b1945d3d68491eaec15d196bf60d12a8b"
   },
   {
+    "file": "V10_16_VALIDATION.md",
+    "sha256": "578f55d04cfa107c4af719e798e780d33025956b43b6ff49f950286a6004b22b"
+  },
+  {
     "file": "VERSION",
-    "sha256": "62af8c033bf63e1b2bfb3bb98216bc4b201379685d98800be619d5f49bafb192"
+    "sha256": "c4f01a60e02dd660579863c1fae86fb677b090356b78dbdb8a06852b6deb0b0e"
   },
   {
     "file": "VIETMAPXM_STUDY.md",
@@ -101,11 +105,11 @@
   },
   {
     "file": "database_topology.py",
-    "sha256": "1ccb147b3817b79e5000e27bd647ddbca8f54893efb4a280e5aeeef3edb99cdc"
+    "sha256": "7cbea224cffee5365d7c8f1d2c962a1d4ac34e259457e419ac6ff1e86993596a"
   },
   {
     "file": "dgn_interop.ps1",
-    "sha256": "eebc63118834f2f6ab466b0a8db0164c3a9720dcff1abfb33980f4a2356d1125"
+    "sha256": "40f3d769377e86697c818afd1727a9dd410fd34d45d5c5ab54708d75c15213f9"
   },
   {
     "file": "dgn_models.ps1",
@@ -113,11 +117,11 @@
   },
   {
     "file": "dgn_scan.ps1",
-    "sha256": "955bdabd5a2b2d0e9f016798dc2185c5ef436b9eac642a21669b002b93c740e6"
+    "sha256": "fe09ccb54d4687831cb991f7a44e610fe8e6d0cdc1efb7c9f13edbbc88bf3a51"
   },
   {
     "file": "dgn_topology.ps1",
-    "sha256": "0bf43e28184123d7bc39e8c598bea041df5ee46ff5f2c792128abb58ced2e310"
+    "sha256": "7a863c4d0101e45c56c0d25d3cff94cae7088ff99ad26bb14fd6699b35e6e2a8"
   },
   {
     "file": "dgn_view.ps1",
@@ -257,11 +261,11 @@
   },
   {
     "file": "test_cad_upgrade.py",
-    "sha256": "1598f9272571728afd1d5e1ad27423bd3f7c29778a5d5afb70035901c1e0b85e"
+    "sha256": "cdea9557f3060349f6f0eea9458989696f6016f00d0c7cfd41ef751ebaf23a77"
   },
   {
     "file": "test_database_topology.py",
-    "sha256": "51aa9732da3063c980a7263a17e496322ba66783da105efc3a480a162a2a3e5e"
+    "sha256": "ab4f117d9e6499b4044d9356eaeb6131f5bbda80234b757c7226117c9a9fa4e0"
   },
   {
     "file": "test_dgn_interop.ps1",
@@ -313,15 +317,15 @@
   },
   {
     "file": "topology.py",
-    "sha256": "bfb704cc404050ce31b67e56e840987f9bf7ae30bdb6daae2cb3a4546e04b26e"
+    "sha256": "8f02a27a80150e0c2f4a78b26dd5fbed3bdde6f00f577c48b6dee3167443ff81"
   },
   {
     "file": "topology_ui.py",
-    "sha256": "be159c2fda698f793633945cdad7ebac521e75eca86864c0b22533d80276878d"
+    "sha256": "cac55706604e0eb4a2af9a385cb862445d240fa3f3b4ff9ea44b92d92451920e"
   },
   {
     "file": "topology_workflow.py",
-    "sha256": "d955c154f5edf00ec01cbe9b2de3e0180af37246a8dc0248d6b46d5a17c3ad7e"
+    "sha256": "f7076114189885015bb43a613c55af25ff1c1a57a4e3a278d9208f367b23660b"
   },
   {
     "file": "update_mdb_topology.ps1",

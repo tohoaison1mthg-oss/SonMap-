@@ -162,7 +162,9 @@ class TopologyWorkspace:
             self.refresh_report();self.refresh_parcels()
             count=len(self.project['parcels']);errors=sum(i['code'] in BLOCKING for i in self.project['issues'])
             evidence='; '.join('lớp '+k+': '+str(v)+' phần tử' for k,v in self.project.get('input_summary',{}).items())
-            self.status.set(f'Đọc {evidence}. Tạo {count} vùng; {errors} lỗi ranh.')
+            timing=self.project.get('timing',{})
+            elapsed=sum(timing.values())
+            self.status.set(f'Đọc {evidence}. Tạo {count} vùng; {errors} lỗi ranh.'+(f' {elapsed:.1f} giây.' if timing else ''))
             if kind=='inspect':self.show_report();return
             if kind=='topology' and errors:self.show_report();return
             if kind=='clean' and any(i['code']=='UNSUPPORTED' for i in self.project['issues']):self.show_report();return
@@ -186,7 +188,7 @@ class TopologyWorkspace:
             outside=sum(i['code'] in BLOCKING for i in self.project.get('excluded_issues',[]))
             text+=f' Cập nhật cục bộ; {outside} lỗi ranh ngoài phạm vi chưa xử lý.'
         self.status.set(text)
-        messagebox.showinfo('Đã cập nhật',text+'\nSao lưu trước thay đổi: '+result['backup'],parent=self.parent)
+        messagebox.showinfo('Đã cập nhật',text+ ('\nSao lưu trước thay đổi: '+result['backup'] if result.get('backup') else ''),parent=self.parent)
         if errors:self.show_report()
 
     def drawing_done(self,kind,path):
@@ -361,7 +363,7 @@ class TopologyWorkspace:
     def mark_current(self):
         def done(backup):
             self.project=json.loads(Path(self.path).read_text(encoding='utf-8'))
-            self.status.set('Đã ghi dấu lỗi. Sao lưu: '+str(backup))
+            self.status.set('Đã ghi dấu lỗi trên bản vẽ.')
         if self.require_project():self.launch(lambda:mark_errors(self.path),done)
 
     def refresh_report(self):

@@ -8,7 +8,10 @@
  [switch]$BreakArcs,
  [switch]$AllowEmpty,
  [switch]$KeepComplex,
- [switch]$DefaultModel
+ [switch]$DefaultModel,
+ [string]$BoundaryLevels,
+ [switch]$SkipSaveBackup,
+ [string]$TextLevels='*'
 )
 $ErrorActionPreference='Stop'
 [Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
@@ -23,15 +26,24 @@ trap {
 . (Join-Path $PSScriptRoot 'dgn_scan.ps1')
 . (Join-Path $PSScriptRoot 'dgn_interop.ps1')
 function FindLevel($design,[int]$number) {
- foreach($level in $design.Levels){if([int]$level.Number -eq $number){return $level}}
+ if(-not $script:LevelCache){$script:LevelCache=@{}}
+ if($script:LevelCache.ContainsKey($number)){return $script:LevelCache[$number]}
+ foreach($level in $design.Levels){if([int]$level.Number -eq $number){$script:LevelCache[$number]=$level;return $level}}
  $level=$design.Levels.Add('SonMap_Level_'+$number)
  $level.Number=$number
  $design.Levels.Rewrite()
+ $script:LevelCache[$number]=$level
  return $level
 }
 
 function WriteJson($path,$value) {
  [IO.File]::WriteAllText($path,(ConvertTo-Json -InputObject $value -Depth 30),(New-Object Text.UTF8Encoding($false)))
+}
+function FileDigest([string]$path) {
+ $stream=[IO.File]::Open($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite)
+ $hash=[Security.Cryptography.SHA256]::Create()
+ try {return ([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','').ToLowerInvariant()}
+ finally {$hash.Dispose();$stream.Dispose()}
 }
 function XY($p) { return ,@([double]$p.X,[double]$p.Y) }
 if((Test-Path -LiteralPath $OutputPath) -and $Action -notin @('ApplyDrawing','ApplyClean','ApplyPreview','RestoreActive')){throw 'Output already exists; refusing to overwrite.'}
@@ -83,7 +95,7 @@ InitializeSonMapInterop
 if($Action -eq 'SaveActive') {
  $script:Stage='save-active-source'
  if([IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($SourcePath)){throw 'Open the selected source DGN first.'}
- Copy-Item -LiteralPath $SourcePath -Destination $OutputPath
+ if(-not $SkipSaveBackup){Copy-Item -LiteralPath $SourcePath -Destination $OutputPath}
  $app.ActiveDesignFile.Save()
  Write-Output 'ACTIVE_SOURCE_SAVED';exit 0
 }
@@ -104,11 +116,20 @@ if($Action -eq 'Extract') {
  if(-not $ModelName -and -not $DefaultModel){throw 'Missing model name.'}
  # Read the on-disk snapshot through a program-only DesignFile, not the active editable file.
  $script:Stage='open-dgn-snapshot'
- $design=$app.OpenDesignFileForProgram($InputPath,$true)
+ $liveExtract=$SourcePath -and ([IO.Path]::GetFullPath($InputPath) -eq [IO.Path]::GetFullPath($SourcePath))
+ $design=if($liveExtract){$app.ActiveDesignFile}else{$app.OpenDesignFileForProgram($InputPath,$true)}
  try {
   $script:Stage='select-model: '+$ModelName
   $model=ResolveSonMapModel $design $ModelName ([bool]$DefaultModel)
   if($model.Is3D){throw 'Only 2D cadastral models are supported.'}
+  if($BoundaryLevels) {
+   $wanted=[int[]]@($BoundaryLevels.Split(',') | ForEach-Object {[int]$_.Trim()})
+   $textWanted=if($TextLevels -eq '*'){$null}elseif($TextLevels -eq 'none'){[int[]]@()}else{[int[]]@($TextLevels.Split(',') | ForEach-Object {[int]$_.Trim()})}
+   if($TextLevels -eq 'none'){$textWanted=[int[]]@()}
+   $json=[SonMapV8iRecords]::ExtractJson($app,$model,$wanted,[bool]$BreakArcs,[bool]$KeepComplex,$ChordTolerance,[bool]$DefaultModel,$textWanted)
+   [IO.File]::WriteAllText($OutputPath,$json,(New-Object Text.UTF8Encoding($false)))
+   Write-Output 'EXTRACTED_FAST';exit 0
+  }
   $elements=New-Object 'System.Collections.Generic.List[object]'
   $texts=New-Object 'System.Collections.Generic.List[object]'
   function CollectElement($element,$depth,$forcedLevel,$insideCell) {
@@ -164,20 +185,20 @@ if($Action -eq 'Extract') {
   }
   $script:Stage='write-snapshot-json'
   WriteJson $OutputPath @{version=1;model=$ModelName;model_is_default=[bool]$DefaultModel;unit=[string]$model.MasterUnit.Label;references_excluded=[int]$model.Attachments.Count;elements=@($elements.ToArray());texts=@($texts.ToArray())}
- } finally {$design.Close()}
+ } finally {if(-not $liveExtract){$design.Close()}}
  Write-Output 'EXTRACTED';exit 0
 }
 # Only a freshly copied workspace DGN may be edited. The Python coordinator supplies it.
 $project=Get-Content -LiteralPath $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json
 if(-not $project.working_dgn){throw 'Missing working-copy path.'}
-if([IO.Path]::GetFullPath($project.working_dgn) -eq [IO.Path]::GetFullPath($project.source.path)){throw 'Refusing to edit source.'}
 $direct=$Action -in @('ApplyDrawing','ApplyClean','ApplyPreview')
+if(-not $direct -and [IO.Path]::GetFullPath($OutputPath) -eq [IO.Path]::GetFullPath($project.source.path)){throw 'Refusing to overwrite source in copy mode.'}
 $mutationStarted=$false
 if($direct) {
  if([string]$app.ActiveModelReference.Name -ne [string]$project.model){throw 'Active model changed; analyse the drawing again.'}
  if([IO.Path]::GetFullPath($OutputPath) -ne [IO.Path]::GetFullPath($project.source.path) -or [IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($OutputPath)){throw 'Direct write requires the original DGN to remain active.'}
  if(-not $project.direct_backup -or -not (Test-Path -LiteralPath $project.direct_backup)){throw 'A verified DGN backup is required before direct write.'}
- if((Get-FileHash -LiteralPath $project.direct_backup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $project.source.sha256 -or (Get-FileHash -LiteralPath $OutputPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $project.source.sha256){throw 'Source or backup changed before direct write.'}
+ if((FileDigest $project.direct_backup) -ne $project.source.sha256 -or (FileDigest $OutputPath) -ne $project.source.sha256){throw 'Source or backup changed before direct write.'}
 } else {Copy-Item -LiteralPath $project.working_dgn -Destination $OutputPath -ErrorAction Stop}
 $design=$null
 try {
@@ -200,12 +221,13 @@ try {
  $boundary=@(([string]$project.options.boundary_levels).Split(',') | ForEach-Object {[int]$_.Trim()})
  $centreLevel=[int]$project.options.centre_level
  if($boundary -contains $centreLevel){throw 'Centre and boundary levels must differ.'}
- $scanContext=NewSonMapScan $app $model 'output-scan'
+ $rewriteBoundary=-not ($project.PSObject.Properties.Name -contains 'boundary_changed' -and $project.boundary_changed -eq $false)
+ $scanContext=if($rewriteBoundary){NewSonMapScan $app $model 'output-scan'}else{NewSonMapScan $app $model 'centre-scan' ([int[]]@(2))}
  $remove=New-Object 'System.Collections.Generic.List[object]'
  $templates=@{}
  while(MoveSonMapScan $scanContext) {
   $element=ReadSonMapScanCurrent $scanContext
-  $templates[[SonMapV8iRecords]::Id($element)]=$element
+  if($rewriteBoundary -and $boundary -contains [int]$element.Level.Number){$templates[[SonMapV8iRecords]::Id($element)]=$element}
   $generated=$false
   if([int]$element.Type -eq 2){
    $name=[string]$element.AsCellElement.Name
@@ -213,11 +235,11 @@ try {
   }
   if($project.scope_rings) {
    if($generated -and [SonMapV8iRecords]::CellInScope($element,[double[][][]]$project.scope_rings)){$remove.Add($element)}
-  } elseif(($boundary -contains [int]$element.Level.Number) -or $generated){$remove.Add($element)}
+  } elseif(($rewriteBoundary -and $boundary -contains [int]$element.Level.Number) -or $generated){$remove.Add($element)}
  }
  # Construct replacement elements while original templates are still valid.
  $pending=New-Object 'System.Collections.Generic.List[object]'
- if(-not $project.scope_rings -and $project.noded_lines) {
+ if($rewriteBoundary -and -not $project.scope_rings -and $project.noded_lines) {
   foreach($line in $project.noded_lines) {
    $template=$templates[[string]$line.source_id]
    if($template){$element=[SonMapV8iRecords]::StyledLine($app,[double[][]]$line.points,$template)}
@@ -234,7 +256,7 @@ try {
  $script:Stage='replace-boundary-elements'
  foreach($element in $remove){if([int]$element.Type -notin @(7,17)){$model.RemoveElement($element)}}
  $script:Stage='create-boundary-lines'
- if(-not $project.scope_rings) {
+ if($rewriteBoundary -and -not $project.scope_rings) {
  if($project.noded_lines) {
  foreach($element in $pending){$model.AddElement($element)}
  } else {

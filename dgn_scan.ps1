@@ -1,8 +1,9 @@
 # External COM callers must supply Scan's ElementScanCriteria argument explicitly.
-function NewSonMapScan($Application,$Model,[string]$Phase='scan') {
+function NewSonMapScan($Application,$Model,[string]$Phase='scan',[int[]]$Types) {
  $script:Stage=$Phase+'-create-criteria'
  $criteria=$Application.CreateObjectInMicroStation('MicroStationDGN.ElementScanCriteria')
  if($null -eq $criteria){throw 'MicroStation did not create ElementScanCriteria.'}
+ if($Types){$criteria.ExcludeAllTypes();foreach($type in $Types){$criteria.IncludeType($type)}}
  $script:Stage=$Phase+'-start-with-criteria'
  $enumerator=$Model.Scan($criteria)
  if($null -eq $enumerator){throw 'MicroStation Scan returned no enumerator.'}

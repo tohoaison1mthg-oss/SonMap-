@@ -1,5 +1,13 @@
 # Phiên bản SonMap+
 
+## V10.16
+
+- Sửa lỗi dừng topology vì so sánh Double tuyệt đối khi MDB đọc lại lệch vài ULP (trường DienTich, ID 111). Chỉ dung sai sai số biểu diễn số thực; ID, văn bản và Geometry vẫn kiểm tra chính xác, diện tích hiển thị một chữ số thập phân.
+- Quét ranh bằng interop có kiểu và lọc lớp ngay trong V8i; không chuyển hàng nghìn phần tử ngoài lớp topo sang PowerShell. Chỉ đọc lớp nhãn khi được chọn, đọc bổ sung khi đổi lớp gán nhãn.
+- Chế độ cập nhật hiện tại không tạo before-save.dgn hoặc thư mục bản sao DGN cạnh bản đồ. Phục hồi giao dịch dùng tệp tạm, tự dọn sau thành công hoặc sau khi phục hồi được; chỉ giữ tệp cứu hộ nếu không tự phục hồi được. Theo yêu cầu người dùng, không giữ thêm backup DGN/MDB mỗi lần sửa lỗi/topo; các backup cũ được giữ nguyên.
+- Giữ nguyên hình học/diện tích MDB và bỏ ghi lại các bản ghi không thay đổi; topology chỉ viết lại ranh khi cần tạo nút/nối/chia cung hoặc loại đoạn trùng. Bộ nhớ đệm lớp giảm số lần gọi COM khi ghi tâm/ranh.
+- Sửa kiểm tra hash trong PowerShell 32-bit bằng SHA256 .NET. Kiểm thử Windows/V8i/Jet trên bản sao tạm của dc144: 181 → 182 thửa, ID 164 → hai ID 181/182, 177 bản ghi giữ nguyên, đọc lại đủ vùng và tâm thửa. Phân tích 17 giây, cập nhật 26 giây trên laptop này; tệp người dùng mở lại với hash DGN/MDB không đổi.
+
 ## V10.15
 
 - Sửa đường mở từ MicroStation/VBA cũ vẫn gọi ThanhTanApp/app.py và hiện V10.3 dù đã cài SonMap mới. Trình cập nhật chuyển điểm mở cũ sang SonMapPlus/App hiện đang cài, dùng Python riêng của bản đó; tiêu đề tiếp tục đọc VERSION.
