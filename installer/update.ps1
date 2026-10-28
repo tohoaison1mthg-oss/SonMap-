@@ -42,7 +42,7 @@ try {
  }
  # Never replace application modules while the old copy is running.
  foreach($proc in Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='pythonw.exe'") {
-  if($proc.CommandLine -and $proc.CommandLine.IndexOf($InstallRoot,[StringComparison]::OrdinalIgnoreCase) -ge 0 -and $proc.CommandLine -match '(launch|app)\.py') {
+  if($proc.CommandLine -and $proc.CommandLine -match ('(?i)'+[regex]::Escape($InstallRoot+'\')+'(launch|app)\.py(?:"|\s|$)')) {
    throw 'Close the installed SonMap window, then run this installer again.'
   }
  }
@@ -101,6 +101,11 @@ try {
  $restoreShortcut.IconLocation=Join-Path $InstallRoot 'sonmap.ico'
  $restoreShortcut.Save()
  $committed=$true
+ # Old MicroStation VBA can call ThanhTanApp/app.py directly, bypassing the
+ # current Desktop shortcut. Preserve that app and forward its entry point.
+ $repairPython=Join-Path $InstallRoot '.venv-topology\Scripts\python.exe'
+ & $repairPython (Join-Path $InstallRoot 'legacy_startup.py') --legacy-root $legacy 2>&1 | ForEach-Object {Log ([string]$_)}
+ if($LASTEXITCODE -ne 0){throw 'Program installed, but legacy startup repair failed. See install log.'}
  Log ('Installed SonMap+ V'+$version+' to '+$InstallRoot)
  Log ('Previous program files saved in '+$backup)
  Log 'Desktop shortcut: SonMap+. Your DGN/MDB and existing user data are preserved.'

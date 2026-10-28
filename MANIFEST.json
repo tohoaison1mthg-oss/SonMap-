@@ -5,7 +5,7 @@
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "6a62f98edf907988460678f7991b87cf307ec0eacadf8957f9de3814e0ae1e25"
+    "sha256": "eb41e48b264904aea2f23ce60715e4afdb0a9698f59c9f89ec49ed2bbf84e651"
   },
   {
     "file": "CONTINUE.md",
@@ -64,8 +64,12 @@
     "sha256": "36470edd133c8eeceee47114d7444fd6f08ba5314fe4f170b5a779efd856fd11"
   },
   {
+    "file": "V10_15_VALIDATION.md",
+    "sha256": "81965df6c3d9d28ef3ea5ee6d78bd89b1945d3d68491eaec15d196bf60d12a8b"
+  },
+  {
     "file": "VERSION",
-    "sha256": "cacb7e88fb6cb7ff71a27cd067c2bf6c486972346d48ff1badc8c037ecf2799e"
+    "sha256": "62af8c033bf63e1b2bfb3bb98216bc4b201379685d98800be619d5f49bafb192"
   },
   {
     "file": "VIETMAPXM_STUDY.md",
@@ -85,7 +89,7 @@
   },
   {
     "file": "bootstrap.template.bas",
-    "sha256": "831b2749a68e8d0ee24e85eac14bbe433aeca4b696277afb94ae4d190d5e2306"
+    "sha256": "e40006c0fba39ff5db70cd681806665e5ce6a1db710a245b143d38b1e97ce3f9"
   },
   {
     "file": "bridge.bas",
@@ -145,7 +149,7 @@
   },
   {
     "file": "installer/restore.ps1",
-    "sha256": "90ea27527ab3d5d33cea99ec6c1f55b51740376d30ac6253c3c75d63d7afdc46"
+    "sha256": "f353d28666d5f513796b98bc54dff0babe4698bd0573d908a66c7bb65a77d67b"
   },
   {
     "file": "installer/setup_prepare.py",
@@ -157,7 +161,7 @@
   },
   {
     "file": "installer/update.ps1",
-    "sha256": "474c552370a129aa4b81b78e5cd035b6ac1fd8387260566c8de72c0406a2d2f9"
+    "sha256": "094e5b18b2b0f4b976e86ff796d652135e646dc9bae429fbbd35098ba9a2e3a5"
   },
   {
     "file": "installer/update_vba.ps1",
@@ -174,6 +178,10 @@
   {
     "file": "launch.py",
     "sha256": "18f37b5ec6e04b2d5c35655338d09d42b7fc6f3207f8314a54336583a33e369b"
+  },
+  {
+    "file": "legacy_startup.py",
+    "sha256": "d35d1588ac77c1a69a2538355309a8a228579aa01f5608b30b2e794c77f62008"
   },
   {
     "file": "mau03_engine.bas",
@@ -268,6 +276,10 @@
     "sha256": "6ed99b57769de3e2bf14ca43c42af0d4bfa84167e8a9cf2c54856b965be10ea6"
   },
   {
+    "file": "test_legacy_startup.py",
+    "sha256": "485edede6466a317bd1efdd2a49c9ce02f779206cd6ca869995ce4be305098ec"
+  },
+  {
     "file": "test_parcel_info.py",
     "sha256": "bd959e030aa9f622d5b7c45ffbc291572c4c020b5049fb4b5e6a1c2b1c62de70"
   },
@@ -281,7 +293,7 @@
   },
   {
     "file": "test_release.py",
-    "sha256": "d7a592dbcf9b4320e29510347aa91d12d8af57a303aedf1aad77ad0ae87052ad"
+    "sha256": "78421aa435decf81dcab651717163ddf0e5cfd7c2282a9d14aa81825c35289bb"
   },
   {
     "file": "test_scan_v8i.ps1",

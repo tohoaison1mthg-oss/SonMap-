@@ -1,5 +1,11 @@
 # Phiên bản SonMap+
 
+## V10.15
+
+- Sửa đường mở từ MicroStation/VBA cũ vẫn gọi ThanhTanApp/app.py và hiện V10.3 dù đã cài SonMap mới. Trình cập nhật chuyển điểm mở cũ sang SonMapPlus/App hiện đang cài, dùng Python riêng của bản đó; tiêu đề tiếp tục đọc VERSION.
+- Sao lưu nguyên mã khởi động cũ trước sửa; sửa lặp lại không chèn trùng. Có khôi phục điểm mở cũ và lưu bản đang thay để hoàn tác khôi phục. Không sửa DGN/MDB, settings, runtime hoặc tài nguyên riêng.
+- Mẫu VBA khởi động ưu tiên thư mục cài SonMap hiện tại thay vì đường dẫn máy phát triển cũ. Giữ nguyên các gói/tag V10.12–V10.14, không hạ bản đang cài.
+
 ## V10.14
 
 - Thu gọn ba bảng Sửa lỗi, Tạo topology và Sửa thông tin thửa theo bố cục mẫu; bỏ các dòng mô tả kỹ thuật và tab toàn bộ cột MDB khỏi bảng sửa thửa.

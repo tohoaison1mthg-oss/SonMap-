@@ -14,7 +14,7 @@ function SafePath($root,[string]$relative) {
 }
 try {
  foreach($proc in Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='pythonw.exe'") {
-  if($proc.CommandLine -and $proc.CommandLine.IndexOf($InstallRoot,[StringComparison]::OrdinalIgnoreCase) -ge 0 -and $proc.CommandLine -match '(launch|app)\.py'){throw 'Close SonMap before restoring a version.'}
+  if($proc.CommandLine -and $proc.CommandLine -match ('(?i)'+[regex]::Escape($InstallRoot+'\')+'(launch|app)\.py(?:"|\s|$)')){throw 'Close SonMap before restoring a version.'}
  }
  if(-not $BackupPath) {
   $choices=@()
