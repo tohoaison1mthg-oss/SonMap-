@@ -1,5 +1,14 @@
 # Tiếp tục phát triển SonMap+ trên máy khác
 
+## Trạng thái hiện hành: V10.17
+
+Đọc VERSION, CHANGELOG.md, AGENTS.md và V10_17_VALIDATION.md trước khi làm tiếp.
+V10.17 sửa thay MDB khác ổ đĩa, tự ẩn lớp trước sửa lỗi/topology, lọc bước quét
+ghi trong interop, thêm xóa cell báo lỗi SMERR và cải thiện giao diện. Dữ liệu
+phục hồi chỉ tồn tại trong giao dịch hoặc khi chưa phục hồi được; không tự
+đảo ngược cập nhật địa chính đã thành công. Các mục cũ bên dưới là lịch sử,
+không dùng số phiên bản kế tiếp hoặc hướng dẫn backup cũ thay quy ước hiện hành.
+
 ## V10.12
 
 Theo yêu cầu người dùng, tách 1 thành nhiều thửa phải tạm giữ cùng số thửa

@@ -1,8 +1,11 @@
-# SonMap+ V10.14 — làm trực tiếp trên laptop
+# SonMap+ V10.17 — làm trực tiếp trên laptop
+
+Phiên bản lấy từ [VERSION](VERSION), lịch sử và giới hạn nghiệm thu từng bản
+ở [CHANGELOG.md](CHANGELOG.md). Quy ước phát triển nằm trong [AGENTS.md](AGENTS.md).
 
 ## Cài hoặc nâng cấp ứng dụng
 
-Giải nén SonMapPlus_V10_14_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
+Giải nén SonMapPlus_V10_17_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
 Lối tắt SonMap+ dùng chương trình ở `%LOCALAPPDATA%\SonMapPlus\App`.
 Trình cài giữ các phiên bản trước, sao lưu mã cũ và có công cụ Khôi phục.
 Nếu thiếu CPython 3.12 64-bit phù hợp, chuẩn bị bản riêng cho SonMap từ bộ cài
@@ -10,10 +13,19 @@ chính thức có chữ ký hợp lệ. Python 3.15 và PATH được giữ nguy
 
 ## Làm trên DGN/MDB đang mở
 
-V10.13 phân biệt **Ẩn lớp ngoài danh sách** (chỉ làm gọn hiển thị, có nút khôi phục)
-và **Sửa ranh** (tạo giao điểm thật, giữ nét, có sao lưu). Đoạn dư/hở được giữ để
+Mặc định **Tự ẩn lớp không tham gia trước khi chạy** được bật ở cả Sửa lỗi và
+Tạo topology. Thao tác này chỉ làm gọn hiển thị, không xóa phần tử. Bấm
+**Hiện lại lớp** để khôi phục trạng thái trước lần ẩn đầu tiên; có thể chạy
+nhiều lần mà vẫn khôi phục được. Có thể bỏ chọn tự ẩn nếu cần giữ cách xem hiện tại.
+**Sửa ranh** tạo giao điểm thật, giữ nét, có dữ liệu phục hồi tạm. Đoạn dư/hở được giữ để
 báo lỗi và sửa thủ công. Mở **Báo lỗi** để tìm từng lỗi trên DGN, ghi dấu và kiểm
 tra lại sau khi sửa. Chỉ tạo topology khi đã kiểm tra ranh hoặc phạm vi cập nhật hợp lệ.
+
+Bấm **Xóa dấu lỗi** để xóa các vòng tròn SMERR của SonMap trong model hiện tại,
+kể cả sau khi đã chỉnh sửa ranh thủ công. Nút có ở Sửa lỗi, Tạo topology và
+danh sách lỗi; không xóa toàn bộ Level báo lỗi hoặc vòng tròn do người dùng vẽ.
+Xóa dấu không xác nhận đã sửa hết lỗi. Chạy lại Sửa lỗi/Tạo topology hoặc
+**Kiểm tra lại sau sửa tay** để có danh sách lỗi mới.
 
 **Thông tin thửa trên DGN** mở bảng có nút con trỏ **↖** và nút **Chọn**. Nhấp một nút,
 sau đó nhấp bên trong thửa; chuột phải hủy. Bảng nạp thuộc tính theo hình học và ID,
@@ -27,28 +39,33 @@ chưa lưu được nhắc trước khi bỏ. Chương trình giữ nguyên cấ
 1. Mở đúng DGN trong MicroStation V8i. SonMap tự nhận MDB cùng tên; hoặc chọn
    Kết nối CSDL → Đọc/kết nối MDB để chọn CSDL khác.
 2. Trong Sửa lỗi/Tạo topology, nhập lớp ranh, ví dụ `10,23,32`. Chỉ chọn lớp ranh.
-3. Mặc định **ghi DGN hiện tại** được bật. Chương trình sao lưu trạng thái trên
-   đĩa, lưu nét đang mở rồi phân tích lại. Không kẻ thêm/sửa bản vẽ trong khi
+3. Mặc định **ghi DGN hiện tại** được bật. Chương trình lưu nét đang mở rồi
+   phân tích lại, dùng tệp tạm để phục hồi giao dịch khi ghi lỗi. Không kẻ thêm/sửa bản vẽ trong khi
    tác vụ đang chạy. Bỏ chọn nếu muốn xuất bản riêng như các phiên bản trước.
 4. Sửa lỗi chuẩn hóa ranh và báo đoạn ngắn, vùng nhỏ, đầu hở/cạnh thừa. Nó không
    tự tạo thêm bản ghi thửa; dùng Tạo topology sau khi ranh hợp lệ.
 5. Tạo topology dựng lại vùng, tâm thửa và cập nhật MDB đang kết nối. Kết quả
-   được ghi vào **tên DGN/MDB hiện tại**, có sao lưu ở SonMap_backups cạnh DGN.
+   được ghi vào **tên DGN/MDB hiện tại**, không giữ thêm backup sau thành công.
    Giao diện hiển thị số phần tử theo lớp, số vùng, số thửa MDB trước/sau.
 6. Một đường phân chia khép đúng hai đầu vào ranh của một thửa phải tạo hai
    vùng. Nếu tách một thửa từ MDB có 12 thửa, kết quả dự kiến là 13 bản ghi.
    Thửa không thay đổi giữ ID/thuộc tính; phần ngoài phạm vi được giữ nguyên.
-7. Thửa con mới có ID riêng; số hiệu chính thức được lấy từ nhãn nếu cấu hình
-   rõ ràng, nếu không hiển thị **Chờ số**. Không tự bịa số thửa pháp lý. Mở
+7. Thửa con mới có ID riêng; tạm kế thừa số thửa và thuộc tính của thửa cha.
+   Số được nhập chủ động hoặc gán từ nhãn được ưu tiên. Thửa mới không có nguồn
+   số hiển thị **Chờ số**; không tự bịa số thửa pháp lý. Mở
    Thông tin thửa, nhập số rồi lưu; dùng Cập nhật MDB hiện tại trong Kết nối CSDL
    để ghi các thuộc tính sửa tay. Xuất hồ sơ bị chặn khi thiếu số thửa.
 8. Không có MDB kết nối thì chỉ cập nhật DGN; tạo/kết nối CSDL trước nếu cần
    danh sách thửa được cập nhật. Đổi DGN sẽ bỏ liên kết CSDL của bản đồ cũ.
 
 Cập nhật MDB áp dụng delta trên bản sao đầy đủ, giữ các bảng/cột khác và kiểm
-tra dữ liệu đọc lại trước khi thay tệp. MDB bị khóa hoặc có ràng buộc chèn/xóa
+tra dữ liệu đọc lại trước khi thay tệp. Tệp chờ thay được tạo cạnh MDB đích để
+hỗ trợ dữ liệu khác ổ đĩa với thư mục tạm Windows. Khóa MDB được kiểm tra trước
+khi ghi DGN; nếu không đổi bản ghi thì không thay MDB. MDB bị khóa hoặc có ràng buộc chèn/xóa
 không hỗ trợ sẽ báo lỗi; không phá ràng buộc hoặc xóa bảng khác để ép cập nhật.
-Nếu ghi thất bại, chương trình thử phục hồi và luôn nêu vị trí sao lưu. Các
+Nếu ghi thất bại, chương trình thử phục hồi; chỉ giữ và nêu vị trí tệp cứu hộ
+khi chưa tự phục hồi được. Sau thành công, thông tin người dùng đã xác nhận
+không bị tự hoàn nguyên. Các
 phần mềm khác không nên đồng thời sửa MDB trong lúc SonMap đang cập nhật.
 
 ## Giới hạn đã biết
@@ -59,8 +76,8 @@ Reference, Cell hoặc B-spline. Ranh hở, đường thừa, vòng lỗi và th
 cập nhật topology/MDB. Không biến cảnh báo polygon thành cam kết sạch bản đồ.
 
 Các ngưỡng chiều dài tính bằng mét, diện tích bằng m². DGN dùng mét nhập hệ số 1;
-ghi MDB hiện yêu cầu hệ số này để tương thích xuất hồ sơ. Ranh dựng lại nằm trên
-lớp ranh đầu tiên đã chọn, không giữ riêng nét/màu từng đoạn nguồn.
+ghi MDB hiện yêu cầu hệ số này để tương thích xuất hồ sơ. Ranh dựng lại giữ
+lớp, màu, độ đậm và kiểu nét theo nguồn. Không làm tròn tọa độ/MDB theo giá trị hiển thị.
 
 Phần xuất hồ sơ cũ vẫn cần mẫu/VBA riêng. Không sửa DLL hoặc giấy phép VietMap.
 
@@ -91,9 +108,10 @@ mẫu đã ẩn thông tin cá nhân khi cần kiểm tra ngoài máy.
 
 ## Kiểm chứng và chẩn đoán
 
-Cloud kiểm tra logic tách thửa, ID/thuộc tính, cập nhật và phục hồi bằng I/O mô
-phỏng. **Chưa xác minh thao tác trực tiếp DGN/MDB với V8i/Jet trên Windows thật.**
-Dùng phiên Codex local để kiểm tra bản sao dữ liệu trước khi dùng chính thức.
+Kiểm thử Python/Tk kiểm tra logic và luồng giao diện, trong đó có I/O mô phỏng.
+Kết quả Windows/V8i/Jet thật trên bản sao được ghi riêng tại
+[V10_17_VALIDATION.md](V10_17_VALIDATION.md). Các mẫu thử này không chứng minh
+mọi bản đồ hoặc mọi lỗi topology đã được xử lý; kiểm tra bản sao dữ liệu trước khi dùng chính thức.
 
 Kiem_tra_V8i.cmd đọc cấu hình CAD cho phép từ C:\VietMapXM và trạng thái COM.
 Kiem_tra_quet_DGN.cmd thử quét bản đang mở và bản sao chỉ đọc, ghi data/v8i-scan-*.json.

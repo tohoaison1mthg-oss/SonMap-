@@ -15,19 +15,23 @@ if($Action -eq 'Focus') {
  Write-Output 'FOCUSED';exit 0
 }
 if($Action -eq 'Hide') {
- if(Test-Path -LiteralPath $plan.state){throw 'A view state already exists. Restore it first.'}
+ # Repeated runs retain the FIRST view snapshot so Restore returns to the user's view.
+ $existing=Test-Path -LiteralPath $plan.state
+ if($existing){
+  $prior=Get-Content -LiteralPath $plan.state -Raw -Encoding UTF8 | ConvertFrom-Json
+  if([IO.Path]::GetFullPath($prior.source) -ne [IO.Path]::GetFullPath($design.FullName) -or [string]$prior.model -ne [string]$app.ActiveModelReference.Name){throw 'Restore the prior model view before hiding another model.'}
+ }
  $saved=New-Object 'System.Collections.Generic.List[object]'
  foreach($view in $design.Views) {
   if(-not $view.IsOpen){continue}
   foreach($level in $design.Levels){$saved.Add(@{view=[int]$view.Index;level=[int]$level.Number;shown=[bool]$view.IsLevelShown($level)})}
  }
  $state=@{source=[string]$design.FullName;model=[string]$app.ActiveModelReference.Name;levels=@($saved.ToArray())}
- [IO.File]::WriteAllText($plan.state,(ConvertTo-Json -InputObject $state -Depth 6),(New-Object Text.UTF8Encoding($false)))
+ if(-not $existing){[IO.File]::WriteAllText($plan.state,(ConvertTo-Json -InputObject $state -Depth 6),(New-Object Text.UTF8Encoding($false)))}
  try {
-  foreach($item in $saved) {
-   $view=$design.Views.Item([int]$item.view)
+  foreach($view in $design.Views) {
+   if(-not $view.IsOpen){continue}
    foreach($level in $design.Levels) {
-    if([int]$level.Number -ne [int]$item.level){continue}
     if(@($plan.levels) -contains [int]$level.Number){$view.ShowLevel($level)}else{$view.HideLevel($level)}
    }
   }

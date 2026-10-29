@@ -3,7 +3,7 @@
 ## Nguồn thông tin hiện hành
 
 - Phiên bản thực tế lấy từ [VERSION](VERSION); tại lần cập nhật tài liệu này là
-  **10.16**. Lịch sử thay đổi và phạm vi từng bản nằm trong [CHANGELOG.md](CHANGELOG.md).
+  **10.17**. Lịch sử thay đổi và phạm vi từng bản nằm trong [CHANGELOG.md](CHANGELOG.md).
   Không suy ra phiên bản từ README cũ hoặc tiêu đề bàn giao lịch sử.
 - Quy ước phát triển lâu dài nằm trong [AGENTS.md](AGENTS.md), mục
   **Development principles**. Khi hướng dẫn cũ khác quy ước hiện hành, áp dụng
@@ -20,8 +20,8 @@
   Đây là định hướng, không phải xác nhận các chức năng đã hoàn tất.
 - Giữ chức năng ổn định; chỉ thay quy trình, giao diện hoặc cấu trúc MDB khi
   cần thiết cho yêu cầu. Cập nhật quy ước bằng tài liệu không làm tăng VERSION.
-- Kết quả nghiệm thu V10.16 được ghi trong
-  [V10_16_VALIDATION.md](V10_16_VALIDATION.md) và changelog. Phân biệt kiểm thử
+- Kết quả nghiệm thu V10.17 được ghi trong
+  [V10_17_VALIDATION.md](V10_17_VALIDATION.md) và changelog. Phân biệt kiểm thử
   Python/cloud với xác minh Windows/MicroStation V8i/Jet thực tế.
 
 ## Yêu cầu nền tảng từ bàn giao V10.3

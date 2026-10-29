@@ -77,6 +77,25 @@ public static class SonMapV8iRecords {
     throw new InvalidOperationException("View did not centre on the requested location.");
   }
  }
+ public static object[] OutputElements(object application,object value,int[] boundary,bool rewrite) {
+  var a=(B.Application)application;var m=(B.ModelReference)value;
+  var result=new List<object>();var seen=new HashSet<string>();
+  if(rewrite) {
+   var criteria=(B.ElementScanCriteria)a.CreateObjectInMicroStation("MicroStationDGN.ElementScanCriteria");
+   criteria.ExcludeAllLevels();
+   foreach(B.Level level in m.Levels)if(Array.IndexOf(boundary,level.Number)>=0)criteria.IncludeLevel(level);
+   var scan=m.Scan(criteria);
+   while(scan.MoveNext()) {var e=scan.Current;if(seen.Add(e.ID.ToString()))result.Add(e);}
+  }
+  var cells=(B.ElementScanCriteria)a.CreateObjectInMicroStation("MicroStationDGN.ElementScanCriteria");
+  cells.ExcludeAllTypes();cells.IncludeType(B.MsdElementType.CellHeader);
+  var markers=m.Scan(cells);
+  while(markers.MoveNext()) {
+   var e=markers.Current;string name=e.AsCellElement().Name;
+   if((name=="SMERR" || name=="SMPARC") && seen.Add(e.ID.ToString()))result.Add(e);
+  }
+  return result.ToArray();
+ }
  public static double[] PickPoint(object value) {
   B.Application a=(B.Application)value;
   a.CommandState.StartDefaultCommand();
@@ -136,6 +155,29 @@ public static class SonMapV8iRecords {
   text.TextStyle.Height=height;text.TextStyle.Width=height;
   B.Element[] children=new B.Element[]{text};
   return a.CreateCellElement1("SMPARC",ref children,ref p,false);
+ }
+ public static void RemoveElements(object model,object[] elements) {
+  var m=(B.ModelReference)model;
+  foreach(object value in elements) {
+   var e=(B.Element)value;int type=(int)e.Type;
+   if(type!=7 && type!=17)m.RemoveElement(e);
+  }
+ }
+ public static void AddElements(object model,object[] elements) {
+  var m=(B.ModelReference)model;
+  foreach(object value in elements)m.AddElement((B.Element)value);
+ }
+ public static void AddCentres(object application,object model,string parcelsJson,object level,int color,double height) {
+  var json=new System.Web.Script.Serialization.JavaScriptSerializer();json.MaxJsonLength=int.MaxValue;
+  var parcels=(object[])json.DeserializeObject(parcelsJson);
+  var m=(B.ModelReference)model;
+  foreach(object value in parcels) {
+   var row=(Dictionary<string,object>)value;
+   var point=(object[])row["centre"];
+   string label=row["TCT"]==null?"ID:"+Convert.ToString(row["ID"],System.Globalization.CultureInfo.InvariantCulture):Convert.ToString(row["TCT"],System.Globalization.CultureInfo.InvariantCulture);
+   var cell=(B.CellElement)TextCell(application,label,Convert.ToDouble(point[0]),Convert.ToDouble(point[1]),level,color,height);
+   cell.Level=(B.Level)level;m.AddElement(cell);
+  }
  }
  public static object ErrorCell(object app,double x,double y,double radius,object level,int color) {
   B.Application a=(B.Application)app;

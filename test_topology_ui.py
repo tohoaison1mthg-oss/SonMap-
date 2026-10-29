@@ -103,6 +103,21 @@ class DialogTests(unittest.TestCase):
         self.assertIsNone(self.workspace.project)
         self.assertEqual(self.workspace.parcel_table.get_children(),())
 
+    def test_clear_markers_works_after_manual_edit_without_reusing_old_analysis(self):
+        self.workspace.project=copy.deepcopy(self.data);self.workspace.path=self.path
+        with patch('topology_ui.clear_error_markers') as clear:
+            self.workspace.clear_markers();self.pump()
+        clear.assert_called_once_with('source.dgn')
+        self.assertIsNone(self.workspace.project);self.assertIsNone(self.workspace.path)
+        self.assertIn('kiểm tra lại',self.workspace.status.get())
+
+    def test_auto_hide_is_default_for_both_processing_dialogs(self):
+        self.workspace.clean();self.workspace.topology();self.root.update()
+        self.assertTrue(self.workspace.options()['auto_hide'])
+        for key in ('clean','topology'):
+            self.button(self.workspace.windows[key],'Xóa dấu lỗi')
+            self.button(self.workspace.windows[key],'Hiện lại lớp')
+
     def test_parcel_area_display_has_one_decimal_without_rounding_project(self):
         self.workspace.project=copy.deepcopy(self.data);self.workspace.path=self.path
         self.workspace.project['parcels'][0]['DienTich']=568.74321

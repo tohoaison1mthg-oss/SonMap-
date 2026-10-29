@@ -1,4 +1,4 @@
-"""Windows-only I/O coordinator. Never modifies the original DGN or an existing MDB."""
+"""Windows I/O coordinator with checked snapshots and recoverable direct updates."""
 import hashlib
 import copy
 import json
@@ -38,6 +38,67 @@ def display_levels(source, selected, restore=False):
         powershell('dgn_view.ps1','-Action','Restore' if restore else 'Hide','-PlanPath',plan)
     if restore:state.unlink()
     return str(state)
+
+
+def check_database_replaceable(path):
+    """Check Windows sharing/permissions without renaming or changing the MDB."""
+    if os.name != 'nt':return
+    import ctypes
+    from ctypes import wintypes
+    kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    create=kernel.CreateFileW
+    create.argtypes=[wintypes.LPCWSTR,wintypes.DWORD,wintypes.DWORD,ctypes.c_void_p,
+                     wintypes.DWORD,wintypes.DWORD,wintypes.HANDLE]
+    create.restype=wintypes.HANDLE
+    close=kernel.CloseHandle;close.argtypes=[wintypes.HANDLE];close.restype=wintypes.BOOL
+    # DELETE access tests the same sharing requirement as replacing the file.
+    handle=create(str(Path(path).resolve()),0x10000,7,None,3,0,None)
+    if handle==ctypes.c_void_p(-1).value:
+        error=ctypes.get_last_error()
+        if error in (32,33):
+            raise RuntimeError('MDB đang bị khóa. Ngắt kết nối MDB trong phần mềm đang dùng rồi thử lại. '
+                               'Chưa ghi thay đổi DGN/MDB.\n'+str(path))
+        raise ctypes.WinError(error)
+    close(handle)
+
+
+def replace_database(staged, target):
+    """Install through a sibling file: os.replace cannot cross C:/D: volumes."""
+    target=Path(target)
+    descriptor,name=tempfile.mkstemp(prefix='.sonmap-pending-',suffix='.mdb',dir=target.parent)
+    os.close(descriptor)
+    sibling=Path(name)
+    try:
+        shutil.copyfile(staged,sibling)
+        if digest(sibling)!=digest(staged):raise RuntimeError('MDB tạm sao chép không khớp; chưa thay tệp.')
+        os.replace(sibling,target)
+    finally:
+        if sibling.exists():sibling.unlink()
+
+
+def clear_error_markers(source):
+    """Remove only named SonMap error cells, even after manual drawing edits."""
+    source=Path(source).resolve()
+    # Save manual corrections before taking the recovery snapshot.
+    with tempfile.TemporaryDirectory(prefix='sonmap-clear-') as directory:
+        folder=Path(directory)
+        powershell('dgn_topology.ps1','-Action','SaveActive','-InputPath',source,
+                   '-SourcePath',source,'-OutputPath',folder/'unused.dgn','-SkipSaveBackup')
+        original=digest(source);backup=folder/source.name
+        shutil.copyfile(source,backup)
+        if digest(backup)!=original:raise RuntimeError('DGN đổi khi sao chép; chưa xóa dấu lỗi.')
+        plan=folder/'clear.json'
+        save_project(plan,{'source':{'path':str(source),'sha256':original},
+                           'working_dgn':str(source),'direct_backup':str(backup)})
+        try:
+            return powershell('dgn_topology.ps1','-Action','ClearErrors','-InputPath',plan,'-OutputPath',source)
+        except Exception as exc:
+            # Keep rescue data only if the source could not be restored.
+            if digest(source)!=original:
+                rescue=Path(tempfile.mkdtemp(prefix='sonmap-rescue-'))/source.name
+                shutil.copyfile(backup,rescue)
+                raise RuntimeError(str(exc)+'\nTệp khôi phục: '+str(rescue)) from exc
+            raise
 
 
 def focus_geometry(source, points, model=None, minimum=2):
@@ -151,6 +212,11 @@ def prepare(source, options):
         raise RuntimeError('Chuẩn bị bản vẽ cần Windows + MicroStation V8i.')
     folder = ROOT / 'data' / 'topology-jobs' / uuid.uuid4().hex
     folder.mkdir(parents=True)
+    if options.get('auto_hide',True):
+        visible=set(levels(options['boundary_levels']))
+        for spec in options.get('label_levels',{}).values():
+            if str(spec).strip():visible.update(levels(spec))
+        display_levels(source,','.join(map(str,sorted(visible))))
     if options.get('in_place'):
         powershell('dgn_topology.ps1','-Action','SaveActive','-InputPath',source,'-SourcePath',source,'-OutputPath',folder/'unused.dgn','-SkipSaveBackup')
     original = digest(source)
@@ -343,7 +409,7 @@ def assign_labels(project_path, label_levels):
 
 
 def apply_current(project_path, database_path=None,clean_only=False,keep_backup=False):
-    """Back up and update the active DGN and optionally its connected MDB, keeping filenames."""
+    """Update active DGN/MDB with temporary recovery data and checked readback."""
     from database_topology import reconcile
     project_path=Path(project_path)
     original_project=json.loads(project_path.read_text(encoding='utf-8'))
@@ -367,12 +433,18 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
             shutil.copyfile(target,db_backup)
             if digest(db_backup)!=db_before:raise RuntimeError('MDB thay đổi khi sao lưu; không cập nhật.')
             delta=reconcile(project,old['rows']);project=delta['project']
-            staged=backup/('pending-'+uuid.uuid4().hex+'.mdb')
-            shutil.copyfile(db_backup,staged)
-            plan=backup/'mdb-plan.json'
-            plan.write_text(json.dumps({k:delta[k] for k in ('delete_ids','insert_rows','update_rows')},ensure_ascii=False),encoding='utf-8')
-            powershell('update_mdb_topology.ps1','-PlanPath',plan,'-MdbPath',staged)
-            actual=inspect_database(staged)
+            changes=any(delta[key] for key in ('delete_ids','insert_rows','update_rows'))
+            if changes:
+                check_database_replaceable(target)
+                staged=backup/('pending-'+uuid.uuid4().hex+'.mdb')
+                shutil.copyfile(db_backup,staged)
+                plan=backup/'mdb-plan.json'
+                plan.write_text(json.dumps({k:delta[k] for k in ('delete_ids','insert_rows','update_rows')},ensure_ascii=False),encoding='utf-8')
+                powershell('update_mdb_topology.ps1','-PlanPath',plan,'-MdbPath',staged)
+                actual=inspect_database(staged)
+            else:
+                # Verified source rows already equal the plan; no Jet staging/readback needed.
+                actual=old
             wanted={int(r['ID']):r for r in delta['final_rows']}
             found={int(r['ID']):r for r in actual['rows']}
             if set(wanted)!=set(found):raise RuntimeError('MDB tạm đọc lại không khớp danh sách ID dự kiến.')
@@ -394,11 +466,15 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
         dgn_applied=True
         if target:
             if digest(target)!=db_before:raise ValueError('MDB thay đổi trong khi cập nhật DGN; cần kết nối lại.')
-            new_db_digest=digest(staged)
-            try:os.replace(staged,target)
-            except OSError as exc:raise RuntimeError('Không thay được MDB đang bị khóa. Đóng kết nối CSDL trong phần mềm khác rồi thử lại; bản cũ được giữ.') from exc
-            db_applied=True
-            connected=inspect_database(target)
+            if changes:
+                new_db_digest=digest(staged)
+                try:replace_database(staged,target)
+                except OSError as exc:
+                    if getattr(exc,'winerror',None) in (32,33) or isinstance(exc,PermissionError):
+                        raise RuntimeError('Không thay được MDB bị khóa hoặc thiếu quyền ghi. Ngắt kết nối MDB trong phần mềm khác rồi thử lại.') from exc
+                    raise RuntimeError('Không thay được MDB: '+str(exc)) from exc
+                db_applied=True
+            connected=inspect_database(target) if changes else old
         else:connected=None
         project['source']['sha256']=digest(source)
         # Refresh the analysis copy so a subsequent explicit operation does not use stale geometry.
@@ -419,7 +495,7 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
         if db_applied and target and db_backup:
             try:
                 if digest(target)!=new_db_digest:raise RuntimeError('MDB đã được tiến trình khác sửa sau khi ghi; không ghi đè dữ liệu mới của tiến trình đó.')
-                recovery=backup/'rollback.mdb';shutil.copyfile(db_backup,recovery);os.replace(recovery,target)
+                replace_database(db_backup,target)
             except Exception as rollback:failures.append('Không tự khôi phục MDB: '+str(rollback))
         if dgn_applied or (dgn_attempted and digest(source)!=original_project['source']['sha256']):
             try:powershell('dgn_topology.ps1','-Action','RestoreActive','-InputPath',dgn_backup,'-OutputPath',source)

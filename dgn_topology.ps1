@@ -1,5 +1,5 @@
 ﻿param(
- [Parameter(Mandatory=$true)][ValidateSet('Extract','WriteDrawing','WritePreview','WriteMdb','CleanDrawing','TopologyDrawing','SaveActive','ApplyDrawing','ApplyClean','ApplyPreview','RestoreActive')][string]$Action,
+ [Parameter(Mandatory=$true)][ValidateSet('Extract','WriteDrawing','WritePreview','WriteMdb','CleanDrawing','TopologyDrawing','SaveActive','ApplyDrawing','ApplyClean','ApplyPreview','ClearErrors','RestoreActive')][string]$Action,
  [Parameter(Mandatory=$true)][string]$InputPath,
  [Parameter(Mandatory=$true)][string]$OutputPath,
  [string]$ModelName,
@@ -46,7 +46,7 @@ function FileDigest([string]$path) {
  finally {$hash.Dispose();$stream.Dispose()}
 }
 function XY($p) { return ,@([double]$p.X,[double]$p.Y) }
-if((Test-Path -LiteralPath $OutputPath) -and $Action -notin @('ApplyDrawing','ApplyClean','ApplyPreview','RestoreActive')){throw 'Output already exists; refusing to overwrite.'}
+if((Test-Path -LiteralPath $OutputPath) -and $Action -notin @('ApplyDrawing','ApplyClean','ApplyPreview','ClearErrors','RestoreActive')){throw 'Output already exists; refusing to overwrite.'}
 if($Action -eq 'WriteMdb') {
  $rows=Get-Content -LiteralPath $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json
  if($rows.Count -eq 0 -and -not $AllowEmpty){throw 'No parcels.'}
@@ -191,11 +191,11 @@ if($Action -eq 'Extract') {
 # Only a freshly copied workspace DGN may be edited. The Python coordinator supplies it.
 $project=Get-Content -LiteralPath $InputPath -Raw -Encoding UTF8 | ConvertFrom-Json
 if(-not $project.working_dgn){throw 'Missing working-copy path.'}
-$direct=$Action -in @('ApplyDrawing','ApplyClean','ApplyPreview')
+$direct=$Action -in @('ApplyDrawing','ApplyClean','ApplyPreview','ClearErrors')
 if(-not $direct -and [IO.Path]::GetFullPath($OutputPath) -eq [IO.Path]::GetFullPath($project.source.path)){throw 'Refusing to overwrite source in copy mode.'}
 $mutationStarted=$false
 if($direct) {
- if([string]$app.ActiveModelReference.Name -ne [string]$project.model){throw 'Active model changed; analyse the drawing again.'}
+ if($Action -ne 'ClearErrors' -and [string]$app.ActiveModelReference.Name -ne [string]$project.model){throw 'Active model changed; analyse the drawing again.'}
  if([IO.Path]::GetFullPath($OutputPath) -ne [IO.Path]::GetFullPath($project.source.path) -or [IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($OutputPath)){throw 'Direct write requires the original DGN to remain active.'}
  if(-not $project.direct_backup -or -not (Test-Path -LiteralPath $project.direct_backup)){throw 'A verified DGN backup is required before direct write.'}
  if((FileDigest $project.direct_backup) -ne $project.source.sha256 -or (FileDigest $OutputPath) -ne $project.source.sha256){throw 'Source or backup changed before direct write.'}
@@ -208,25 +208,22 @@ try {
   throw 'V7 DGN output requires the active design file. Use the backed-up update-current mode; program-only V7 output is not supported.'
  }
  $script:Stage='select-output-model: '+$project.model
- $model=ResolveSonMapModel $design $project.model ([bool]$project.model_is_default)
+ $model=if($Action -eq 'ClearErrors'){$app.ActiveModelReference}else{ResolveSonMapModel $design $project.model ([bool]$project.model_is_default)}
  if($model.Is3D){throw 'Only 2D cadastral models are supported.'}
- if($Action -eq 'ApplyPreview') {
-  $scanContext=NewSonMapScan $app $model 'marker-scan'
+ if($Action -in @('ApplyPreview','ClearErrors')) {
   $oldMarkers=New-Object 'System.Collections.Generic.List[object]'
-  while(MoveSonMapScan $scanContext){$element=ReadSonMapScanCurrent $scanContext;if([int]$element.Type -eq 2 -and [string]$element.AsCellElement.Name -eq 'SMERR'){$oldMarkers.Add($element)}}
+  foreach($element in [SonMapV8iRecords]::OutputElements($app,$model,[int[]]@(),$false)){if([string]$element.AsCellElement.Name -eq 'SMERR'){$oldMarkers.Add($element)}}
   $mutationStarted=$true
-  foreach($element in $oldMarkers){$model.RemoveElement($element)}
+  [SonMapV8iRecords]::RemoveElements($model,$oldMarkers.ToArray())
  }
  if($Action -in @('WriteDrawing','CleanDrawing','TopologyDrawing','ApplyDrawing','ApplyClean')) {
  $boundary=@(([string]$project.options.boundary_levels).Split(',') | ForEach-Object {[int]$_.Trim()})
  $centreLevel=[int]$project.options.centre_level
  if($boundary -contains $centreLevel){throw 'Centre and boundary levels must differ.'}
  $rewriteBoundary=-not ($project.PSObject.Properties.Name -contains 'boundary_changed' -and $project.boundary_changed -eq $false)
- $scanContext=if($rewriteBoundary){NewSonMapScan $app $model 'output-scan'}else{NewSonMapScan $app $model 'centre-scan' ([int[]]@(2))}
  $remove=New-Object 'System.Collections.Generic.List[object]'
  $templates=@{}
- while(MoveSonMapScan $scanContext) {
-  $element=ReadSonMapScanCurrent $scanContext
+ foreach($element in [SonMapV8iRecords]::OutputElements($app,$model,[int[]]$boundary,$rewriteBoundary)) {
   if($rewriteBoundary -and $boundary -contains [int]$element.Level.Number){$templates[[SonMapV8iRecords]::Id($element)]=$element}
   $generated=$false
   if([int]$element.Type -eq 2){
@@ -254,11 +251,11 @@ try {
  # Retain text and unsupported elements: export validation has already rejected unsupported boundaries.
  $mutationStarted=$true
  $script:Stage='replace-boundary-elements'
- foreach($element in $remove){if([int]$element.Type -notin @(7,17)){$model.RemoveElement($element)}}
+ [SonMapV8iRecords]::RemoveElements($model,$remove.ToArray())
  $script:Stage='create-boundary-lines'
  if($rewriteBoundary -and -not $project.scope_rings) {
  if($project.noded_lines) {
- foreach($element in $pending){$model.AddElement($element)}
+ [SonMapV8iRecords]::AddElements($model,$pending.ToArray())
  } else {
  foreach($line in $project.cleaned_lines) {
   if($project.options.join_lines) {
@@ -275,17 +272,14 @@ try {
  }
  if($Action -notin @('CleanDrawing','ApplyClean')) {
  $script:Stage='create-parcel-centres'
- foreach($parcel in $project.parcels) {
-  $label=if($null -ne $parcel.TCT){[string]$parcel.TCT}else{'ID:'+ $parcel.ID}
-  # A named cell keeps the parcel number and representative point together.
-  $cell=[SonMapV8iRecords]::TextCell($app,$label,[double]$parcel.centre[0],[double]$parcel.centre[1],(FindLevel $design $centreLevel),[int]$project.options.centre_color,[double]$project.options.centre_height)
-  $cell.Level=(FindLevel $design $centreLevel);$model.AddElement($cell)
- }
+ $parcelsJson=ConvertTo-Json -InputObject @($project.parcels) -Depth 30 -Compress
+ [SonMapV8iRecords]::AddCentres($app,$model,$parcelsJson,(FindLevel $design $centreLevel),[int]$project.options.centre_color,[double]$project.options.centre_height)
  }
  }
  # Error markers live only on the generated copy, on a level separate from boundaries and labels.
  $script:Stage='create-error-markers'
- foreach($issue in $project.issues) {
+ $markerIssues=if($Action -eq 'ClearErrors'){@()}else{@($project.issues)}
+ foreach($issue in $markerIssues) {
   if($issue.resolved_by_manual_edit){continue}
   if($issue.code -in @('DUPLICATE_REMOVED','ZERO_LENGTH_REMOVED','SNAPPED_ENDPOINT','INTERSECTION_NODE')){continue}
   $point=$null
@@ -298,7 +292,7 @@ try {
   $marker.Level=(FindLevel $design ([int]$project.options.error_level));$marker.Color=[int]$project.options.error_color;$model.AddElement($marker)
  }
  $script:Stage='save-output-dgn'
- if($direct){foreach($view in $design.Views){if($view.IsOpen){$view.ShowLevel((FindLevel $design ([int]$project.options.error_level)));$view.Redraw()}}}
+ if($direct){foreach($view in $design.Views){if($view.IsOpen){if($Action -ne 'ClearErrors'){$view.ShowLevel((FindLevel $design ([int]$project.options.error_level)));if($Action -eq 'ApplyDrawing'){$view.ShowLevel((FindLevel $design ([int]$project.options.centre_level)))}};$view.Redraw()}}}
  $design.Save()
 } catch {
  $failure=$_

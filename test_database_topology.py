@@ -125,6 +125,81 @@ class DatabaseTopologyTests(unittest.TestCase):
 if __name__=='__main__':unittest.main()
 
 class DirectUpdateTests(unittest.TestCase):
+    @unittest.skipUnless(__import__('os').name=='nt','Windows file-sharing semantics')
+    def test_windows_real_open_handle_is_detected_without_changing_file(self):
+        import topology_workflow as flow
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory:
+            target=Path(directory)/'locked.mdb';target.write_bytes(b'unchanged')
+            with target.open('rb'):
+                with self.assertRaisesRegex(RuntimeError,'bị khóa'):flow.check_database_replaceable(target)
+            flow.check_database_replaceable(target)
+            self.assertEqual(target.read_bytes(),b'unchanged')
+
+    def test_unchanged_database_is_not_replaced_or_blocked_by_readers(self):
+        import topology_workflow as flow
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from topology import save_project
+        with tempfile.TemporaryDirectory() as directory:
+            path,source,mdb,old,_=self.fixture(directory)
+            p=project([line(rect(x=0,y=0))],label_levels={})
+            p.update(source={'path':str(source),'sha256':flow.digest(source)},working_dgn=str(source),working_sha256=flow.digest(source))
+            save_project(path,p)
+            def inspect(target):return {'path':str(target),'sha256':flow.digest(target),'rows':old,'count':1}
+            def execute(script,*args):
+                self.assertEqual(script,'dgn_topology.ps1')
+                source.write_bytes(b'new-dgn')
+            with patch.object(flow,'inspect_database',side_effect=inspect),patch.object(flow,'powershell',side_effect=execute),patch.object(flow,'check_database_replaceable') as check,patch.object(flow,'replace_database') as replace:
+                flow.apply_current(path,mdb)
+            check.assert_not_called();replace.assert_not_called()
+            self.assertEqual(mdb.read_bytes(),b'old-mdb')
+
+    def test_database_install_and_rollback_replace_on_destination_volume(self):
+        import topology_workflow as flow
+        import tempfile,os
+        from pathlib import Path
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);destination=root/'destination';destination.mkdir()
+            staged=root/'staged.mdb';staged.write_bytes(b'new')
+            target=destination/'sheet.mdb';target.write_bytes(b'old')
+            real_replace=os.replace
+            def same_volume(src,dst):
+                # Model Windows refusing cross-volume replacement.
+                if Path(src).parent!=Path(dst).parent:raise OSError('different volume')
+                return real_replace(src,dst)
+            with patch.object(flow.os,'replace',side_effect=same_volume):flow.replace_database(staged,target)
+            self.assertEqual(target.read_bytes(),b'new')
+            self.assertEqual(staged.read_bytes(),b'new')
+            self.assertEqual(list(destination.iterdir()),[target])
+
+    def test_database_install_failure_keeps_source_and_removes_pending_file(self):
+        import topology_workflow as flow
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);staged=root/'staged.mdb';staged.write_bytes(b'new')
+            target=root/'sheet.mdb';target.write_bytes(b'old')
+            with patch.object(flow.os,'replace',side_effect=PermissionError('locked')):
+                with self.assertRaises(PermissionError):flow.replace_database(staged,target)
+            self.assertEqual(target.read_bytes(),b'old')
+            self.assertEqual(sorted(p.name for p in root.iterdir()),['sheet.mdb','staged.mdb'])
+
+    def test_locked_preflight_stops_before_staging_or_dgn_changes(self):
+        import topology_workflow as flow
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            path,source,mdb,old,delta=self.fixture(directory)
+            with patch.object(flow,'inspect_database',return_value={'sha256':flow.digest(mdb),'rows':old}),patch.object(flow,'check_database_replaceable',side_effect=RuntimeError('MDB đang bị khóa')),patch.object(flow,'powershell') as write:
+                with self.assertRaisesRegex(RuntimeError,'bị khóa'):flow.apply_current(path,mdb)
+            write.assert_not_called()
+            self.assertEqual(source.read_bytes(),b'old-dgn');self.assertEqual(mdb.read_bytes(),b'old-mdb')
+
     def fixture(self,folder):
         import topology_workflow as flow
         from pathlib import Path

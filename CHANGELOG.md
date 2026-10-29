@@ -6,6 +6,28 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.17
+
+- Sửa thay MDB khi thư mục giao dịch tạm ở ổ C và dữ liệu ở ổ D: sao chép tệp
+  chờ thay vào cùng thư mục MDB đích, kiểm tra hash rồi thay nguyên tử. Phục hồi
+  MDB cũng dùng cách này. Không báo nhầm lỗi khác ổ đĩa thành MDB bị khóa.
+- Kiểm tra quyền thay/khóa MDB trước khi ghi DGN. Không ghi lại MDB khi delta
+  không có thay đổi; vẫn kiểm tra dữ liệu nguồn và kết quả. Không ép đóng kết
+  nối của phần mềm khác hoặc bỏ kiểm tra xung đột.
+- Mặc định tự ẩn lớp không tham gia trước Sửa lỗi/Tạo topology. Lặp lại vẫn
+  giữ trạng thái hiển thị ban đầu để Hiện lại lớp; chỉ thay hiển thị, không xóa
+  phần tử. Lọc ranh/cell cần ghi trong interop V8i, ghi/xóa phần tử và tạo tâm
+  theo lô để giảm lời gọi qua PowerShell.
+- Thêm Xóa dấu lỗi trong Sửa lỗi, Tạo topology và danh sách lỗi: chỉ xóa cell
+  SMERR do SonMap tạo trong model hiện tại. Dùng được sau khi sửa tay, không
+  phụ thuộc hash phân tích cũ; xóa dấu không có nghĩa là ranh đã hết lỗi, cần
+  kiểm tra lại. Giữ ranh, tâm SMPARC và phần tử khác.
+- Giao diện dùng nền sáng, chữ xanh đậm, nhóm thông số rõ hơn, cỡ chữ dễ đọc
+  và thanh tiến trình; cả hai bảng có tùy chọn tự ẩn và nút khôi phục lớp.
+- Giữ độ chính xác dữ liệu và cơ chế giao dịch tạm; không giữ thêm backup
+  DGN/MDB sau thành công. Phạm vi kiểm thử Windows/V8i/Jet trên bản sao, kết
+  quả Python/Tk và giới hạn được ghi trong V10_17_VALIDATION.md. Giữ các gói/tag cũ.
+
 ## V10.16
 
 - Sửa lỗi dừng topology vì so sánh Double tuyệt đối khi MDB đọc lại lệch vài ULP (trường DienTich, ID 111). Chỉ dung sai sai số biểu diễn số thực; ID, văn bản và Geometry vẫn kiểm tra chính xác, diện tích hiển thị một chữ số thập phân.

@@ -8,7 +8,7 @@ from pathlib import Path
 from topology import BLOCKING, finite, save_project
 from topology_workflow import (prepare, export_project, preview_project, drawing_project,
                                inspect_database, create_database, assign_labels, validate_options, apply_current,
-                               display_levels, focus_issue, mark_errors)
+                               display_levels, focus_issue, mark_errors, clear_error_markers)
 
 ISSUES = {
  'UNSUPPORTED':'Phần tử ranh chưa hỗ trợ', 'SHORT_SEGMENT':'Đoạn ngắn',
@@ -26,7 +26,7 @@ DEFAULTS = dict(boundary_levels='10',sheet='1',metres_per_unit='1',short_length=
  centre_level='11',centre_color='3',centre_height='1',error_level='60',error_color='3',
  error_radius='.01',label_TCT='',label_LRD='',label_TenChu='',label_Xudong='')
 FLAGS = dict(snap=False,break_arcs=False,break_complex=True,join_lines=False,
-             short_enabled=True,area_enabled=True,near_enabled=True)
+             short_enabled=True,area_enabled=True,near_enabled=True,auto_hide=True)
 
 
 class TopologyWorkspace:
@@ -42,6 +42,28 @@ class TopologyWorkspace:
         self.current_mdb=None
         self.windows={};self.controls=[];self.busy=False;self.project=None;self.path=None
         self.source.trace_add('write',self.source_changed)
+
+    def style_dialog(self,win):
+        """Named styles keep the exporter's existing widgets unchanged."""
+        from tkinter import ttk
+        style=ttk.Style(win)
+        style.configure('Topo.TFrame',background='#f2f6fa')
+        style.configure('Topo.TLabel',background='#f2f6fa',foreground='#182f46',font=('Segoe UI',10))
+        style.configure('Topo.TLabelframe',background='#f2f6fa',padding=4)
+        style.configure('Topo.TLabelframe.Label',background='#f2f6fa',foreground='#185879',font=('Segoe UI',10,'bold'))
+        for name in ('TCheckbutton','TRadiobutton'):
+            style.configure('Topo.'+name,background='#f2f6fa',foreground='#182f46',font=('Segoe UI',10))
+        style.configure('Topo.TButton',font=('Segoe UI',10),padding=(8,5))
+        style.configure('Topo.Treeview',font=('Segoe UI',10),rowheight=28,background='#ffffff',foreground='#182f46')
+        style.map('Topo.Treeview',background=[('selected','#185879')],foreground=[('selected','#ffffff')])
+        win.configure(background='#f2f6fa')
+        def apply(parent):
+            for widget in parent.winfo_children():
+                kind=widget.winfo_class()
+                if kind in ('TFrame','TLabel','TLabelframe','TCheckbutton','TRadiobutton','TButton','Treeview'):
+                    widget.configure(style='Topo.'+kind)
+                apply(widget)
+        apply(win)
 
     def source_changed(self,*_):
         self.project=None;self.path=None
@@ -105,6 +127,7 @@ class TopologyWorkspace:
         line=ttk.Frame(win);line.pack(fill='x',padx=12,pady=(4,12))
         self.button(line,'Đóng',win.destroy,width=12).pack(side='right',padx=4)
         self.button(line,label,command,width=16).pack(side='right',padx=4)
+        self.style_dialog(win)
 
     def options(self):
         options={k:v.get().strip() for k,v in self.vars.items() if not k.startswith('label_')}
@@ -126,6 +149,12 @@ class TopologyWorkspace:
             if widget.winfo_exists():
                 saved.append((widget,str(widget.cget('state'))));widget.configure(state='disabled')
         self.status.set('Đang thực hiện… Giữ nguyên bản vẽ và model trong V8i.')
+        bars=[]
+        from tkinter import ttk
+        for win in self.windows.values():
+            if win.winfo_exists():
+                for widget in win.winfo_children():
+                    if isinstance(widget,ttk.Progressbar):widget.start(12);bars.append(widget)
         result=queue.Queue()
         def run():
             try:result.put((True,work()))
@@ -134,6 +163,8 @@ class TopologyWorkspace:
             try:ok,value=result.get_nowait()
             except queue.Empty:self.parent.after(120,poll);return
             self.busy=False;self.set_busy(False)
+            for bar in bars:
+                if bar.winfo_exists():bar.stop()
             for widget,old in saved:
                 if widget.winfo_exists():widget.configure(state=old)
             if ok:
@@ -200,7 +231,7 @@ class TopologyWorkspace:
 
     def clean(self):
         from tkinter import ttk
-        win=self.window('clean','Tự động tìm sửa lỗi','565x480')
+        win=self.window('clean','Tự động tìm sửa lỗi','630x590')
         if not win:return
         self.status.set('')
         tabs=ttk.Notebook(win);tabs.pack(fill='both',expand=True,padx=8,pady=8)
@@ -235,12 +266,14 @@ class TopologyWorkspace:
     def compact_footer(self,win,command,clean=False):
         import tkinter as tk
         from tkinter import ttk
-        ttk.Label(win,textvariable=self.status,wraplength=535).pack(fill='x',padx=10,pady=3)
+        ttk.Label(win,textvariable=self.status,wraplength=600).pack(fill='x',padx=12,pady=3)
+        ttk.Progressbar(win,mode='indeterminate').pack(fill='x',padx=12,pady=3)
+        view=ttk.Frame(win);view.pack(fill='x',padx=10,pady=3)
+        self.checkbox(view,'auto_hide','Tự ẩn lớp không tham gia trước khi chạy',0)
+        self.button(view,'Hiện lại lớp',lambda:self.change_display(True),width=12).grid(row=0,column=1,padx=4)
         actions=ttk.Frame(win);actions.pack(fill='x',padx=10,pady=(4,10))
-        if clean:
-            self.button(actions,'Ẩn lớp',lambda:self.change_display(False),width=8).pack(side='left',padx=2)
-            self.button(actions,'Hiện lại',lambda:self.change_display(True),width=8).pack(side='left',padx=2)
         self.button(actions,'Báo lỗi…',self.show_report,width=10).pack(side='left',padx=2)
+        self.button(actions,'Xóa dấu lỗi',self.clear_markers,width=12).pack(side='left',padx=2)
         options=ttk.Menubutton(actions,text='Tùy chọn…',width=10);options.pack(side='left',padx=3)
         menu=tk.Menu(options,tearoff=False);options.configure(menu=menu)
         menu.add_command(label='Gán thông tin từ nhãn…',command=lambda:None if self.busy else self.labels())
@@ -253,6 +286,15 @@ class TopologyWorkspace:
                 if isinstance(widget,(ttk.Entry,ttk.Combobox,ttk.Checkbutton,ttk.Radiobutton,ttk.Button,ttk.Menubutton)) and widget not in self.controls:self.controls.append(widget)
                 track(widget)
         track(win)
+        self.style_dialog(win)
+
+    def clear_markers(self):
+        source=self.source.get()
+        def done(_):
+            self.project=None;self.path=None
+            self.refresh_parcels();self.refresh_report()
+            self.status.set('Đã xóa vòng tròn báo lỗi SonMap. Chạy kiểm tra lại để cập nhật danh sách lỗi.')
+        self.launch(lambda:clear_error_markers(source),done)
 
     def change_display(self,restore):
         source=self.source.get();selected=self.vars['boundary_levels'].get()
@@ -261,7 +303,7 @@ class TopologyWorkspace:
 
     def topology(self):
         from tkinter import ttk
-        win=self.window('topology','Tạo topology','550x475')
+        win=self.window('topology','Tạo topology','630x565')
         if not win:return
         self.status.set('')
         tabs=ttk.Notebook(win);tabs.pack(fill='both',expand=True,padx=8,pady=8)
@@ -334,7 +376,7 @@ class TopologyWorkspace:
     def show_report(self):
         from tkinter import ttk
         if not self.require_project():return
-        win=self.window('report','Danh sách lỗi','850x440')
+        win=self.window('report','Danh sách lỗi','950x485')
         if not win:return
         table=ttk.Treeview(win,columns=('type','parcel','detail'),show='headings',height=13)
         for key,title,width in [('type','Loại lỗi',230),('parcel','ID thửa',70),('detail','Chi tiết',510)]:table.heading(key,text=title);table.column(key,width=width)
@@ -347,8 +389,10 @@ class TopologyWorkspace:
         self.button(actions,'Tìm trên DGN',lambda:self.navigate_error(0)).pack(side='left',padx=3)
         self.button(actions,'Sau ▶',lambda:self.navigate_error(1)).pack(side='left',padx=3)
         self.button(actions,'Ghi dấu lỗi',self.mark_current).pack(side='left',padx=3)
+        self.button(actions,'Xóa dấu lỗi',self.clear_markers).pack(side='left',padx=3)
         self.button(actions,'Kiểm tra lại sau sửa tay',lambda:self.process('inspect')).pack(side='left',padx=3)
         table.bind('<Double-1>',lambda _:self.navigate_error(0))
+        self.style_dialog(win)
 
     def navigate_error(self,direction):
         table=self.report_table;items=table.get_children()
@@ -477,13 +521,14 @@ class TopologyWorkspace:
         self.button(buttons,'Tạo MDB mới…',create).pack(side='left',padx=4)
         project=ttk.LabelFrame(win,text='Dữ liệu từ topology');project.pack(fill='x',padx=12,pady=4)
         ttk.Label(project,text='Tạo MDB có dữ liệu sau khi kiểm tra vùng và gán số thửa.').pack(anchor='w',padx=10,pady=8)
-        self.button(project,'Cập nhật MDB hiện tại (sao lưu)',self.update_current).pack(anchor='w',padx=10,pady=(0,5))
+        self.button(project,'Cập nhật MDB hiện tại',self.update_current).pack(anchor='w',padx=10,pady=(0,5))
         self.button(project,'Tạo DGN + MDB riêng…',self.export).pack(anchor='w',padx=10,pady=(0,10))
         links=ttk.Frame(win);links.pack(fill='x',padx=12,pady=8)
         self.button(links,'Mở dự án…',self.load_project).pack(side='left',padx=3)
         self.button(links,'Thông tin thửa…',self.parcels).pack(side='left',padx=3)
         self.button(links,'Đóng',win.destroy).pack(side='right',padx=3)
         ttk.Label(win,textvariable=self.status,wraplength=590).pack(fill='x',padx=12,pady=4)
+        self.style_dialog(win)
 
     def update_current(self):
         from tkinter import messagebox
@@ -511,6 +556,7 @@ class TopologyWorkspace:
             self.button(bar,text,command,width=22).pack(side='left',expand=True,padx=4,ipady=8)
         ttk.Label(win,textvariable=self.database,wraplength=600).pack(fill='x',padx=14,pady=4)
         ttk.Label(win,textvariable=self.status,wraplength=600).pack(fill='x',padx=14,pady=4)
+        self.style_dialog(win)
         return win
 
 
