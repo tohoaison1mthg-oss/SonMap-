@@ -1,10 +1,12 @@
 # Tiếp tục phát triển SonMap+ trên máy khác
 
-## Trạng thái hiện hành: V10.17
+## Trạng thái hiện hành: V10.18
 
-Đọc VERSION, CHANGELOG.md, AGENTS.md và V10_17_VALIDATION.md trước khi làm tiếp.
-V10.17 sửa thay MDB khác ổ đĩa, tự ẩn lớp trước sửa lỗi/topology, lọc bước quét
-ghi trong interop, thêm xóa cell báo lỗi SMERR và cải thiện giao diện. Dữ liệu
+Đọc VERSION, CHANGELOG.md, AGENTS.md và V10_18_VALIDATION.md trước khi làm tiếp.
+V10.18 dùng cầu nối C# chạy trong V8i để đọc ranh/zoom, giữ PowerShell 32-bit
+cho thao tác giao dịch, thêm xóa từng vòng SMERR, phóng to/thu nhỏ và bộ đếm lỗi.
+Cầu nối được biên dịch bằng Bentley assemblies đã cài, cache tại data/cad-bridge;
+không phân phối DLL Bentley hoặc đổi cấu hình workspace trên đĩa. Dữ liệu
 phục hồi chỉ tồn tại trong giao dịch hoặc khi chưa phục hồi được; không tự
 đảo ngược cập nhật địa chính đã thành công. Các mục cũ bên dưới là lịch sử,
 không dùng số phiên bản kế tiếp hoặc hướng dẫn backup cũ thay quy ước hiện hành.

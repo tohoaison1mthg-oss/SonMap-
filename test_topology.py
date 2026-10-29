@@ -258,8 +258,7 @@ class DatabaseWorkflowTests(unittest.TestCase):
         from types import SimpleNamespace
         with tempfile.TemporaryDirectory() as directory:
             error={'stage':'select-model: Default','message':'Value does not fall within expected range.','line':75}
-            result=SimpleNamespace(returncode=1,stdout=b'',stderr=json.dumps(error).encode())
-            with patch.object(flow,'ROOT',Path(directory)),patch.object(flow,'os',SimpleNamespace(name='nt',environ={})),patch.object(flow.subprocess,'run',return_value=result):
+            with patch.object(flow,'ROOT',Path(directory)),patch.object(flow,'os',SimpleNamespace(name='nt',environ={})),patch('cad_worker.worker.run',return_value=(False,json.dumps(error))):
                 with self.assertRaisesRegex(RuntimeError,'select-model: Default'):flow.powershell('dgn_topology.ps1')
             self.assertIn(error['message'],(Path(directory)/'data/dgn-topology-last.log').read_text())
 

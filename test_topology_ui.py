@@ -107,7 +107,8 @@ class DialogTests(unittest.TestCase):
         self.workspace.project=copy.deepcopy(self.data);self.workspace.path=self.path
         with patch('topology_ui.clear_error_markers') as clear:
             self.workspace.clear_markers();self.pump()
-        clear.assert_called_once_with('source.dgn')
+        self.assertEqual(clear.call_args.args[0],'source.dgn')
+        self.assertEqual(clear.call_args.args[1]['model'],'Default')
         self.assertIsNone(self.workspace.project);self.assertIsNone(self.workspace.path)
         self.assertIn('kiểm tra lại',self.workspace.status.get())
 
@@ -117,6 +118,30 @@ class DialogTests(unittest.TestCase):
         for key in ('clean','topology'):
             self.button(self.workspace.windows[key],'Xóa dấu lỗi')
             self.button(self.workspace.windows[key],'Hiện lại lớp')
+
+    def test_error_navigation_zoom_and_single_clear_keep_positions(self):
+        self.workspace.project=copy.deepcopy(self.data);self.workspace.path=self.path
+        self.workspace.project['issues']=[{'code':'DANGLE','point':[1,2]}, {'code':'DANGLE','point':[3,4]}]
+        self.workspace.show_report();self.root.update()
+        win=self.workspace.windows['report']
+        self.assertEqual(self.workspace.error_position.get(),'1/2')
+        with patch('topology_ui.focus_issue') as focus:
+            self.button(win,'Sau ▶').invoke();self.pump()
+            self.assertEqual(self.workspace.error_position.get(),'2/2')
+            self.button(win,'Phóng to +').invoke();self.pump()
+            self.assertEqual(focus.call_args.args[2],.5)
+            self.assertEqual(focus.call_args.args[1]['point'],[3,4])
+        with patch('topology_ui.clear_error_markers') as clear:
+            self.button(win,'Xóa vòng đang chọn').invoke();self.pump()
+            self.assertEqual(clear.call_args.args[2]['point'],[3,4])
+        self.assertIsNone(self.workspace.project);self.assertIsNone(self.workspace.path)
+        self.assertEqual(self.workspace.report_table.selection(),('1',))
+        with patch('topology_ui.focus_issue') as focus:
+            self.button(win,'Thu nhỏ −').invoke();self.pump()
+            self.assertEqual(focus.call_args.args[1]['point'],[3,4])
+        self.assertIsNotNone(self.workspace.navigation_project)
+        self.workspace.source.set('another.dgn');self.root.update()
+        self.assertIsNone(self.workspace.navigation_project)
 
     def test_parcel_area_display_has_one_decimal_without_rounding_project(self):
         self.workspace.project=copy.deepcopy(self.data);self.workspace.path=self.path

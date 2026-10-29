@@ -41,6 +41,8 @@ class TopologyWorkspace:
         self.in_place=tk.BooleanVar(master=parent,value=True)
         self.current_mdb=None
         self.windows={};self.controls=[];self.busy=False;self.project=None;self.path=None
+        self.navigation_project=None;self.error_zoom=1
+        self.error_position=tk.StringVar(master=parent,value='0/0')
         self.source.trace_add('write',self.source_changed)
 
     def style_dialog(self,win):
@@ -66,7 +68,7 @@ class TopologyWorkspace:
         apply(win)
 
     def source_changed(self,*_):
-        self.project=None;self.path=None
+        self.project=None;self.path=None;self.navigation_project=None
         self.refresh_parcels()
         report=self.windows.get('report')
         if report and report.winfo_exists():report.destroy()
@@ -180,7 +182,7 @@ class TopologyWorkspace:
         from tkinter import messagebox
         try:options=self.options()
         except Exception as exc:messagebox.showerror('Thông số chưa đúng',str(exc),parent=self.parent);return
-        source=self.source.get();target=self.current_mdb;self.project=None;self.path=None;self.refresh_parcels();self.refresh_report()
+        source=self.source.get();target=self.current_mdb;self.project=None;self.path=None;self.navigation_project=None;self.error_zoom=1;self.refresh_parcels();self.refresh_report()
         def work():
             path,project=prepare(source,options)
             if kind=='topology' and target and options['in_place'] and any(i['code'] in BLOCKING for i in project['issues']):
@@ -288,13 +290,24 @@ class TopologyWorkspace:
         track(win)
         self.style_dialog(win)
 
-    def clear_markers(self):
+    def clear_markers(self,single=False):
         source=self.source.get()
-        def done(_):
+        project=self.project or self.navigation_project
+        issue=None
+        if single:
+            table=getattr(self,'report_table',None)
+            if not project or table is None or not table.selection():return
+            issue=copy.deepcopy(project['issues'][int(table.selection()[0])])
+        def done(result):
+            self.navigation_project=project
             self.project=None;self.path=None
-            self.refresh_parcels();self.refresh_report()
-            self.status.set('Đã xóa vòng tròn báo lỗi SonMap. Chạy kiểm tra lại để cập nhật danh sách lỗi.')
-        self.launch(lambda:clear_error_markers(source),done)
+            self.refresh_parcels()
+            # Keep navigation available; clearing a circle does not repair its boundary.
+            text='Không có vòng báo lỗi SonMap tại phạm vi đã chọn.' if isinstance(result,str) and result.strip().endswith('ERROR_MARKERS_REMOVED: 0') else ('Đã xóa vòng báo lỗi đang chọn.' if single else 'Đã xóa các vòng báo lỗi SonMap.')
+            self.status.set(text+
+                            ' Danh sách vẫn dùng để tìm vị trí; kiểm tra lại sau khi sửa ranh.')
+        work=(lambda:clear_error_markers(source,project,issue)) if project else (lambda:clear_error_markers(source))
+        self.launch(work,done)
 
     def change_display(self,restore):
         source=self.source.get();selected=self.vars['boundary_levels'].get()
@@ -375,8 +388,8 @@ class TopologyWorkspace:
 
     def show_report(self):
         from tkinter import ttk
-        if not self.require_project():return
-        win=self.window('report','Danh sách lỗi','950x485')
+        if not (self.project or self.navigation_project) and not self.require_project():return
+        win=self.window('report','Danh sách lỗi','950x550')
         if not win:return
         table=ttk.Treeview(win,columns=('type','parcel','detail'),show='headings',height=13)
         for key,title,width in [('type','Loại lỗi',230),('parcel','ID thửa',70),('detail','Chi tiết',510)]:table.heading(key,text=title);table.column(key,width=width)
@@ -388,10 +401,16 @@ class TopologyWorkspace:
         self.button(actions,'◀ Trước',lambda:self.navigate_error(-1)).pack(side='left',padx=3)
         self.button(actions,'Tìm trên DGN',lambda:self.navigate_error(0)).pack(side='left',padx=3)
         self.button(actions,'Sau ▶',lambda:self.navigate_error(1)).pack(side='left',padx=3)
-        self.button(actions,'Ghi dấu lỗi',self.mark_current).pack(side='left',padx=3)
-        self.button(actions,'Xóa dấu lỗi',self.clear_markers).pack(side='left',padx=3)
-        self.button(actions,'Kiểm tra lại sau sửa tay',lambda:self.process('inspect')).pack(side='left',padx=3)
+        ttk.Label(actions,textvariable=self.error_position,width=10,anchor='center').pack(side='left',padx=4)
+        self.button(actions,'Phóng to +',lambda:self.zoom_error(.5)).pack(side='left',padx=3)
+        self.button(actions,'Thu nhỏ −',lambda:self.zoom_error(2)).pack(side='left',padx=3)
+        markers=ttk.Frame(win);markers.pack(fill='x',padx=8,pady=(0,10))
+        self.button(markers,'Ghi dấu lỗi',self.mark_current).pack(side='left',padx=3)
+        self.button(markers,'Xóa vòng đang chọn',lambda:self.clear_markers(True)).pack(side='left',padx=3)
+        self.button(markers,'Xóa dấu lỗi',self.clear_markers).pack(side='left',padx=3)
+        self.button(markers,'Kiểm tra lại sau sửa tay',lambda:self.process('inspect')).pack(side='left',padx=3)
         table.bind('<Double-1>',lambda _:self.navigate_error(0))
+        table.bind('<<TreeviewSelect>>',lambda _:self.update_error_position())
         self.style_dialog(win)
 
     def navigate_error(self,direction):
@@ -400,9 +419,22 @@ class TopologyWorkspace:
         selected=table.selection();index=items.index(selected[0]) if selected else (-1 if direction>0 else 0)
         index=(index+direction)%len(items);iid=items[index]
         table.selection_set(iid);table.see(iid)
-        issue=self.project['issues'][int(iid)]
-        self.launch(lambda:focus_issue(self.project,issue),lambda _:self.status.set(
+        project=self.project or self.navigation_project
+        if not project:return
+        issue=project['issues'][int(iid)]
+        self.update_error_position()
+        if direction:self.error_zoom=1
+        self.launch(lambda:focus_issue(project,issue,self.error_zoom),lambda _:self.status.set(
             f"Lỗi / thông báo {index+1}/{len(items)}: {ISSUES.get(issue['code'],issue['code'])}. Sửa trong V8i rồi kiểm tra lại."))
+
+    def zoom_error(self,factor):
+        if self.busy:return
+        self.error_zoom=max(.0625,min(64,self.error_zoom*factor))
+        self.navigate_error(0)
+
+    def update_error_position(self):
+        table=self.report_table;items=table.get_children();selected=table.selection()
+        self.error_position.set(f'{items.index(selected[0])+1 if selected and selected[0] in items else 0}/{len(items)}')
 
     def mark_current(self):
         def done(backup):
@@ -414,11 +446,15 @@ class TopologyWorkspace:
         table=getattr(self,'report_table',None)
         if table is None or not table.winfo_exists():return
         table.delete(*table.get_children())
-        if not self.project:return
-        for index,item in enumerate(self.project['issues']):
+        project=self.project or self.navigation_project
+        if not project:self.error_position.set('0/0');return
+        for index,item in enumerate(project['issues']):
             if item['code'] in ('INTERSECTION_NODE','DUPLICATE_REMOVED','ZERO_LENGTH_REMOVED','SNAPPED_ENDPOINT'):continue
             label=('Đã sửa tay: ' if item.get('resolved_by_manual_edit') else '')+ISSUES.get(item['code'],item['code'])
             table.insert('','end',iid=str(index),values=(label,item.get('parcel',''),self.report_detail(item)))
+        items=table.get_children()
+        if items:table.selection_set(items[0])
+        self.update_error_position()
 
     def preview(self):
         if not self.require_project():return

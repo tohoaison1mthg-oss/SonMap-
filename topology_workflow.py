@@ -76,20 +76,34 @@ def replace_database(staged, target):
         if sibling.exists():sibling.unlink()
 
 
-def clear_error_markers(source):
+def issue_point(project, issue):
+    if issue.get('point') is not None:return list(issue['point'])
+    if issue.get('points'):return list(issue['points'][0])
+    if issue.get('parcel'):
+        return next((list(p['centre']) for p in project['parcels'] if p['ID']==issue['parcel']),None)
+    return None
+
+
+def clear_error_markers(source, project=None, issue=None):
     """Remove only named SonMap error cells, even after manual drawing edits."""
     source=Path(source).resolve()
+    if project and Path(project['source']['path']).resolve()!=source:
+        raise ValueError('Bản vẽ đã đổi; chưa xóa dấu lỗi.')
+    point=issue_point(project,issue) if issue is not None else None
+    if issue is not None and point is None:raise ValueError('Lỗi này chưa có tọa độ vòng báo lỗi.')
     # Save manual corrections before taking the recovery snapshot.
     with tempfile.TemporaryDirectory(prefix='sonmap-clear-') as directory:
         folder=Path(directory)
+        context=['-ModelName',project['model']] if project and project.get('model') else []
         powershell('dgn_topology.ps1','-Action','SaveActive','-InputPath',source,
-                   '-SourcePath',source,'-OutputPath',folder/'unused.dgn','-SkipSaveBackup')
+                   '-SourcePath',source,'-OutputPath',folder/'unused.dgn','-SkipSaveBackup',*context)
         original=digest(source);backup=folder/source.name
         shutil.copyfile(source,backup)
         if digest(backup)!=original:raise RuntimeError('DGN đổi khi sao chép; chưa xóa dấu lỗi.')
         plan=folder/'clear.json'
         save_project(plan,{'source':{'path':str(source),'sha256':original},
-                           'working_dgn':str(source),'direct_backup':str(backup)})
+                           'working_dgn':str(source),'direct_backup':str(backup),
+                           'model':project.get('model') if project else None,'marker_point':point})
         try:
             return powershell('dgn_topology.ps1','-Action','ClearErrors','-InputPath',plan,'-OutputPath',source)
         except Exception as exc:
@@ -105,12 +119,9 @@ def focus_geometry(source, points, model=None, minimum=2):
     if not points:raise ValueError('Lỗi này chưa có tọa độ để tìm trên DGN.')
     xs=[float(p[0]) for p in points];ys=[float(p[1]) for p in points]
     if not all(math.isfinite(v) for v in xs+ys):raise ValueError('Tọa độ không hợp lệ.')
-    with tempfile.TemporaryDirectory(prefix='sonmap-focus-') as directory:
-        plan=Path(directory)/'focus.json'
-        plan.write_text(json.dumps({'source':str(Path(source).resolve()),'model':model,
-                                   'x':(min(xs)+max(xs))/2,'y':(min(ys)+max(ys))/2,
-                                   'span':max(max(xs)-min(xs),max(ys)-min(ys),minimum)*1.5}),encoding='utf-8')
-        return powershell('dgn_view.ps1','-Action','Focus','-PlanPath',plan)
+    from cad_bridge import request
+    return request('focus',source,model=model,x=(min(xs)+max(xs))/2,y=(min(ys)+max(ys))/2,
+                   span=max(max(xs)-min(xs),max(ys)-min(ys),minimum)*1.5)
 
 
 def focus_parcel(selection):
@@ -125,11 +136,18 @@ def validate_parcel_context(selection):
         return powershell('dgn_view.ps1','-Action','Check','-PlanPath',plan)
 
 
-def focus_issue(project, issue):
-    points=issue.get('points') or ([issue['point']] if issue.get('point') else [])
+def focus_issue(project, issue, zoom=1):
+    zoom=finite(zoom,'Tỷ lệ phóng',True)
+    points=[issue['point']] if issue.get('point') is not None else issue.get('points',[])
     if not points and issue.get('parcel'):
         points=next((p['points'] for p in project['parcels'] if p['ID']==issue['parcel']),[])
-    return focus_geometry(project['source']['path'],points,project.get('model'),2/float(project['options']['metres_per_unit']))
+    scale=float(project['options']['metres_per_unit'])
+    if not points:raise ValueError('Lỗi này chưa có tọa độ để tìm trên DGN.')
+    # Scale the viewport around the same error; do not change DGN coordinates.
+    xs=[p[0] for p in points];ys=[p[1] for p in points]
+    centre=[(min(xs)+max(xs))/2,(min(ys)+max(ys))/2]
+    span=max(max(xs)-min(xs),max(ys)-min(ys),2/scale)*zoom
+    return focus_geometry(project['source']['path'],[centre],project.get('model'),span)
 
 
 def mark_errors(project_path):
@@ -161,10 +179,9 @@ def digest(path):
 def powershell(script, *arguments):
     if os.name != 'nt':
         raise RuntimeError('Đọc/ghi DGN và tạo MDB cần Windows có MicroStation V8i và Jet 32-bit.')
-    executable = Path(os.environ.get('WINDIR', r'C:\Windows')) / 'SysWOW64/WindowsPowerShell/v1.0/powershell.exe'
-    result = subprocess.run([str(executable), '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(ROOT / script), *map(str, arguments)], capture_output=True, timeout=300, creationflags=0x08000000)
-    if result.returncode:
-        raw=(result.stdout + result.stderr).decode('utf-8-sig', errors='replace')
+    from cad_worker import worker
+    ok,raw=worker.run(script,arguments)
+    if not ok:
         log=ROOT/'data'/'dgn-topology-last.log'
         log.parent.mkdir(exist_ok=True)
         log.write_text(raw,encoding='utf-8')
@@ -176,7 +193,7 @@ def powershell(script, *arguments):
             if isinstance(error,dict) and 'stage' in error:
                 raise RuntimeError(f"V8i không thực hiện được bước: {error['stage']}\n{error.get('message','')}\nChi tiết: {log}")
         raise RuntimeError(f'{raw.strip()}\nChi tiết: {log}')
-    return result.stdout.decode('utf-8-sig').strip()
+    return raw
 
 
 def validate_options(options):
@@ -232,7 +249,14 @@ def prepare(source, options):
         args.append('-BreakArcs')
     if not options.get('break_complex',True):
         args.append('-KeepComplex')
-    powershell('dgn_topology.ps1', *args)
+    if options.get('in_place'):
+        from cad_bridge import request
+        snapshot=json.loads(request('extract',source,levels=levels(options['boundary_levels']),
+                          text_levels=levels(args[args.index('-TextLevels')+1]) if args[args.index('-TextLevels')+1]!='none' else [],
+                          arcs=bool(options.get('break_arcs')),keep_complex=not options.get('break_complex',True),
+                          tolerance=float(options['chord_tolerance'])/float(options['metres_per_unit'])))
+        (folder/'snapshot.json').write_text(json.dumps(snapshot,ensure_ascii=False),encoding='utf-8')
+    else:powershell('dgn_topology.ps1', *args)
     scanned=time.perf_counter()
     if digest(source)!=original:raise RuntimeError('DGN thay đổi trong khi quét; hãy chạy lại trên bản vẽ đã lưu.')
     snapshot = json.loads((folder / 'snapshot.json').read_text(encoding='utf-8-sig'))

@@ -188,6 +188,12 @@ public static class SonMapV8iRecords {
   B.Element[] children=new B.Element[]{circle};
   return a.CreateCellElement1("SMERR",ref children,ref p,false);
  }
+ public static bool MarkerAt(object value,double x,double y) {
+  var e=(B.Element)value;
+  if((int)e.Type!=2 || e.AsCellElement().Name!="SMERR")return false;
+  var p=e.AsCellElement().Origin;
+  return Math.Abs(p.X-x)<=1e-7 && Math.Abs(p.Y-y)<=1e-7;
+ }
 }
 '@
 }

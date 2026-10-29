@@ -6,6 +6,25 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.18
+
+- Đọc ranh và zoom trong tiến trình V8i qua cầu nối SonMap, giảm các lượt COM
+  ra ngoài tiến trình. Cầu nối chỉ nhận đọc/đổi view; các bước ghi DGN/MDB
+  tiếp tục dùng giao dịch, kiểm tra xung đột và phục hồi hiện có. Tự biên dịch
+  từ nguồn bằng Bentley assemblies trên máy; chỉ bổ sung MS_ADDINPATH của
+  phiên V8i, không sửa workspace hoặc phân phối DLL Bentley.
+- Giữ một PowerShell 32-bit cho phiên SonMap để dùng lại interop khi lưu/ghi;
+  kiểm tra DGN/model mỗi yêu cầu, giữ lỗi gốc và không tự phát lại tác vụ ghi
+  khi mất kết nối hoặc quá thời gian. Đối số có tên/switch và Unicode được
+  truyền qua JSON, không ghép lệnh shell từ dữ liệu người dùng.
+- Danh sách lỗi có Phóng to/Thu nhỏ, bộ đếm hiện tại/tổng số, xóa vòng đang
+  chọn hoặc toàn bộ SMERR trong model. Zoom đầu ranh hở đặt tâm tại đầu hở.
+  Xóa vòng giữ danh sách để tiếp tục tìm lỗi; vô hiệu kết quả phân tích cũ
+  cho thao tác ghi và yêu cầu kiểm tra lại. Giữ ranh, tâm thửa và dấu người dùng.
+- Kiểm thử Windows/V8i/Jet trên bản sao, số đo từng bước và giới hạn ghi tại
+  V10_18_VALIDATION.md. Chưa thay thuật toán topology hoặc thêm mặc định bỏ
+  qua mọi lỗi. Giữ độ chính xác, dữ liệu riêng và các gói/tag phát hành cũ.
+
 ## V10.17
 
 - Sửa thay MDB khi thư mục giao dịch tạm ở ổ C và dữ liệu ở ổ D: sao chép tệp

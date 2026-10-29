@@ -95,6 +95,7 @@ InitializeSonMapInterop
 if($Action -eq 'SaveActive') {
  $script:Stage='save-active-source'
  if([IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($SourcePath)){throw 'Open the selected source DGN first.'}
+ if($ModelName -and [string]$app.ActiveModelReference.Name -ne $ModelName){throw 'Active model changed; save cancelled.'}
  if(-not $SkipSaveBackup){Copy-Item -LiteralPath $SourcePath -Destination $OutputPath}
  $app.ActiveDesignFile.Save()
  Write-Output 'ACTIVE_SOURCE_SAVED';exit 0
@@ -195,7 +196,7 @@ $direct=$Action -in @('ApplyDrawing','ApplyClean','ApplyPreview','ClearErrors')
 if(-not $direct -and [IO.Path]::GetFullPath($OutputPath) -eq [IO.Path]::GetFullPath($project.source.path)){throw 'Refusing to overwrite source in copy mode.'}
 $mutationStarted=$false
 if($direct) {
- if($Action -ne 'ClearErrors' -and [string]$app.ActiveModelReference.Name -ne [string]$project.model){throw 'Active model changed; analyse the drawing again.'}
+ if(($Action -ne 'ClearErrors' -or $project.model) -and [string]$app.ActiveModelReference.Name -ne [string]$project.model){throw 'Active model changed; analyse the drawing again.'}
  if([IO.Path]::GetFullPath($OutputPath) -ne [IO.Path]::GetFullPath($project.source.path) -or [IO.Path]::GetFullPath($app.ActiveDesignFile.FullName) -ne [IO.Path]::GetFullPath($OutputPath)){throw 'Direct write requires the original DGN to remain active.'}
  if(-not $project.direct_backup -or -not (Test-Path -LiteralPath $project.direct_backup)){throw 'A verified DGN backup is required before direct write.'}
  if((FileDigest $project.direct_backup) -ne $project.source.sha256 -or (FileDigest $OutputPath) -ne $project.source.sha256){throw 'Source or backup changed before direct write.'}
@@ -212,9 +213,18 @@ try {
  if($model.Is3D){throw 'Only 2D cadastral models are supported.'}
  if($Action -in @('ApplyPreview','ClearErrors')) {
   $oldMarkers=New-Object 'System.Collections.Generic.List[object]'
-  foreach($element in [SonMapV8iRecords]::OutputElements($app,$model,[int[]]@(),$false)){if([string]$element.AsCellElement.Name -eq 'SMERR'){$oldMarkers.Add($element)}}
+  foreach($element in [SonMapV8iRecords]::OutputElements($app,$model,[int[]]@(),$false)){
+   if([string]$element.AsCellElement.Name -ne 'SMERR'){continue}
+   if($Action -eq 'ClearErrors' -and $null -ne $project.marker_point -and -not [SonMapV8iRecords]::MarkerAt($element,[double]$project.marker_point[0],[double]$project.marker_point[1])){continue}
+   $oldMarkers.Add($element)
+  }
   $mutationStarted=$true
   [SonMapV8iRecords]::RemoveElements($model,$oldMarkers.ToArray())
+  if($Action -eq 'ClearErrors') {
+   foreach($element in [SonMapV8iRecords]::OutputElements($app,$model,[int[]]@(),$false)) {
+    if([string]$element.AsCellElement.Name -eq 'SMERR' -and ($null -eq $project.marker_point -or [SonMapV8iRecords]::MarkerAt($element,[double]$project.marker_point[0],[double]$project.marker_point[1]))){throw 'Error marker removal did not verify.'}
+   }
+  }
  }
  if($Action -in @('WriteDrawing','CleanDrawing','TopologyDrawing','ApplyDrawing','ApplyClean')) {
  $boundary=@(([string]$project.options.boundary_levels).Split(',') | ForEach-Object {[int]$_.Trim()})
@@ -311,4 +321,5 @@ try {
  }
  throw $failure
 } finally {if($design -and -not $direct){$design.Close()}}
-Write-Output 'DRAWING_CREATED'
+if($Action -eq 'ClearErrors'){Write-Output ('ERROR_MARKERS_REMOVED: '+$oldMarkers.Count)}
+else{Write-Output 'DRAWING_CREATED'}

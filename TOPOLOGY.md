@@ -1,11 +1,11 @@
-# SonMap+ V10.17 — làm trực tiếp trên laptop
+# SonMap+ V10.18 — làm trực tiếp trên laptop
 
 Phiên bản lấy từ [VERSION](VERSION), lịch sử và giới hạn nghiệm thu từng bản
 ở [CHANGELOG.md](CHANGELOG.md). Quy ước phát triển nằm trong [AGENTS.md](AGENTS.md).
 
 ## Cài hoặc nâng cấp ứng dụng
 
-Giải nén SonMapPlus_V10_17_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
+Giải nén SonMapPlus_V10_18_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
 Lối tắt SonMap+ dùng chương trình ở `%LOCALAPPDATA%\SonMapPlus\App`.
 Trình cài giữ các phiên bản trước, sao lưu mã cũ và có công cụ Khôi phục.
 Nếu thiếu CPython 3.12 64-bit phù hợp, chuẩn bị bản riêng cho SonMap từ bộ cài
@@ -26,6 +26,20 @@ kể cả sau khi đã chỉnh sửa ranh thủ công. Nút có ở Sửa lỗi,
 danh sách lỗi; không xóa toàn bộ Level báo lỗi hoặc vòng tròn do người dùng vẽ.
 Xóa dấu không xác nhận đã sửa hết lỗi. Chạy lại Sửa lỗi/Tạo topology hoặc
 **Kiểm tra lại sau sửa tay** để có danh sách lỗi mới.
+
+Trong **Báo lỗi**, chọn một dòng rồi bấm **Tìm trên DGN**; dùng **Trước/Sau**
+để chuyển lỗi, bộ đếm cho biết vị trí hiện tại. **Phóng to + / Thu nhỏ −**
+giữ tâm tại lỗi đang chọn. Với đầu ranh hở, tâm là chính đầu hở, không phải
+giữa đoạn dài. **Xóa vòng đang chọn** chỉ dọn SMERR tại vị trí đó; **Xóa dấu lỗi**
+dọn toàn bộ SMERR trong model. Danh sách vẫn giữ để tiếp tục tìm vị trí sau
+khi xóa vòng; cần kiểm tra lại ranh trước khi ghi kết quả phân tích mới.
+
+V10.18 đọc ranh và zoom qua cầu nối SonMap bên trong V8i. Lần đầu tự biên
+dịch từ mã nguồn bằng các thư viện Bentley đã cài trên máy; không đóng gói
+DLL Bentley. Chỉ bổ sung đường tìm tiện ích trong phiên V8i hiện tại, không
+sửa cấu hình workspace trên đĩa. Đóng các hộp thoại V8i đang chặn lệnh nếu
+chương trình báo chưa nhận được kết quả. Khởi động/nạp lần đầu có chi phí
+riêng; số đo bước đọc ranh không phải thời gian ghi DGN/MDB hoàn chỉnh.
 
 **Thông tin thửa trên DGN** mở bảng có nút con trỏ **↖** và nút **Chọn**. Nhấp một nút,
 sau đó nhấp bên trong thửa; chuột phải hủy. Bảng nạp thuộc tính theo hình học và ID,
