@@ -26,6 +26,17 @@ class OwnerDialogTests(unittest.TestCase):
             self.root.update();time.sleep(.01)
         self.assertFalse(self.controller.busy)
 
+    def test_start_loads_list_record_without_requiring_pick(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            mdb=Path(folder)/'test.mdb';mdb.write_bytes(b'test')
+            with patch('parcel_info.select_record',return_value=copy.deepcopy(self.selection)) as select:
+                self.controller.start('test.dgn',str(mdb),record_id=20);self.wait()
+                select.assert_called_once_with('test.dgn',str(mdb),20)
+            self.assertEqual(self.controller.values['TenChu'].get(),self.selection['row']['TenChu'])
+            self.assertEqual(str(self.controller.save_button.cget('state')),'normal')
+
     def test_save_uses_exact_record_and_refreshes_hash_for_next_save(self):
         c=self.controller;c.show(copy.deepcopy(self.selection))
         c.values['TenChu'].set('Nguyễn Văn Mới');c.values['DiaChi'].set('Địa chỉ mới');c.values['TCT'].set('99')

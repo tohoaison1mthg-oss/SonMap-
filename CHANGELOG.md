@@ -6,6 +6,22 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.21
+
+- Sửa vòng lặp báo đầu ranh hở nhỏ: mặc định bật nối ranh trong ngưỡng 0,01 m;
+  gom nút lệch dưới 1 mm theo nhóm bị chặn độ rộng, nối đầu vào nút hoặc
+  hình chiếu duy nhất trên cạnh. Ghi ranh đã nối, không chỉ ẩn cảnh báo.
+  Khe hở ngoài ngưỡng và tiếp xúc không xác định vẫn cần kiểm tra.
+- Đọc/ghi polygon MDB nhiều vòng, tính diện tích trừ vòng trong, pick đúng
+  vùng thực và giữ liên kết thuộc tính khi tạo topology. Đối chiếu vùng theo
+  sai số 1 mm, giữ bản ghi/hình học gốc cho vùng tương đương ở độ chính xác này.
+- Nút thông tin nạp trực tiếp ID của dòng đang chọn; vẫn hỗ trợ chọn trên DGN.
+- Xuất theo khóa tờ/thửa/ID, không chặn toàn bộ vì các dòng trùng số hoặc thửa
+  khác chưa có số. Giữ nguyên số người dùng nhập; tên kết quả có ID riêng.
+  Bổ sung ranh vòng trong và bảng tọa độ/cạnh riêng khi xuất thửa có lỗ.
+- Tọa độ hiển thị 3, chiều dài cạnh 2, diện tích 1 chữ số thập phân; không ghi
+  ngược dữ liệu hiển thị đã làm tròn vào MDB. Xem V10_21_VALIDATION.md.
+
 ## V10.20
 
 - Bảng tìm lỗi mặc định 270 × 205, chỉ loại lỗi, bộ đếm và sáu nút thu/phóng,

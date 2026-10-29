@@ -83,9 +83,11 @@ class TopologyTests(unittest.TestCase):
         self.assertTrue(any(i['code']=='SNAPPED_ENDPOINT' for i in fixed['issues']))
         self.assertFalse(any(i['code'] in BLOCKING for i in fixed['issues']))
 
-    def test_ambiguous_nearby_nodes_are_not_snapped(self):
+    def test_bounded_group_of_nearby_nodes_is_snapped(self):
         p=project([line([(0,0),(10,0)]),line([(.005,0),(10,10)]),line([(0,.005),(0,10)])],snap=True,label_levels={})
-        self.assertFalse(any(i['code']=='SNAPPED_ENDPOINT' for i in p['issues']))
+        moved=[i for i in p['issues'] if i['code']=='SNAPPED_ENDPOINT']
+        self.assertTrue(moved)
+        self.assertTrue(all(i['displacement_m']<=.01 for i in moved))
 
     def test_crossing_lines_are_split_into_faces(self):
         p=project([line(rect(x=0,y=0)),line([(0,0),(10,10)]),line([(0,10),(10,0)])],label_levels={})
@@ -102,10 +104,12 @@ class TopologyTests(unittest.TestCase):
         self.assertEqual(p['parcels'][0]['TenChu'],'')
         self.assertTrue(any(i['code']=='LABEL_AMBIGUOUS' for i in p['issues']))
 
-    def test_nested_rings_block_single_ring_mdb(self):
+    def test_nested_rings_roundtrip_with_correct_net_area(self):
         p=project([line(rect(x=0,y=0)),line(rect(x=2,y=2,w=2,h=2))],label_levels={})
-        self.assertTrue(any(i['code']=='HOLE_UNSUPPORTED' for i in p['issues']))
-        with self.assertRaises(ValueError):export_rows(p)
+        self.assertFalse(any(i['code'] in BLOCKING for i in p['issues']))
+        from app import parcel_polygon
+        rows=export_rows(p,allow_unnumbered=True)
+        self.assertEqual(sorted(parcel_polygon(r).area for r in rows),[4,96])
 
     def test_dangle_does_not_get_silently_removed(self):
         p=project([line(rect(x=0,y=0)),line([(0,0),(-2,0)])],label_levels={})

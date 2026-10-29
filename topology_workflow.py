@@ -304,11 +304,11 @@ def export_project(project_path):
         actual = [actual]
     if len(actual) != len(rows):
         raise RuntimeError('Kiểm tra MDB: sai số lượng bản ghi.')
-    from app import geometry
+    from app import geometry_rings
     for wanted, found in zip(sorted(rows, key=lambda p: (p['ToBD'], p['TCT'], p['ID'])), actual):
         for key, value in wanted.items():
             if key == 'Geometry':
-                if geometry(value) != geometry(found[key]):
+                if geometry_rings(value) != geometry_rings(found[key]):
                     raise RuntimeError('MDB đọc lại không khớp hình học.')
             elif found[key] != value and not (value == '' and found[key] is None):
                 raise RuntimeError(f'MDB đọc lại không khớp trường {key}.')
@@ -322,8 +322,8 @@ def export_project(project_path):
     check = build(snapshot, {**project['options'], 'snap': False, 'label_levels': {}})
     from shapely.geometry import Polygon
     from shapely.ops import unary_union
-    original_polygons = [Polygon(p['points']) for p in project['parcels']]
-    saved_polygons = [Polygon(p['points']) for p in check['parcels']]
+    original_polygons = [Polygon(p['points'],p.get('holes',[])) for p in project['parcels']]
+    saved_polygons = [Polygon(p['points'],p.get('holes',[])) for p in check['parcels']]
     if len(original_polygons) != len(saved_polygons) or not unary_union(original_polygons).equals(unary_union(saved_polygons)):
         raise RuntimeError('DGN đọc lại không khớp vùng thửa dự kiến.')
     # Individual faces must match too: equal union alone can hide a missing shared boundary.

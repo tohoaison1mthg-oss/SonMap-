@@ -47,8 +47,8 @@ class DatabaseTopologyTests(unittest.TestCase):
         self.assertEqual(result['final_rows'][0]['ID'],0)
         self.assertEqual(result['final_rows'][0]['TCT'],12)
 
-    def test_roundoff_allowance_does_not_hide_real_partial_coverage(self):
-        new=project([line(rect(x=.00001,y=0,w=9.99999))],label_levels={})
+    def test_millimetre_allowance_does_not_hide_partial_coverage_beyond_tolerance(self):
+        new=project([line(rect(x=.01,y=0,w=9.99))],label_levels={})
         with self.assertRaisesRegex(ValueError,'một phần'):reconcile(new,old_rows())
 
     def test_line_on_level_10_splits_one_mdb_parcel_into_two(self):

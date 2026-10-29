@@ -4,7 +4,7 @@ import app
 from quality import ring_issues, area, audit, matches, read_edits, merge_edits
 
 class UpgradeTests(unittest.TestCase):
-    def test_duplicate_temporary_numbers_block_export_before_files_are_written(self):
+    def test_duplicate_numbers_prepare_with_distinct_record_ids(self):
         import tempfile
         from topology import export_rows
         from test_topology import project,line,rect
@@ -14,9 +14,16 @@ class UpgradeTests(unittest.TestCase):
             for row in p['parcels']:row['TCT']=10
             rows=export_rows(p,allow_duplicate_numbers=True)
             parcels,rejected=app.decode_mdb_rows(rows,str(mdb),app.sha(mdb))
-            with self.assertRaisesRegex(ValueError,'số tạm'):
-                app.prepare({'mdb':str(mdb)},parcels,rejected)
-            self.assertEqual(list(Path(folder).iterdir()),[mdb])
+            from unittest.mock import patch
+            root=Path(folder);(root/'data').mkdir()
+            for name in ('template_engine.bas','bridge.bas','mau03_engine.bas'):
+                (root/name).write_bytes((app.ROOT/name).read_bytes())
+            dgn=root/'test.dgn';dgn.write_bytes(b'test');template=root/'template.dgn';template.write_bytes(b'template')
+            with patch.object(app,'ROOT',root):
+                app.prepare({'mdb':str(mdb),'dgn':str(dgn),'template':str(template),'output':str(root/'out')},parcels,rejected,selected_key=parcels[0]['key'])
+            lines=(root/'data/parcels.tsv').read_text(encoding='utf-16').splitlines()
+            self.assertEqual(len(lines),2)
+            self.assertNotEqual(lines[0].split('\t')[9],lines[1].split('\t')[9])
 
     def test_valid_large_coordinates_and_orientation(self):
         p=[(500000,1000000),(500010,1000000),(500010,1000010),(500000,1000010)]

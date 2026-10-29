@@ -75,6 +75,30 @@ def build(snapshot, options):
                            [('level',min(selected)),('color',0),('weight',0),('line_style','0'),('source_id',element.get('id'))]})
     if not segments:
         raise ValueError('Không có đường ranh trên các lớp đã chọn.')
+    if options.get('snap',False) and tolerance:
+        # Collapse submillimetre digitising noise even at connected vertices.
+        # Complete-link groups prevent a chain from drifting across the map.
+        from shapely.strtree import STRtree
+        from shapely.geometry import box
+        nodes=sorted({p for pair in segments for p in pair})
+        tree=STRtree([Point(p) for p in nodes]);mapping={};radius=min(tolerance,.001/scale)
+        for p in nodes:
+            if p in mapping:continue
+            group=[p]
+            for index in sorted(map(int,tree.query(box(p[0]-radius,p[1]-radius,p[0]+radius,p[1]+radius)))):
+                q=nodes[index]
+                if q not in mapping and q!=p and all(math.dist(q,r)<=radius for r in group):group.append(q)
+            for q in group:
+                mapping[q]=p
+                if q!=p:issue('SNAPPED_ENDPOINT',point=q,target=p,displacement_m=math.dist(q,p)*scale)
+        normalized=[];new_styles=[];seen_normalized=set()
+        for (a,b),style in zip(segments,styles):
+            a,b=mapping[a],mapping[b];key=tuple(sorted((a,b)))
+            if a==b:issue('ZERO_LENGTH_REMOVED',point=a);continue
+            if key in seen_normalized:issue('DUPLICATE_REMOVED',point=a);continue
+            seen_normalized.add(key);normalized.append((a,b));new_styles.append(style)
+        segments,styles=normalized,new_styles
+        if not segments:raise ValueError('Không còn đường ranh sau xử lý.')
     # Snap only isolated endpoints to ONE existing endpoint within the explicit tolerance.
     # Do not use transitive clustering or extend a line through a junction.
     counts = Counter(p for pair in segments for p in pair)
@@ -105,6 +129,39 @@ def build(snapshot, options):
                 replacements[max(p, q)] = min(p, q)
     for p, q in replacements.items():
         issue('SNAPPED_ENDPOINT', point=p, target=q, displacement_m=math.dist(p, q) * scale)
+    if options.get('snap',False) and tolerance:
+        # Attach isolated ends to an existing junction, bounded endpoint group,
+        # or a unique projection on another edge. Never chain a cluster beyond
+        # the requested displacement or snap through an ambiguous junction.
+        endpoint_tree=STRtree([LineString(pair) for pair in segments])
+        assigned=set(replacements)
+        for p in vertices:
+            if counts[p]!=1 or p in assigned or p in replacements.values():continue
+            close=nearby(p,tolerance)
+            anchors=[q for q in close if counts[q]>1]
+            target=None
+            if len(anchors)==1:target=anchors[0]
+            elif not anchors and close:
+                group=[p]+close
+                if all(counts[q]==1 for q in group) and all(math.dist(a,b)<=tolerance for a in group for b in group):
+                    target=min(group)
+                    for q in group:
+                        assigned.add(q)
+                        if q!=target and q not in replacements:
+                            replacements[q]=target
+                            issue('SNAPPED_ENDPOINT',point=q,target=target,displacement_m=math.dist(q,target)*scale)
+                    continue
+            if target is None and not close:
+                point=Point(p);projections=[]
+                for index in endpoint_tree.query(box(p[0]-tolerance,p[1]-tolerance,p[0]+tolerance,p[1]+tolerance)):
+                    a,b=segments[int(index)]
+                    if p in (a,b):continue
+                    edge=LineString((a,b));q=edge.interpolate(edge.project(point))
+                    if 0<point.distance(q)<=tolerance:projections.append(tuple(q.coords[0]))
+                if projections and all(math.dist(projections[0],q)<=1e-9 for q in projections):target=projections[0]
+            if target is not None and target!=p:
+                replacements[p]=target;assigned.add(p)
+                issue('SNAPPED_ENDPOINT',point=p,target=target,displacement_m=math.dist(p,target)*scale)
     repaired_with_style = [(replacements.get(a,a),replacements.get(b,b),style)
                            for (a,b),style in zip(segments,styles) if replacements.get(a,a)!=replacements.get(b,b)]
     repaired = [(a,b) for a,b,_ in repaired_with_style]
@@ -126,6 +183,7 @@ def build(snapshot, options):
     original_edges=Counter((str(style.get('source_id')),tuple(sorted((a,b)))) for a,b,style in repaired_with_style)
     noded_edges=Counter((str(row.get('source_id')),tuple(sorted(map(tuple,row['points'])))) for row in noded_lines)
     boundary_changed=bool(replacements or options.get('join_lines') or original_edges!=noded_edges
+                          or any(i['code']=='SNAPPED_ENDPOINT' for i in issues)
                           or any(i['code'] in ('DUPLICATE_REMOVED','ZERO_LENGTH_REMOVED','ARC_APPROXIMATED') for i in issues))
     for point in sorted({tuple(p) for row in noded_lines for p in row['points']}-original_vertices):
         issue('INTERSECTION_NODE',point=point)
@@ -139,9 +197,6 @@ def build(snapshot, options):
     parcels = []
     for polygon in sorted(polygons.geoms, key=lambda g: (-g.representative_point().y, g.representative_point().x)):
         index = len(parcels) + 1
-        if polygon.interiors:
-            hole=list(polygon.interiors[0].coords)
-            issue('HOLE_UNSUPPORTED', parcel=index,point=hole[0],points=hole)
         centre = polygon.representative_point()
         measured = polygon.area * scale * scale
         if options.get('area_enabled',True) and measured < min_area:
@@ -263,17 +318,22 @@ def export_rows(project,allow_unnumbered=False,allow_zero_id=False,allow_duplica
         if p['TCT'] is not None and key in seen and not allow_duplicate_numbers:
             raise ValueError(f'Trùng số tờ/thửa {key}.')
         if p['TCT'] is not None:seen.add(key)
-        if p.get('holes') or ring_issues(p['points']):
+        if ring_issues(p['points']):
             raise ValueError(f"Hình học thửa {p['ID']} không tương thích bộ xuất hiện tại.")
         LineString, Point, Polygon, _, _ = _engine()
-        polygon = Polygon(p['points'])
+        polygon = Polygon(p['points'],p.get('holes',[]))
+        if not polygon.is_valid:raise ValueError('Các vòng thửa không hợp lệ.')
         if not polygon.contains(Point(p['centre'])):
             raise ValueError('Tâm thửa phải nằm bên trong vùng.')
         if not math.isfinite(float(p['DienTich'])) or abs(polygon.area-float(p['DienTich'])) > max(1e-8,polygon.area*1e-10):
             raise ValueError('Diện tích không khớp hình học; hãy phân tích lại.')
-        closed = p['points'] + [p['points'][0]]
-        blob = b'\0' + struct.pack('<III', 3, 1, len(closed))
-        blob += b''.join(struct.pack('<dd', *point) for point in closed)
+        rings=[p['points']]+p.get('holes',[])
+        blob = b'\0' + struct.pack('<II',3,len(rings))
+        for ring in rings:
+            closed=list(map(tuple,ring))
+            if closed[-1]!=closed[0]:closed.append(closed[0])
+            if ring_issues(closed[:-1]):raise ValueError('Vòng thửa không hợp lệ.')
+            blob+=struct.pack('<I',len(closed))+b''.join(struct.pack('<dd',*point) for point in closed)
         p['Geometry'] = base64.b64encode(blob).decode('ascii')
         p['MaLD'] = p.get('MaLD', p.get('LRD', ''))
         rows.append({k: p.get(k) for k in ('ID', 'ToBD', 'TCT', 'DienTich', 'TenChu', 'DiaChi', 'DiaChiThuaDatChiTiet', 'Xudong', 'LRD', 'MaLD', 'Geometry')})

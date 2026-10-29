@@ -46,6 +46,7 @@ Private Sub ExportMau03Parcel()
     ActiveModelReference.AddElement shape
     DrawAnnotations display
     RestoreWorldCoordinates original, display, shapeFactor
+    DrawInteriorResults original, False
     AssertWorldParcel original
     ActiveDesignFile.Save
     PublishResult "OK", target

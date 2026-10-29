@@ -13,23 +13,39 @@ DEFAULTS = {'mdb': r'D:\BANDODUNGCHUNG\1. PHUONG NGA NAM\dc100.mdb',
  'output': str(ROOT / 'exports'), 'address_suffix': '',
  'label_colors': True}
 
-def geometry(encoded):
+def geometry_rings(encoded):
     data = base64.b64decode(encoded or '', validate=True)
-    if len(data) < 13 or data[0] != 0 or struct.unpack_from('<II', data, 1) != (3, 1):
-        raise ValueError('Chỉ hỗ trợ Geometry polygon một vòng đã xác minh của MDB này.')
-    count = struct.unpack_from('<I', data, 9)[0]
-    if count < 4 or count > 10000 or len(data) != 13 + count * 16:
-        raise ValueError('Độ dài Geometry không hợp lệ.')
-    points = [struct.unpack_from('<dd', data, 13 + i * 16) for i in range(count)]
-    if not all(math.isfinite(v) for p in points for v in p):
-        raise ValueError('Geometry có tọa độ không hữu hạn.')
-    if math.dist(points[0], points[-1]) > .001:
-        raise ValueError('Vòng thửa không khép kín.')
-    points.pop()
-    if len(set(points)) < 3: raise ValueError('Thửa suy biến.')
-    errors=ring_issues(points)
-    if errors:raise ValueError("; ".join(errors))
-    return number_vertices(points)
+    if len(data) < 13 or data[0] != 0 or struct.unpack_from('<I', data, 1)[0] != 3:
+        raise ValueError('Geometry không phải polygon MDB được hỗ trợ.')
+    count_rings=struct.unpack_from('<I',data,5)[0]
+    if not 1<=count_rings<=10000:raise ValueError('Số vòng Geometry không hợp lệ.')
+    offset=9;rings=[]
+    for _ in range(count_rings):
+        if offset+4>len(data):raise ValueError('Độ dài Geometry không hợp lệ.')
+        count=struct.unpack_from('<I',data,offset)[0];offset+=4
+        if not 4<=count<=10000 or offset+count*16>len(data):raise ValueError('Độ dài Geometry không hợp lệ.')
+        points=[struct.unpack_from('<dd',data,offset+i*16) for i in range(count)];offset+=count*16
+        if not all(math.isfinite(v) for p in points for v in p):raise ValueError('Geometry có tọa độ không hữu hạn.')
+        if math.dist(points[0],points[-1])>.001:raise ValueError('Vòng thửa không khép kín.')
+        points.pop()
+        errors=ring_issues(points)
+        if errors:raise ValueError('; '.join(errors))
+        rings.append(number_vertices(points))
+    if offset!=len(data):raise ValueError('Độ dài Geometry không hợp lệ.')
+    if len(rings)>1:
+        from shapely.geometry import Polygon
+        if not Polygon(rings[0],rings[1:]).is_valid:raise ValueError('Các vòng Geometry không hợp lệ.')
+    return rings
+
+
+def geometry(encoded):
+    return geometry_rings(encoded)[0]
+
+
+def parcel_polygon(row):
+    from shapely.geometry import Polygon
+    rings=geometry_rings(row['Geometry']) if 'Geometry' in row else [row['points']]+row.get('holes',[])
+    return Polygon(rings[0],rings[1:])
 
 def number_vertices(points):
     points=list(points)
@@ -105,7 +121,8 @@ def decode_mdb_rows(raw,path,before,allow_empty=False):
     for row in raw:
         row['key']=f"{row['ToBD']}/{row['TCT']}/{row['ID']}"
         row['_source_key']=source_key(path,before)
-        try:row['points']=geometry(row['Geometry']);parcels.append(row)
+        try:
+            rings=geometry_rings(row['Geometry']);row['points']=rings[0];row['holes']=rings[1:];parcels.append(row)
         except ValueError as exc:rejected.append({'key':row['key'],'reason':str(exc)})
     if not parcels and (raw or not allow_empty):raise ValueError('Không có thửa hợp lệ trong MDB.')
     overrides=ROOT/'data/overrides.json'
@@ -121,15 +138,14 @@ def vb_string(value):
     if any(ord(c)>127 for c in value):return 'U("'+' '.join(f'{ord(c):04X}' for c in value)+'")'
     return '"'+value.replace('"','""')+'"'
 
-def prepare(config,parcels,rejected):
+def prepare(config,parcels,rejected,selected_key=None):
     expected=source_key(config['mdb'],sha(config['mdb']))
     if any(p.get('_source_key')!=expected for p in parcels):
         raise ValueError('MDB đã đổi hoặc dữ liệu không thuộc nguồn đang chọn. Đọc lại MDB trước khi xuất.')
-    numbered=[(p['ToBD'],p.get('TCT')) for p in parcels if p.get('TCT') is not None]
-    if len(set(numbered))!=len(numbered):
-        raise ValueError('Có thửa đang dùng chung số tạm. Đổi số thửa mới trước khi xuất hồ sơ.')
+    selected=[p for p in parcels if selected_key is None or p['key']==selected_key]
+    if not selected:raise ValueError('Không tìm thấy ID thửa đã chọn để xuất.')
     for parcel in parcels:
-        if parcel.get('TCT') is None:raise ValueError('Thửa mới chưa có số hiệu chính thức. Nhập số thửa trước khi xuất hồ sơ.')
+        if parcel in selected and parcel.get('TCT') is None:raise ValueError('Thửa mới chưa có số hiệu chính thức. Nhập số thửa trước khi xuất hồ sơ.')
         errors=ring_issues(parcel['points'])
         if errors:raise ValueError(parcel['key']+': '+'; '.join(errors))
         parcel['points']=number_vertices(parcel['points'])
@@ -147,7 +163,8 @@ def prepare(config,parcels,rejected):
         row=[p['ToBD'],p['TCT'],p['DienTich'],p.get('owner_override') or p.get('TenChu'),address,land,
             ';'.join(f'{x:.12g}|{y:.12g}' for x,y in p['points']),
             ';'.join(f'{i}|{f:.12g}|{number}' for i,f,number in near),
-            ';'.join(f'{i}|{x:.12g}|{y:.12g}' for i,x,y in rays),p['ID'],p.get('DiaChi')]
+            ';'.join(f'{i}|{x:.12g}|{y:.12g}' for i,x,y in rays),p['ID'],p.get('DiaChi'),
+            '#'.join(';'.join(f'{x:.17g}|{y:.17g}' for x,y in ring) for ring in p.get('holes',[]))]
         rows.append('\t'.join(clean(v) for v in row))
     data=ROOT/'data/parcels.tsv';data.write_text('\n'.join(rows),encoding='utf-16')
     template=(ROOT/'template_engine.bas').read_text(encoding='ascii')
@@ -378,7 +395,7 @@ def gui():
         completion=queue.Queue()
         def worker():
             try:
-                prepare(config,parcels,rejected)
+                prepare(config,parcels,rejected,selected_key=p['key'])
                 (ROOT/'settings.json').write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding='utf-8')
                 (ROOT/'data/request.txt').write_text(p['key'],encoding='utf-16')
                 result.write_text('PENDING\t'+p['key'],encoding='utf-16')
@@ -493,8 +510,8 @@ def gui():
     parcel_editor=ParcelInfoController(win,lambda busy:state.update(exporting=busy),database_connected,status.set)
     def edit_dgn_parcel():
         if state['exporting']:return
-        status.set('Bấm nút con trỏ trong bảng thông tin, rồi nhấp bên trong thửa trên DGN.')
-        parcel_editor.start(state.get('drawing',''),variables['mdb'].get())
+        record_id=state['parcels'][int(tree.selection()[0])]['ID'] if tree.selection() else None
+        parcel_editor.start(state.get('drawing',''),variables['mdb'].get(),record_id=record_id)
     ttk.Button(primary,text='Thông tin thửa trên DGN',command=edit_dgn_parcel,width=26).pack(side='left',padx=8,pady=10)
     tree.grid_remove();searchbar.grid_remove();panel.grid_remove()
     buttons=ttk.Frame(win);buttons.grid(row=6,column=0,columnspan=3,sticky='w',padx=10,pady=8)

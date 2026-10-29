@@ -69,13 +69,20 @@ class ParcelInfoController:
                 messagebox.showerror('Thông tin thửa',str(exc),parent=self.dialog or self.parent)
         threading.Thread(target=worker,daemon=True).start();self.parent.after(100,poll)
 
-    def start(self,source,mdb):
+    def start(self,source,mdb,record_id=None):
         from tkinter import messagebox
         if self.busy:return
         if not source or not mdb or not Path(mdb).is_file():
             messagebox.showinfo('Thông tin thửa','Mở DGN và kết nối MDB trước.',parent=self.parent);return
-        if self.dialog and self.dialog.winfo_exists():self.dialog.lift();return
-        self.source=str(source);self.mdb=str(mdb);self.selection=None;self.show(None)
+        if self.dialog and self.dialog.winfo_exists():
+            self.dialog.lift()
+            if record_id is None or not self.discard():return
+        else:
+            self.source=str(source);self.mdb=str(mdb);self.selection=None;self.show(None)
+        if record_id is not None:
+            from parcel_info import select_record
+            self.status.set('Đang đọc thông tin thửa đã chọn…')
+            self.run(lambda:select_record(source,mdb,record_id),self.load_selection)
 
     def show(self,selection):
         import tkinter as tk
@@ -165,6 +172,7 @@ class ParcelInfoController:
     def load_selection(self,selection):
         from app import format_area
         self.loading=True;self.selection=selection;row=selection['row']
+        self.source=selection['source'];self.mdb=selection['connected']['path']
         self.header.set(f"Tờ {row['ToBD']} | Thửa {row.get('TCT') or 'Chờ số'} | Diện tích {format_area(row['DienTich'])} m²")
         bindings=form_bindings(selection['connected'],row)
         self._present=set(bindings)

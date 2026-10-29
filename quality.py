@@ -44,7 +44,7 @@ def audit(parcels,rejected=()):
         errors=ring_issues(p['points'])
         for detail in errors:add(p,'GEOMETRY',detail)
         if not errors:
-            measured=area(p['points'])
+            measured=area(p['points'])-sum(area(r) for r in p.get('holes',[]))
             try:stored=float(p['DienTich'])
             except (ValueError,TypeError,KeyError):stored=float('nan')
             if not math.isfinite(stored) or stored<=0:add(p,'AREA_INVALID','Diện tích MDB trống/không dương.')

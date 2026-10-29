@@ -4,7 +4,7 @@ import math
 from shapely.geometry import Polygon, Point, LineString
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
-from app import geometry
+from app import geometry, parcel_polygon
 from topology import export_rows
 
 FIELDS=('ToBD','TCT','TenChu','DiaChi','DiaChiThuaDatChiTiet','Xudong','LRD','MaLD')
@@ -15,10 +15,10 @@ def scope_splits(project, old_rows):
     from topology import BLOCKING
     if any(i['code'] in ('UNSUPPORTED','SNAPPED_ENDPOINT') for i in project['issues']):
         raise ValueError('Không thể cập nhật cục bộ khi có phần tử chưa hỗ trợ hoặc đã nối ranh.')
-    faces=[Polygon(p['points']) for p in project['parcels']]
+    faces=[parcel_polygon(p) for p in project['parcels']]
     selected=set();parents=[]
     for row in old_rows:
-        parent=Polygon(geometry(row['Geometry']))
+        parent=parcel_polygon(row)
         tolerance=max(1e-8,parent.length*1e-7)
         children=[i for i,p in enumerate(faces) if p.intersection(parent).area>tolerance
                   and p.difference(parent).area<=tolerance]
@@ -51,13 +51,16 @@ def scope_splits(project, old_rows):
 def reconcile(project, old_rows):
     updated=copy.deepcopy(project)
     new=updated['parcels']
-    polygons=[Polygon(p['points']) for p in new]
+    polygons=[parcel_polygon(p) for p in new]
     if not polygons:raise ValueError('Chưa có vùng thửa mới.')
-    old_polygons=[Polygon(geometry(r['Geometry'])) for r in old_rows]
-    # World-coordinate intersections lose a few ULPs near million-metre origins.
-    # This is floating-point roundoff only, independent of the user's snap setting.
+    old_polygons=[parcel_polygon(r) for r in old_rows]
+    # Match equivalent footprints at the requested millimetre accuracy, also
+    # allowing the displacement explicitly recorded by boundary snapping.
+    # This keeps stable IDs and original MDB precision on repeated rebuilds.
     magnitude=max(abs(v) for p in polygons+old_polygons for v in p.bounds)
-    epsilon=max(1e-7,16*math.ulp(magnitude))
+    epsilon=max(.001/float(updated['options']['metres_per_unit']),16*math.ulp(magnitude))
+    movement=max((float(i.get('displacement_m',0)) for i in updated['issues'] if i['code']=='SNAPPED_ENDPOINT'),default=0)
+    epsilon=max(epsilon,movement/float(updated['options']['metres_per_unit'])+16*math.ulp(magnitude))
     def area_tolerance(p):
         return max(1e-8,p.area*1e-10,p.length*epsilon)
     def same_region(a,b):

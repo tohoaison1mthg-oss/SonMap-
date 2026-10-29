@@ -105,7 +105,9 @@ def locate_parcel(rows, point):
     if len(point)!=2 or not all(math.isfinite(float(v)) for v in point):raise ValueError('Điểm chọn không hợp lệ.')
     p=Point(point);inside=[];boundary=False
     for row in rows:
-        try:polygon=Polygon(geometry(row['Geometry']))
+        try:
+            from app import parcel_polygon
+            polygon=parcel_polygon(row)
         except ValueError:continue
         if not polygon.is_valid:continue
         if polygon.boundary.distance(p)<=1e-7:boundary=True
@@ -124,6 +126,16 @@ def pick_parcel(source, mdb):
     if result.get('cancelled'):return None
     if digest(connected['path'])!=connected['sha256']:raise ValueError('MDB đã đổi trong lúc chọn. Chọn lại thửa để đọc thông tin mới.')
     return {'source':str(source),'model':result.get('model'),'connected':connected,'row':locate_parcel(connected['rows'],result['point'])}
+
+
+def select_record(source,mdb,record_id):
+    connected=inspect_database(mdb)
+    rows=[r for r in connected['rows'] if r['ID']==record_id]
+    if len(rows)!=1:raise ValueError('Không tìm thấy duy nhất ID thửa đã chọn. Đọc lại danh sách thửa.')
+    selection={'source':str(Path(source).resolve()),'connected':connected,'row':rows[0]}
+    from topology_workflow import validate_parcel_context
+    validate_parcel_context(selection)
+    return selection
 
 
 def update_owner(mdb, expected_hash, record_id, owner, address, number=KEEP_NUMBER):

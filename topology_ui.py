@@ -26,7 +26,7 @@ DEFAULTS = dict(boundary_levels='10',sheet='1',metres_per_unit='1',short_length=
  min_area='.3',near_distance='.1',snap_tolerance='.01',ignore_tolerance='.001',chord_tolerance='.001',
  centre_level='11',centre_color='3',centre_height='1',error_level='60',error_color='3',
  error_radius='.01',label_TCT='',label_LRD='',label_TenChu='',label_Xudong='')
-FLAGS = dict(snap=False,break_arcs=False,break_complex=True,join_lines=False,
+FLAGS = dict(snap=True,break_arcs=False,break_complex=True,join_lines=False,
              short_enabled=True,area_enabled=True,near_enabled=True,auto_hide=True)
 
 
@@ -265,7 +265,7 @@ class TopologyWorkspace:
         ttk.Entry(grid,textvariable=self.vars['min_area'],width=10).grid(row=2,column=3,padx=4,pady=4)
         ttk.Label(grid,text='m²').grid(row=2,column=4)
         self.checkbox(grid,'join_lines','Kết nối LineString',3)
-        self.checkbox(grid,'snap','Nối cặp đầu hở',3,2)
+        self.checkbox(grid,'snap','Nối đầu ranh trong sai số',3,2)
         self.checkbox(grid,'near_enabled','Kiểm tra nút gần nhau',4)
         ttk.Entry(grid,textvariable=self.vars['near_distance'],width=7).grid(row=4,column=1,padx=4)
         ttk.Label(grid,text='Sai số tiếp xúc').grid(row=4,column=2,sticky='w',padx=7)

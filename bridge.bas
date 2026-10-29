@@ -117,6 +117,48 @@ Private Sub LoadRows()
     stream.Close
 End Sub
 
+Private Sub DrawInteriorResults(ByRef outer() As Point3d, ByVal gcn As Boolean)
+    Dim rings As Variant, ring As Variant, p() As Point3d, s As ShapeElement
+    Dim i As Long, j As Long, k As Long, n As Long, x As Double, y As Double, length As Double
+    If UBound(parcelRow) < 11 Then Exit Sub
+    If Len(CStr(parcelRow(11))) = 0 Then Exit Sub
+    x = outer(0).X: y = outer(0).Y
+    For i = 1 To UBound(outer)
+        If outer(i).X > x Then x = outer(i).X
+        If outer(i).Y > y Then y = outer(i).Y
+    Next i
+    x = x + 300
+    rings = Split(CStr(parcelRow(11)), "#")
+    For Each ring In rings
+        k = k + 1
+        ParsePoints CStr(ring), p
+        Set s = CreateShapeElement1(Nothing, p, msdFillModeNotFilled)
+        Set s.Level = CadLevel(10): Set s.LineStyle = solidStyle
+        s.Color = 0: s.LineWeight = 0
+        ActiveModelReference.AddElement s
+        n = UBound(p) + 1
+        If Not gcn Then
+            PutText "VONG TRONG " & CStr(k) & " - TO " & CStr(parcelRow(0)) & " / THUA " & CStr(parcelRow(1)), x, y + 8, 2.1, False, 63
+            PutText "DINH                 X (m)                 Y (m)               CANH (m)", x, y + 4, 1.9, False, 63
+        End If
+        For i = 0 To n - 1
+            j = (i + 1) Mod n
+            length = Sqr((p(j).X - p(i).X) ^ 2 + (p(j).Y - p(i).Y) ^ 2)
+            PutText CStr(k) & "." & CStr(i + 1), p(i).X + 1, p(i).Y + 1, 1.9, False, 63
+            If gcn Then
+                PutText DecimalComma(length, "0.00"), (p(i).X + p(j).X) / 2, (p(i).Y + p(j).Y) / 2, 1.9, False, 63
+            Else
+                PutText CStr(k) & "." & CStr(i + 1), x, y - i * 5, 1.9, False, 63
+                PutText DecimalComma(p(i).Y, "0.000"), x + 20, y - i * 5, 1.9, False, 63
+                PutText DecimalComma(p(i).X, "0.000"), x + 55, y - i * 5, 1.9, False, 63
+                PutText DecimalComma(length, "0.00"), x + 90, y - i * 5, 1.9, False, 63
+            End If
+        Next i
+        AssertWorldParcel p
+        x = x + 150
+    Next ring
+End Sub
+
 Private Sub ParsePoints(ByVal value As String, ByRef p() As Point3d)
     Dim vertices As Variant, xy As Variant, i As Long
     vertices = Split(value, ";")
@@ -218,6 +260,7 @@ Private Sub ExportParcel(Optional ByVal gcn As Boolean = False)
     If gcn Then
         DrawGCNLengths display, lengths
         RestoreGCNCoordinates original, display
+        DrawInteriorResults original, True
         AssertWorldParcel original
     ActiveDesignFile.Save
         PublishResult "OK", target
@@ -240,6 +283,7 @@ Private Sub ExportParcel(Optional ByVal gcn As Boolean = False)
     tableOffset = 0
     PutText "SO DO MINH HOA; TOA DO/CHIEU DAI LAY TU MDB; KHONG DO TREN HINH", 992, 953 - frameExtraY, 0.9, False, 0, 0, diagramRight - 994
     RestoreWorldCoordinates original, display, 1
+    DrawInteriorResults original, False
     detailStage = "Save new output"
     AssertWorldParcel original
     ActiveDesignFile.Save
