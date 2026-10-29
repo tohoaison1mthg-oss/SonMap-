@@ -23,7 +23,7 @@ ISSUES = {
  ,'INTERSECTION_NODE':'Đã tạo giao điểm ranh'
 }
 DEFAULTS = dict(boundary_levels='10',sheet='1',metres_per_unit='1',short_length='.001',
- min_area='.3',near_distance='.1',snap_tolerance='.01',chord_tolerance='.001',
+ min_area='.3',near_distance='.1',snap_tolerance='.01',ignore_tolerance='.001',chord_tolerance='.001',
  centre_level='11',centre_color='3',centre_height='1',error_level='60',error_color='3',
  error_radius='.01',label_TCT='',label_LRD='',label_TenChu='',label_Xudong='')
 FLAGS = dict(snap=False,break_arcs=False,break_complex=True,join_lines=False,
@@ -141,7 +141,7 @@ class TopologyWorkspace:
         options['in_place']=self.in_place.get()
         options['label_levels']={k:self.vars['label_'+k].get().strip() for k in ('TCT','LRD','TenChu','Xudong')}
         validate_options(options)
-        for key in ('metres_per_unit','short_length','min_area','near_distance','snap_tolerance'):
+        for key in ('metres_per_unit','short_length','min_area','near_distance','snap_tolerance','ignore_tolerance'):
             finite(options[key],key,key=='metres_per_unit')
         if int(options['sheet'])<=0:raise ValueError('Số tờ bản đồ phải lớn hơn 0.')
         return options
@@ -242,7 +242,7 @@ class TopologyWorkspace:
 
     def clean(self):
         from tkinter import ttk
-        win=self.window('clean','Tự động tìm sửa lỗi','630x590')
+        win=self.window('clean','Tự động tìm sửa lỗi','630x610')
         if not win:return
         self.status.set('')
         tabs=ttk.Notebook(win);tabs.pack(fill='both',expand=True,padx=8,pady=8)
@@ -270,6 +270,9 @@ class TopologyWorkspace:
         ttk.Entry(grid,textvariable=self.vars['near_distance'],width=7).grid(row=4,column=1,padx=4)
         ttk.Label(grid,text='Sai số tiếp xúc').grid(row=4,column=2,sticky='w',padx=7)
         ttk.Entry(grid,textvariable=self.vars['snap_tolerance'],width=10).grid(row=4,column=3,padx=4)
+        ttk.Label(grid,text='Bỏ qua sai lệch ≤').grid(row=5,column=0,sticky='w',padx=7)
+        ttk.Entry(grid,textvariable=self.vars['ignore_tolerance'],width=7).grid(row=5,column=1,padx=4)
+        ttk.Label(grid,text='m').grid(row=5,column=2,sticky='w',padx=7)
         levels_box=ttk.LabelFrame(body,text='Danh sách các lớp tham gia');levels_box.pack(fill='x',padx=6,pady=8)
         ttk.Entry(levels_box,textvariable=self.vars['boundary_levels']).pack(fill='x',padx=8,pady=8)
         self.compact_footer(win,lambda:self.process('clean'),clean=True)
@@ -411,7 +414,9 @@ class TopologyWorkspace:
         self.restore_navigation()
         if not (self.project or self.navigation_project) and not self.require_project():return
         win=self.window('report','Danh sách lỗi','950x550')
-        if not win:return
+        if not win:
+            self.compact_navigation()
+            return
         table=ttk.Treeview(win,columns=('type','parcel','detail'),show='headings',height=13)
         for key,title,width in [('type','Loại lỗi',230),('parcel','ID thửa',70),('detail','Chi tiết',510)]:table.heading(key,text=title);table.column(key,width=width)
         scroll=ttk.Scrollbar(win,orient='vertical',command=table.yview);scroll.pack(side='right',fill='y')
@@ -433,6 +438,8 @@ class TopologyWorkspace:
         table.bind('<Double-1>',lambda _:self.navigate_error(0))
         table.bind('<<TreeviewSelect>>',lambda _:self.update_error_position())
         self.style_dialog(win)
+        self.compact_navigation()
+        self.update_error_position()
 
     def navigate_error(self,direction):
         table=self.report_table;items=table.get_children()
@@ -443,7 +450,7 @@ class TopologyWorkspace:
         project=self.project or self.navigation_project
         if not project:return
         issue=project['issues'][int(iid)]
-        self.error_description.set(ISSUES.get(issue['code'],issue['code'])+'\n'+self.report_detail(issue))
+        self.error_description.set(ISSUES.get(issue['code'],issue['code']))
         self.compact_navigation()
         self.update_error_position()
         if direction:self.error_zoom=1
@@ -460,19 +467,25 @@ class TopologyWorkspace:
         from tkinter import ttk
         nav=self.windows.get('navigator')
         if nav is None or not nav.winfo_exists():
-            nav=tk.Toplevel(self.parent);nav.title('SonMap+ — Tìm vị trí lỗi')
-            nav.geometry('440x230+12+100');nav.resizable(False,False)
+            nav=tk.Toplevel(self.parent);nav.title('Tìm vị trí lỗi')
+            nav.geometry('270x205+12+100');nav.resizable(False,False)
             nav.attributes('-topmost',True)
             self.windows['navigator']=nav
-            ttk.Label(nav,textvariable=self.error_position,anchor='center').pack(fill='x',padx=8,pady=5)
-            ttk.Label(nav,textvariable=self.error_description,wraplength=420,anchor='center').pack(fill='x',padx=8,pady=3)
             buttons=ttk.Frame(nav);buttons.pack(pady=6)
             for i,(text,command) in enumerate([
+                ('Thu nhỏ −',lambda:self.zoom_error(2)),('Phóng to +',lambda:self.zoom_error(.5)),
                 ('◀ Trước',lambda:self.navigate_error(-1)),('Sau ▶',lambda:self.navigate_error(1)),
-                ('Danh sách',self.restore_navigation),('Phóng to +',lambda:self.zoom_error(.5)),
-                ('Thu nhỏ −',lambda:self.zoom_error(2)),('Xóa vòng này',lambda:self.clear_markers(True))]):
-                self.button(buttons,text,command,width=12).grid(row=i//3,column=i%3,padx=3,pady=3)
-            nav.protocol('WM_DELETE_WINDOW',self.restore_navigation)
+                ('Xóa 1',lambda:self.clear_markers(True)),('Xóa tất cả',self.clear_markers)]):
+                self.button(buttons,text,command,width=10).grid(row=i//2,column=i%2,padx=4,pady=3)
+            ttk.Label(nav,textvariable=self.error_position,anchor='center').pack(fill='x',padx=8,pady=3)
+            ttk.Label(nav,textvariable=self.error_description,wraplength=250,anchor='w').pack(fill='x',padx=10,pady=3)
+            menu=tk.Menu(nav,tearoff=False);menu.add_command(label='Danh sách chi tiết',command=self.restore_navigation)
+            nav.bind('<Button-3>',lambda event:menu.tk_popup(event.x_root,event.y_root))
+            def close():
+                self.restore_navigation()
+                report=self.windows.get('report')
+                if report is not None and report.winfo_exists():report.withdraw()
+            nav.protocol('WM_DELETE_WINDOW',close)
             self.style_dialog(nav)
         if not self.navigation_hidden:
             candidates=[self.parent.winfo_toplevel()]+[w for k,w in self.windows.items() if k!='navigator']
@@ -493,6 +506,9 @@ class TopologyWorkspace:
     def update_error_position(self):
         table=self.report_table;items=table.get_children();selected=table.selection()
         self.error_position.set(f'{items.index(selected[0])+1 if selected and selected[0] in items else 0}/{len(items)}')
+        project=self.project or self.navigation_project
+        self.error_description.set(ISSUES.get(project['issues'][int(selected[0])]['code'],project['issues'][int(selected[0])]['code'])
+                                   if project and selected and selected[0] in items else 'Không có lỗi')
 
     def mark_current(self):
         def done(backup):

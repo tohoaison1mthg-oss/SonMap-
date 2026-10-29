@@ -124,6 +124,10 @@ class DialogTests(unittest.TestCase):
         self.workspace.project['issues']=[{'code':'DANGLE','point':[1,2]}, {'code':'DANGLE','point':[3,4]}]
         self.workspace.show_report();self.root.update()
         win=self.workspace.windows['report']
+        nav=self.workspace.windows['navigator']
+        self.assertLessEqual(nav.winfo_width(),280)
+        self.assertEqual(self.workspace.error_description.get(),'Đầu ranh hở')
+        self.button(nav,'Xóa 1');self.button(nav,'Xóa tất cả')
         self.assertEqual(self.workspace.error_position.get(),'1/2')
         with patch('topology_ui.focus_issue') as focus:
             self.button(win,'Sau ▶').invoke();self.pump()

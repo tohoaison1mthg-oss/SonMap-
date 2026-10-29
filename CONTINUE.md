@@ -1,8 +1,10 @@
 # Tiếp tục phát triển SonMap+ trên máy khác
 
-## Trạng thái hiện hành: V10.19
+## Trạng thái hiện hành: V10.20
 
-Đọc VERSION, CHANGELOG.md, AGENTS.md và V10_19_VALIDATION.md trước khi làm tiếp.
+Đọc VERSION, CHANGELOG.md, AGENTS.md và V10_20_VALIDATION.md trước khi làm tiếp.
+V10.20 dùng bảng tìm lỗi nhỏ, vòng tròn tạm và sai số bỏ qua mặc định 1 mm.
+Không thay hình học khi bỏ cảnh báo; giữ chặn MDB với ranh chưa khép vùng.
 V10.19 thu gọn bảng khi tìm lỗi, chữ thập transient tại vị trí lỗi, hiện
 khoảng cách nút gần/độ phân giải DGN, chuyển ẩn lớp/lưu và ghi sửa ranh vào
 V8i. Topology/MDB và trường hợp ghi theo phạm vi vẫn dùng đường giao dịch cũ.

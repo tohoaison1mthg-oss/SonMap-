@@ -91,8 +91,10 @@ public static class SonMapV8iRecords {
   if(openViews==0)throw new InvalidOperationException("Open a MicroStation view before locating an error.");
   // Detached temporary drawing: fixed proportion of the view, no DGN element added.
   double r=span*.045;
-  foreach(double[][] xy in new double[][][]{new double[][]{new double[]{x-r,y},new double[]{x+r,y}},new double[][]{new double[]{x,y-r},new double[]{x,y+r}}}) {
-   var e=(B.Element)Line(a,xy);e.Color=4;e.LineWeight=3;
+  {
+   B.Point3d centre=new B.Point3d();centre.X=x;centre.Y=y;
+   B.Matrix3d rotation=a.Matrix3dIdentity();
+   var e=(B.Element)a.CreateEllipseElement2(null,ref centre,r,r,ref rotation);e.Color=3;e.LineWeight=2;
    foreach(B.LineStyle style in a.ActiveDesignFile.LineStyles)if(style.Name=="0"){e.LineStyle=style;break;}
    foreach(B.View view in a.ActiveDesignFile.Views) {
     if(!view.IsOpen)continue;

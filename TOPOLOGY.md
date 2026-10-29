@@ -1,11 +1,11 @@
-# SonMap+ V10.19 — làm trực tiếp trên laptop
+# SonMap+ V10.20 — làm trực tiếp trên laptop
 
 Phiên bản lấy từ [VERSION](VERSION), lịch sử và giới hạn nghiệm thu từng bản
 ở [CHANGELOG.md](CHANGELOG.md). Quy ước phát triển nằm trong [AGENTS.md](AGENTS.md).
 
 ## Cài hoặc nâng cấp ứng dụng
 
-Giải nén SonMapPlus_V10_19_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
+Giải nén SonMapPlus_V10_20_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
 Lối tắt SonMap+ dùng chương trình ở `%LOCALAPPDATA%\SonMapPlus\App`.
 Trình cài giữ các phiên bản trước, sao lưu mã cũ và có công cụ Khôi phục.
 Nếu thiếu CPython 3.12 64-bit phù hợp, chuẩn bị bản riêng cho SonMap từ bộ cài
@@ -34,14 +34,17 @@ giữa đoạn dài. **Xóa vòng đang chọn** chỉ dọn SMERR tại vị tr
 dọn toàn bộ SMERR trong model. Danh sách vẫn giữ để tiếp tục tìm vị trí sau
 khi xóa vòng; cần kiểm tra lại ranh trước khi ghi kết quả phân tích mới.
 
-Khi tìm hoặc zoom lỗi, bảng lớn thu lại thành **Tìm vị trí lỗi** ở góc màn
-hình; MicroStation được đưa lên trước, có chữ thập vàng chỉ vị trí đang chọn.
-Bấm **Danh sách** để mở lại bảng đầy đủ. Chữ thập là dấu hiển thị tạm, không
-thêm phần tử hoặc ghi vào DGN; đổi bản vẽ/model sẽ dọn dấu tạm. Nút zoom cho
-phép đi sâu hơn trước, vẫn giới hạn theo độ phân giải gốc của DGN. Với nút gần,
-chi tiết hiện khoảng cách thực; khe nhỏ hơn độ phân giải bản vẽ có chú thích
-riêng, vì không thể nhận ra bằng cách xem nét ở tỷ lệ thông thường. Không tự
-làm tròn tọa độ hoặc coi xóa dấu là đã sửa ranh.
+Báo lỗi mặc định mở bảng **Tìm vị trí lỗi** nhỏ ở góc, chỉ có loại lỗi, bộ đếm
+và sáu nút thu/phóng, trước/sau, xóa một/xóa tất cả. Chuột phải chọn
+**Danh sách chi tiết** để xem thêm khi cần. Vòng tròn tạm chỉ vị trí được chọn,
+không thêm phần tử vào DGN; đổi bản vẽ/model sẽ dọn dấu tạm. Giữ vòng SMERR
+được ghi bằng Ghi dấu lỗi. Xóa dấu không có nghĩa là đã sửa ranh.
+
+Trong **Sửa lỗi**, ô **Bỏ qua sai lệch ≤** mặc định `0.001` m (1 mm).
+Không báo nút gần/đoạn ngắn và đầu hở trong ngưỡng này; nhập 0 để kiểm tra nghiêm
+ngặt. Chỉ bỏ cảnh báo, không đổi tọa độ hoặc nối ranh. Đầu hở thật ngoài ngưỡng,
+cạnh thừa, vòng không hợp lệ và thửa có lỗ vẫn báo. Ranh dài chưa khép vùng
+dù tiếp xúc trong sai số vẫn cần nối thực sự trước khi xuất MDB.
 
 V10.19 chuyển bước ẩn lớp/lưu và ghi sửa ranh trực tiếp vào V8i, giữ tệp phục
 hồi tạm và kiểm tra tọa độ sau ghi. Thông báo hoàn tất Sửa lỗi hiện tổng thời

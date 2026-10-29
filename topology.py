@@ -36,6 +36,7 @@ def build(snapshot, options):
     small = finite(options.get('short_length', .001), 'Đoạn ngắn') / scale
     near = finite(options.get('near_distance', .1), 'Nút gần') / scale
     tolerance = finite(options.get('snap_tolerance', .01), 'Sai số nối') / scale
+    ignore = finite(options.get('ignore_tolerance', .001), 'Sai số bỏ qua') / scale
     min_area = finite(options.get('min_area', .3), 'Diện tích nhỏ')
     sheet = int(options.get('sheet', 1))
     if sheet <= 0:
@@ -174,6 +175,32 @@ def build(snapshot, options):
         parcels.append(p)
     if not parcels:
         issue('NO_PARCELS')
+    # Ignore reporting noise without moving vertices or changing the parcel network.
+    # A long dangling chain is only hidden if EVERY free end meets another edge
+    # within the requested tolerance; one nearby end must not hide a real open end.
+    ignored=[]
+    if ignore:
+        graph=[LineString(row['points']) for row in noded_lines]
+        graph_tree=STRtree(graph)
+        def close_to_other_edge(p):
+            point=Point(p)
+            for index in graph_tree.query(box(p[0]-ignore,p[1]-ignore,p[0]+ignore,p[1]+ignore)):
+                edge=graph[int(index)]
+                if tuple(p) in (tuple(edge.coords[0]),tuple(edge.coords[-1])):continue
+                if point.distance(edge)<=ignore:return True
+            return False
+        retained=[]
+        for item in issues:
+            hidden=False
+            if item['code']=='NEAR_NODE':
+                hidden=all(math.dist(item['point'],q)<=ignore for q in item['candidates'])
+            elif item['code']=='SHORT_SEGMENT':hidden=item['length_m']<=ignore*scale
+            elif item['code']=='DANGLE':
+                coords=item['points']
+                free=[p for p in (coords[0],coords[-1]) if noded_degree[tuple(p)]==1]
+                hidden=LineString(coords).length<=ignore or bool(free) and all(close_to_other_edge(p) for p in free)
+            (ignored if hidden else retained).append(item)
+        issues=retained
     drawing_network = network
     if options.get('join_lines'):
         from shapely.ops import linemerge
@@ -193,7 +220,7 @@ def build(snapshot, options):
     return dict(version=1, source=snapshot.get('source'), model=snapshot.get('model'),
                 model_is_default=bool(snapshot.get('model_is_default',False)),
                 unit=snapshot.get('unit'),uors_per_master_unit=snapshot.get('uors_per_master_unit'), options=options, parcels=parcels,
-                cleaned_lines=[list(line.coords) for line in lines],noded_lines=noded_lines,boundary_changed=boundary_changed, issues=issues,
+                cleaned_lines=[list(line.coords) for line in lines],noded_lines=noded_lines,boundary_changed=boundary_changed, issues=issues,ignored_issues=ignored,
                 input_summary={str(level):sum(int(e['level'])==level for e in snapshot['elements']) for level in sorted(selected)})
 
 
@@ -204,6 +231,12 @@ def export_rows(project,allow_unnumbered=False,allow_zero_id=False,allow_duplica
     """Refuse incomplete topology; preserve DGN coordinates for existing world-coordinate export."""
     if any(i['code'] in BLOCKING for i in project['issues']):
         raise ValueError('Còn lỗi topology/kiểu phần tử chưa hỗ trợ. Xem báo cáo và sửa ranh trước khi tạo MDB.')
+    # Suppressing a visual contact warning does not close a missing polygon.
+    ignore=finite(project['options'].get('ignore_tolerance',.001),'Sai số bỏ qua')
+    scale=float(project['options']['metres_per_unit'])
+    if any(i['code']=='DANGLE' and sum(math.dist(a,b) for a,b in zip(i['points'],i['points'][1:]))*scale>ignore
+           for i in project.get('ignored_issues',[])):
+        raise ValueError('Có ranh tiếp xúc trong sai số bỏ qua nhưng chưa khép vùng. Nối ranh trước khi tạo MDB.')
     if float(project['options']['metres_per_unit']) != 1:
         raise ValueError('Xuất MDB hiện yêu cầu DGN dùng mét để tương thích bộ xuất hồ sơ SonMap.')
     rows, seen, ids = [], set(), set()

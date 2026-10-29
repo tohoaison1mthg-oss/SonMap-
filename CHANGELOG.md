@@ -6,6 +6,17 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.20
+
+- Bảng tìm lỗi mặc định 270 × 205, chỉ loại lỗi, bộ đếm và sáu nút thu/phóng,
+  trước/sau, xóa một/xóa tất cả. Chuột phải để mở danh sách chi tiết khi cần.
+- Dấu định vị là vòng tròn tạm, thay chữ thập; giữ các vòng SMERR và cách xóa.
+- Thêm sai số bỏ qua mặc định 0,001 m, chỉnh được trong Sửa lỗi. Bỏ báo nút
+  gần, đoạn ngắn và đầu ranh hở nằm trong ngưỡng; đầu hở thật vượt ngưỡng vẫn báo.
+  Giữ tọa độ, hình học vùng và ranh; không coi bỏ cảnh báo là đã nối khép vùng.
+  Chặn xuất MDB nếu còn chuỗi ranh dài chỉ tiếp xúc trong sai số, chưa khép vùng.
+- Kiểm thử và giới hạn ghi trong V10_20_VALIDATION.md. Giữ gói/tag cũ.
+
 ## V10.19
 
 - Sửa tìm/zoom lỗi bị bảng lớn che: tự thu gọn thành bảng điều khiển ở góc,

@@ -195,6 +195,7 @@ def powershell(script, *arguments):
 
 
 def validate_options(options):
+    finite(options.get('ignore_tolerance',.001),'Sai số bỏ qua')
     levels(options['boundary_levels'])
     centre = levels(options.get('centre_level', '11'))
     if len(centre) != 1 or centre[0] in levels(options['boundary_levels']):

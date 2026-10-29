@@ -30,6 +30,27 @@ def project(elements, texts=(), **options):
 
 
 class TopologyTests(unittest.TestCase):
+    def test_ignore_tiny_spur_keeps_coordinates_and_real_open_end(self):
+        elements=[line(rect(x=0,y=0)),line([(10,10),(10.0000002,10)]),line([(0,0),(-2,0)])]
+        strict=project(elements,label_levels={},ignore_tolerance=0)
+        relaxed=project(elements,label_levels={},ignore_tolerance=.001)
+        self.assertEqual(strict['noded_lines'],relaxed['noded_lines'])
+        self.assertEqual(strict['parcels'],relaxed['parcels'])
+        self.assertTrue(any(i['code']=='DANGLE' for i in relaxed['ignored_issues']))
+        self.assertTrue(any(i['code']=='DANGLE' and i['point']==(-2.,0.) for i in relaxed['issues']))
+        with self.assertRaises(ValueError):export_rows(relaxed)
+
+    def test_ignored_small_gap_does_not_allow_export_of_missing_region(self):
+        elements=[line(rect(x=20,y=0)),line([(0,.0001),(0,10),(10,10),(10,0),(0,0)])]
+        relaxed=project(elements,label_levels={},ignore_tolerance=.001)
+        self.assertEqual(len(relaxed['parcels']),1)
+        self.assertTrue(any(i['code']=='DANGLE' for i in relaxed['ignored_issues']))
+        with self.assertRaises(ValueError):export_rows(relaxed)
+        relaxed['issues']=[i for i in relaxed['issues'] if i['code'] not in BLOCKING]
+        with self.assertRaisesRegex(ValueError,'khép vùng'):export_rows(relaxed)
+        strict=project(elements,label_levels={},ignore_tolerance=0)
+        self.assertTrue(any(i['code']=='DANGLE' for i in strict['issues']))
+
     def test_shared_boundary_nodes_and_assigns_separate_parcels(self):
         p=project([line(rect(w=20)),line([(500010,1000000),(500010,1000010)])],
                   [text('12',500005,1000005,13),text('13',500015,1000005,13),
