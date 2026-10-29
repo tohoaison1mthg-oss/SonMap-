@@ -11,6 +11,13 @@ using System;
 using System.Collections.Generic;
 using B = Bentley.Interop.MicroStationDGN;
 public static class SonMapV8iRecords {
+ private static B.TransientElementContainer focusMarker;
+ private static string focusSource,focusModel;
+ public static void CheckFocusContext(object value) {
+  if(focusMarker==null)return;
+  var a=(B.Application)value;
+  if(a.ActiveDesignFile.FullName!=focusSource || a.ActiveModelReference.Name!=focusModel){focusMarker.Reset();focusMarker=null;}
+ }
  private static Dictionary<string,object> Row(params object[] pairs) {
   var row=new Dictionary<string,object>();
   for(int i=0;i<pairs.Length;i+=2)row[(string)pairs[i]]=pairs[i+1];
@@ -60,12 +67,17 @@ public static class SonMapV8iRecords {
   var scan=m.Scan(criteria);
   while(scan.MoveNext())Collect(scan.Current,0,0,false,wanted,arcs,keep,tolerance,lines,texts);
   var json=new System.Web.Script.Serialization.JavaScriptSerializer();json.MaxJsonLength=int.MaxValue;
-  return json.Serialize(Row("version",1,"model",m.Name,"model_is_default",defaultModel,"unit",m.get_MasterUnit().Label,"references_excluded",m.Attachments.Count,"elements",lines,"texts",texts));
+  return json.Serialize(Row("version",1,"model",m.Name,"model_is_default",defaultModel,"unit",m.get_MasterUnit().Label,"uors_per_master_unit",m.UORsPerMasterUnit,"references_excluded",m.Attachments.Count,"elements",lines,"texts",texts));
  }
  public static void Focus(object value,double x,double y,double span) {
   B.Application a=(B.Application)value;
+  span=Math.Max(span,100/a.ActiveModelReference.UORsPerMasterUnit);
+  if(focusMarker!=null){focusMarker.Reset();focusMarker=null;}
+  focusSource=a.ActiveDesignFile.FullName;focusModel=a.ActiveModelReference.Name;
+  int openViews=0;
   foreach(B.View view in a.ActiveDesignFile.Views) {
    if(!view.IsOpen)continue;
+   openViews++;
    B.Point3d p=new B.Point3d();p.X=x;p.Y=y;
    B.Point3d ext=view.get_Extents();
    double smallest=Math.Min(Math.Abs(ext.X),Math.Abs(ext.Y));
@@ -75,6 +87,20 @@ public static class SonMapV8iRecords {
    B.Point3d check=view.get_Center();
    if(Math.Abs(check.X-x)>0.00001 || Math.Abs(check.Y-y)>0.00001)
     throw new InvalidOperationException("View did not centre on the requested location.");
+  }
+  if(openViews==0)throw new InvalidOperationException("Open a MicroStation view before locating an error.");
+  // Detached temporary drawing: fixed proportion of the view, no DGN element added.
+  double r=span*.045;
+  foreach(double[][] xy in new double[][][]{new double[][]{new double[]{x-r,y},new double[]{x+r,y}},new double[][]{new double[]{x,y-r},new double[]{x,y+r}}}) {
+   var e=(B.Element)Line(a,xy);e.Color=4;e.LineWeight=3;
+   foreach(B.LineStyle style in a.ActiveDesignFile.LineStyles)if(style.Name=="0"){e.LineStyle=style;break;}
+   foreach(B.View view in a.ActiveDesignFile.Views) {
+    if(!view.IsOpen)continue;
+    foreach(B.Level level in a.ActiveDesignFile.Levels)if(view.IsLevelShown(level)){e.Level=level;break;}
+    if(focusMarker==null)focusMarker=a.CreateTransientElementContainer1(e,B.MsdTransientFlags.Overlay|B.MsdTransientFlags.DontIncludeInFit,(B.MsdViewMask)255,B.MsdDrawingMode.Temporary);
+    else focusMarker.AppendCopyOfElement(e);
+    break;
+   }
   }
  }
  public static object[] OutputElements(object application,object value,int[] boundary,bool rewrite) {

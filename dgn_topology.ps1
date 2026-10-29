@@ -29,7 +29,7 @@ function FindLevel($design,[int]$number) {
  if(-not $script:LevelCache){$script:LevelCache=@{}}
  if($script:LevelCache.ContainsKey($number)){return $script:LevelCache[$number]}
  foreach($level in $design.Levels){if([int]$level.Number -eq $number){$script:LevelCache[$number]=$level;return $level}}
- $level=$design.Levels.Add('SonMap_Level_'+$number)
+ $level=$design.AddNewLevel('SonMap_Level_'+$number)
  $level.Number=$number
  $design.Levels.Rewrite()
  $script:LevelCache[$number]=$level

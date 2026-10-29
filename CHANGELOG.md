@@ -6,6 +6,24 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.19
+
+- Sửa tìm/zoom lỗi bị bảng lớn che: tự thu gọn thành bảng điều khiển ở góc,
+  đưa V8i lên trước và khôi phục nếu bị thu nhỏ. Hiện chữ thập vàng bằng
+  transient, không tạo phần tử DGN; giữ vị trí khi redraw và dọn khi đổi
+  DGN/model. Không báo tìm thành công nếu không có view mở.
+- Bỏ giới hạn zoom cố định quá sớm, giới hạn theo UOR của model. Hiện khoảng
+  cách thực của nút gần và chú thích dưới độ phân giải DGN; không tự làm tròn
+  tọa độ hoặc bỏ qua lỗi. Lỗi thửa có lỗ định vị vào biên lỗ đầu tiên.
+- Chuyển ẩn/khôi phục lớp, lưu trước phân tích và ghi sửa ranh không theo
+  phạm vi vào V8i. Giữ kiểm tra nguồn/model, bản phục hồi tạm và phục hồi
+  khi lỗi sau sửa; giữ tệp cứu hộ nếu phục hồi thất bại. Kiểm tra tọa độ
+  phần tử ghi theo độ phân giải native. Topology/MDB tiếp tục đường giao
+  dịch hiện có. Thông báo Sửa lỗi đo cả thời gian phân tích và ghi.
+- Sửa thêm API tạo Level mới dùng DesignFile.AddNewLevel. Kết quả Windows,
+  V8i, kiểm thử Python và giới hạn ghi trong V10_19_VALIDATION.md. Giữ các
+  gói/tag cũ và dữ liệu riêng.
+
 ## V10.18
 
 - Đọc ranh và zoom trong tiến trình V8i qua cầu nối SonMap, giảm các lượt COM

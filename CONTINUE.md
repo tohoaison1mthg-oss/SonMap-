@@ -1,8 +1,11 @@
 # Tiếp tục phát triển SonMap+ trên máy khác
 
-## Trạng thái hiện hành: V10.18
+## Trạng thái hiện hành: V10.19
 
-Đọc VERSION, CHANGELOG.md, AGENTS.md và V10_18_VALIDATION.md trước khi làm tiếp.
+Đọc VERSION, CHANGELOG.md, AGENTS.md và V10_19_VALIDATION.md trước khi làm tiếp.
+V10.19 thu gọn bảng khi tìm lỗi, chữ thập transient tại vị trí lỗi, hiện
+khoảng cách nút gần/độ phân giải DGN, chuyển ẩn lớp/lưu và ghi sửa ranh vào
+V8i. Topology/MDB và trường hợp ghi theo phạm vi vẫn dùng đường giao dịch cũ.
 V10.18 dùng cầu nối C# chạy trong V8i để đọc ranh/zoom, giữ PowerShell 32-bit
 cho thao tác giao dịch, thêm xóa từng vòng SMERR, phóng to/thu nhỏ và bộ đếm lỗi.
 Cầu nối được biên dịch bằng Bentley assemblies đã cài, cache tại data/cad-bridge;

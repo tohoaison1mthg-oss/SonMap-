@@ -32,10 +32,8 @@ def display_levels(source, selected, restore=False):
     folder=ROOT/'data'/'view-states';folder.mkdir(parents=True,exist_ok=True)
     state=folder/(hashlib.sha256(source.casefold().encode()).hexdigest()+'.json')
     if restore and not state.is_file():raise ValueError('Chưa có trạng thái lớp đã lưu cho bản vẽ này.')
-    with tempfile.TemporaryDirectory(prefix='sonmap-view-') as directory:
-        plan=Path(directory)/'view.json'
-        plan.write_text(json.dumps({'source':source,'levels':selected,'state':str(state)}),encoding='utf-8')
-        powershell('dgn_view.ps1','-Action','Restore' if restore else 'Hide','-PlanPath',plan)
+    from cad_bridge import request
+    request('restore' if restore else 'hide',source,levels=selected,state=str(state))
     if restore:state.unlink()
     return str(state)
 
@@ -235,7 +233,8 @@ def prepare(source, options):
             if str(spec).strip():visible.update(levels(spec))
         display_levels(source,','.join(map(str,sorted(visible))))
     if options.get('in_place'):
-        powershell('dgn_topology.ps1','-Action','SaveActive','-InputPath',source,'-SourcePath',source,'-OutputPath',folder/'unused.dgn','-SkipSaveBackup')
+        from cad_bridge import request
+        request('save',source)
     original = digest(source)
     working = source if options.get('in_place') else folder / source.name
     if working != source:shutil.copyfile(source, working)
@@ -486,7 +485,12 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
         save_project(project_path,project)
         if target and digest(target)!=db_before:raise ValueError('MDB đang bị thay đổi bởi chương trình khác. Chưa ghi thay đổi.')
         dgn_attempted=True
-        powershell('dgn_topology.ps1','-Action','ApplyClean' if clean_only else 'ApplyDrawing','-InputPath',project_path,'-OutputPath',source)
+        write_started=time.perf_counter()
+        if clean_only and not target and not project.get('scope_rings'):
+            from cad_bridge import request
+            request('clean',source,model=project['model'],project=project)
+        else:powershell('dgn_topology.ps1','-Action','ApplyClean' if clean_only else 'ApplyDrawing','-InputPath',project_path,'-OutputPath',source)
+        write_seconds=time.perf_counter()-write_started
         dgn_applied=True
         if target:
             if digest(target)!=db_before:raise ValueError('MDB thay đổi trong khi cập nhật DGN; cần kết nối lại.')
@@ -510,12 +514,14 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
                  'backup':str(backup) if keep_backup else None,'project':project,'connected':connected,
                  'before_count':delta['before_count'] if delta else None,
                  'after_count':delta['after_count'] if delta else None,
-                 'splits':delta['splits'] if delta else [],'unnumbered':delta['unnumbered'] if delta else 0}
+                 'splits':delta['splits'] if delta else [],'unnumbered':delta['unnumbered'] if delta else 0,
+                 'write_seconds':write_seconds}
         (backup/'receipt.json').write_text(json.dumps({k:v for k,v in receipt.items() if k not in ('project','connected')},ensure_ascii=False,indent=2),encoding='utf-8')
         if not keep_backup:shutil.rmtree(backup)
         return receipt
     except Exception as exc:
         failures=[]
+        if getattr(exc,'rescue_required',False):failures.append('V8i chưa tự khôi phục được; giữ tệp cứu hộ.')
         if db_applied and target and db_backup:
             try:
                 if digest(target)!=new_db_digest:raise RuntimeError('MDB đã được tiến trình khác sửa sau khi ghi; không ghi đè dữ liệu mới của tiến trình đó.')

@@ -139,7 +139,8 @@ def build(snapshot, options):
     for polygon in sorted(polygons.geoms, key=lambda g: (-g.representative_point().y, g.representative_point().x)):
         index = len(parcels) + 1
         if polygon.interiors:
-            issue('HOLE_UNSUPPORTED', parcel=index)
+            hole=list(polygon.interiors[0].coords)
+            issue('HOLE_UNSUPPORTED', parcel=index,point=hole[0],points=hole)
         centre = polygon.representative_point()
         measured = polygon.area * scale * scale
         if options.get('area_enabled',True) and measured < min_area:
@@ -191,7 +192,7 @@ def build(snapshot, options):
     lines = list(drawing_network.geoms) if hasattr(drawing_network, 'geoms') else [drawing_network]
     return dict(version=1, source=snapshot.get('source'), model=snapshot.get('model'),
                 model_is_default=bool(snapshot.get('model_is_default',False)),
-                unit=snapshot.get('unit'), options=options, parcels=parcels,
+                unit=snapshot.get('unit'),uors_per_master_unit=snapshot.get('uors_per_master_unit'), options=options, parcels=parcels,
                 cleaned_lines=[list(line.coords) for line in lines],noded_lines=noded_lines,boundary_changed=boundary_changed, issues=issues,
                 input_summary={str(level):sum(int(e['level'])==level for e in snapshot['elements']) for level in sorted(selected)})
 

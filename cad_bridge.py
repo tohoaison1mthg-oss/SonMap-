@@ -16,7 +16,7 @@ def request(action,source,**values):
     from topology_workflow import powershell
     with lock:
         if directory is None:
-            identity=hashlib.sha256(str(ROOT.resolve()).casefold().encode('utf-8')+b''.join((ROOT/name).read_bytes() for name in ('cad_bridge.cs','dgn_interop.ps1'))).hexdigest()[:12]
+            identity=hashlib.sha256(str(ROOT.resolve()).casefold().encode('utf-8')+b''.join((ROOT/name).read_bytes() for name in ('cad_bridge.cs','cad_clean.cs','dgn_interop.ps1'))).hexdigest()[:12]
             directory=ROOT/'data'/'cad-bridge'/identity
             directory.mkdir(parents=True,exist_ok=True)
         try:
@@ -30,6 +30,10 @@ def request(action,source,**values):
             directory=None
             raise
         rid=uuid.uuid4().hex
+        if action=='focus':
+            import ctypes
+            ready=json.loads((directory/'ready.json').read_text(encoding='utf-8-sig'))
+            ctypes.windll.user32.AllowSetForegroundWindow(int(ready['pid']))
         payload=dict(id=rid,action=action,source=str(Path(source).resolve()),model=None)
         payload.update(values)
         temporary=directory/'request.tmp'
@@ -47,5 +51,7 @@ def request(action,source,**values):
         result=json.loads(response.read_text(encoding='utf-8-sig'))
         response.unlink()
         if result['id']!=rid:raise RuntimeError('Kết quả V8i không khớp yêu cầu.')
-        if not result['ok']:raise RuntimeError(result['result'])
+        if not result['ok']:
+            error=RuntimeError(result['result']);error.rescue_required=bool(result.get('rescue_required'))
+            raise error
         return result['result']

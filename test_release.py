@@ -25,7 +25,7 @@ class ReleaseTests(unittest.TestCase):
                 self.assertEqual(set(outer.namelist()),{'Cai_dat.cmd','Cai_dat.ps1','payload.zip','HUONG_DAN.txt','Kiem_tra_V8i.cmd','Kiem_tra_quet_DGN.cmd'})
                 with zipfile.ZipFile(io.BytesIO(outer.read('payload.zip'))) as payload:
                     self.assertEqual(payload.read('VERSION').decode().strip(),release_version())
-                    for required in ('dgn_view.ps1','update_parcel_attributes.ps1','legacy_startup.py','cad_worker.py','cad_worker.ps1','cad_bridge.py','cad_bridge.cs','dgn_bridge.ps1'):
+                    for required in ('dgn_view.ps1','update_parcel_attributes.ps1','legacy_startup.py','cad_worker.py','cad_worker.ps1','cad_bridge.py','cad_bridge.cs','cad_clean.cs','dgn_bridge.ps1'):
                         self.assertIn(required,payload.namelist())
                     for required in ['installer/restore.ps1','installer/restore.cmd','CHANGELOG.md','AGENTS.md','check_connection.ps1','python_probe.py','python_setup.ps1','dgn_scan.ps1','test_scan_v8i.ps1','dgn_interop.ps1','test_dgn_interop.ps1','parcel_info.py','parcel_info_ui.py','pick_dgn_point.ps1','update_parcel_owner.ps1']:
                         self.assertIn(required,payload.namelist())

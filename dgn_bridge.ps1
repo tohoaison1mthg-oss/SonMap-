@@ -18,12 +18,13 @@ $end=$inline.LastIndexOf("'@")
 if($start -lt 0 -or $end -le $start){throw 'Missing bridge interop source.'}
 $records=$inline.Substring($start,$end-$start).Replace('SonMapV8iRecords','SonMapInProcessRecords')
 $wrapper=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'cad_bridge.cs'))
+$clean=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'cad_clean.cs'))
 $identity=Split-Path $Directory -Leaf
 $taskId=('SMF'+$identity.Substring(0,8)).ToUpperInvariant()
 $target=Join-Path $Directory ($taskId+'.dll')
 [void](New-Item -ItemType Directory -Path $Directory -Force)
 $wrapper=$wrapper.Replace('SONMAPFAST',$taskId)
-$source="namespace SonMapFast$identity {`n"+$records+"`n}`nnamespace SonMapFast$identity {`n"+$wrapper+"`n}"
+$source="namespace SonMapFast$identity {`n"+$records+"`n}`nnamespace SonMapFast$identity {`n"+$wrapper+"`n}`nnamespace SonMapFast$identity {`n"+$clean+"`n}"
 if(-not (Test-Path -LiteralPath $target)) {
  Add-Type -TypeDefinition $source -ReferencedAssemblies @($interop,$microstation,$hostAssembly,(Join-Path $assemblies 'ECFramework/Bentley.General.1.0.dll'),(Join-Path $assemblies 'bentley.microstation.interfaces.1.0.dll'),'System.Windows.Forms','System.Web.Extensions') -OutputAssembly $target -OutputType Library
 }

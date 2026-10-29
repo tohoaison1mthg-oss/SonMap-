@@ -3,6 +3,7 @@ import copy
 import json
 import queue
 import threading
+import time
 from pathlib import Path
 
 from topology import BLOCKING, finite, save_project
@@ -43,6 +44,8 @@ class TopologyWorkspace:
         self.windows={};self.controls=[];self.busy=False;self.project=None;self.path=None
         self.navigation_project=None;self.error_zoom=1
         self.error_position=tk.StringVar(master=parent,value='0/0')
+        self.error_description=tk.StringVar(master=parent,value='')
+        self.navigation_hidden=[]
         self.source.trace_add('write',self.source_changed)
 
     def style_dialog(self,win):
@@ -68,6 +71,7 @@ class TopologyWorkspace:
         apply(win)
 
     def source_changed(self,*_):
+        self.restore_navigation()
         self.project=None;self.path=None;self.navigation_project=None
         self.refresh_parcels()
         report=self.windows.get('report')
@@ -182,6 +186,7 @@ class TopologyWorkspace:
         from tkinter import messagebox
         try:options=self.options()
         except Exception as exc:messagebox.showerror('Thông số chưa đúng',str(exc),parent=self.parent);return
+        started=time.perf_counter()
         source=self.source.get();target=self.current_mdb;self.project=None;self.path=None;self.navigation_project=None;self.error_zoom=1;self.refresh_parcels();self.refresh_report()
         def work():
             path,project=prepare(source,options)
@@ -202,7 +207,10 @@ class TopologyWorkspace:
             if kind=='topology' and errors:self.show_report();return
             if kind=='clean' and any(i['code']=='UNSUPPORTED' for i in self.project['issues']):self.show_report();return
             if options['in_place']:
-                self.launch(lambda:apply_current(self.path,target if kind=='topology' else None,clean_only=kind=='clean'),self.current_done)
+                def updated(result):
+                    result['elapsed_seconds']=time.perf_counter()-started
+                    self.current_done(result)
+                self.launch(lambda:apply_current(self.path,target if kind=='topology' else None,clean_only=kind=='clean'),updated)
             else:self.launch(lambda:drawing_project(self.path,topology=kind=='topology'),lambda path:self.drawing_done(kind,path))
         self.launch(work,done)
 
@@ -220,6 +228,7 @@ class TopologyWorkspace:
         if self.project.get('scope_rings'):
             outside=sum(i['code'] in BLOCKING for i in self.project.get('excluded_issues',[]))
             text+=f' Cập nhật cục bộ; {outside} lỗi ranh ngoài phạm vi chưa xử lý.'
+        if 'elapsed_seconds' in result:text+=f" Tổng thời gian: {result['elapsed_seconds']:.2f} giây."
         self.status.set(text)
         messagebox.showinfo('Đã cập nhật',text+ ('\nSao lưu trước thay đổi: '+result['backup'] if result.get('backup') else ''),parent=self.parent)
         if errors:self.show_report()
@@ -375,6 +384,17 @@ class TopologyWorkspace:
 
     def report_detail(self,item):
         parts=[]
+        project=self.project or self.navigation_project
+        near=item
+        if item.get('code')=='DANGLE' and item.get('point') and project:
+            near=next((row for row in project['issues'] if row['code']=='NEAR_NODE' and tuple(row.get('point',[]))==tuple(item['point'])),item)
+        if near.get('candidates') and near.get('point'):
+            import math
+            scale=float(project['options']['metres_per_unit']) if project else 1
+            distance=min(math.dist(near['point'],p) for p in near['candidates'])*scale
+            parts.append(f'Cách nút gần nhất: {distance:.6g} m')
+            resolution=scale/float(project['uors_per_master_unit']) if project and project.get('uors_per_master_unit') else None
+            if resolution and distance<resolution:parts.append(f'Dưới độ phân giải DGN ({resolution:.6g} m)')
         if item.get('field'):parts.append('Trường: '+{'TCT':'Số thửa','LRD':'Loại đất','TenChu':'Tên chủ','Xudong':'Xứ đồng'}.get(item['field'],item['field']))
         point=item.get('point') or (item.get('points') or [None])[0]
         if point:parts.append(f'X={point[0]:.4f}; Y={point[1]:.4f}')
@@ -388,6 +408,7 @@ class TopologyWorkspace:
 
     def show_report(self):
         from tkinter import ttk
+        self.restore_navigation()
         if not (self.project or self.navigation_project) and not self.require_project():return
         win=self.window('report','Danh sách lỗi','950x550')
         if not win:return
@@ -422,6 +443,8 @@ class TopologyWorkspace:
         project=self.project or self.navigation_project
         if not project:return
         issue=project['issues'][int(iid)]
+        self.error_description.set(ISSUES.get(issue['code'],issue['code'])+'\n'+self.report_detail(issue))
+        self.compact_navigation()
         self.update_error_position()
         if direction:self.error_zoom=1
         self.launch(lambda:focus_issue(project,issue,self.error_zoom),lambda _:self.status.set(
@@ -429,8 +452,43 @@ class TopologyWorkspace:
 
     def zoom_error(self,factor):
         if self.busy:return
-        self.error_zoom=max(.0625,min(64,self.error_zoom*factor))
+        self.error_zoom=max(.0000001,min(10000,self.error_zoom*factor))
         self.navigate_error(0)
+
+    def compact_navigation(self):
+        import tkinter as tk
+        from tkinter import ttk
+        nav=self.windows.get('navigator')
+        if nav is None or not nav.winfo_exists():
+            nav=tk.Toplevel(self.parent);nav.title('SonMap+ — Tìm vị trí lỗi')
+            nav.geometry('440x230+12+100');nav.resizable(False,False)
+            nav.attributes('-topmost',True)
+            self.windows['navigator']=nav
+            ttk.Label(nav,textvariable=self.error_position,anchor='center').pack(fill='x',padx=8,pady=5)
+            ttk.Label(nav,textvariable=self.error_description,wraplength=420,anchor='center').pack(fill='x',padx=8,pady=3)
+            buttons=ttk.Frame(nav);buttons.pack(pady=6)
+            for i,(text,command) in enumerate([
+                ('◀ Trước',lambda:self.navigate_error(-1)),('Sau ▶',lambda:self.navigate_error(1)),
+                ('Danh sách',self.restore_navigation),('Phóng to +',lambda:self.zoom_error(.5)),
+                ('Thu nhỏ −',lambda:self.zoom_error(2)),('Xóa vòng này',lambda:self.clear_markers(True))]):
+                self.button(buttons,text,command,width=12).grid(row=i//3,column=i%3,padx=3,pady=3)
+            nav.protocol('WM_DELETE_WINDOW',self.restore_navigation)
+            self.style_dialog(nav)
+        if not self.navigation_hidden:
+            candidates=[self.parent.winfo_toplevel()]+[w for k,w in self.windows.items() if k!='navigator']
+            for win in dict.fromkeys(candidates):
+                if win.winfo_exists() and win.state()!='withdrawn':
+                    self.navigation_hidden.append(win);win.withdraw()
+        nav.deiconify();nav.lift()
+
+    def restore_navigation(self):
+        nav=self.windows.get('navigator')
+        if nav is not None and nav.winfo_exists():nav.withdraw()
+        for win in self.navigation_hidden:
+            if win.winfo_exists():win.deiconify()
+        self.navigation_hidden=[]
+        report=self.windows.get('report')
+        if report is not None and report.winfo_exists():report.lift()
 
     def update_error_position(self):
         table=self.report_table;items=table.get_children();selected=table.selection()

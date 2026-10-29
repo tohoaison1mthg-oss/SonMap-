@@ -4,8 +4,12 @@ using System.Collections.Generic;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using B = Bentley.Interop.MicroStationDGN;
+using System.Runtime.InteropServices;
 
 internal sealed class SonMapCadBridge : Bentley.MicroStation.AddIn {
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window,int command);
     private Timer timer;
     private string directory;
     private JavaScriptSerializer json;
@@ -21,6 +25,7 @@ internal sealed class SonMapCadBridge : Bentley.MicroStation.AddIn {
         return 0;
     }
     private void Tick(object sender, EventArgs ignored) {
+        try {SonMapInProcessRecords.CheckFocusContext(Bentley.MicroStation.InteropServices.Utilities.ComApp);} catch {}
         string requestPath=Path.Combine(directory,"request.json");
         if(!File.Exists(requestPath))return;
         timer.Stop();
@@ -44,11 +49,20 @@ internal sealed class SonMapCadBridge : Bentley.MicroStation.AddIn {
                 bool defaultModel=app.ActiveDesignFile.Models.Count==1 || Object.ReferenceEquals(model,app.ActiveDesignFile.DefaultModelReference) || model.Name==app.ActiveDesignFile.DefaultModelReference.Name;
                 result=SonMapInProcessRecords.ExtractJson(app,model,levels,Convert.ToBoolean(request["arcs"]),Convert.ToBoolean(request["keep_complex"]),Convert.ToDouble(request["tolerance"]),defaultModel,text);
             } else if(action=="focus") {
+                IntPtr window=System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+                if(IsIconic(window))ShowWindow(window,9);
+                SetForegroundWindow(window);
                 SonMapInProcessRecords.Focus(app,Convert.ToDouble(request["x"]),Convert.ToDouble(request["y"]),Convert.ToDouble(request["span"]));
                 result="FOCUSED";
+            } else if(action=="clean") {
+                result=SonMapClean.Run(app,(Dictionary<string,object>)request["project"]);
+            } else if(action=="hide" || action=="restore") {
+                result=SonMapView.Run(app,request,action=="restore");
+            } else if(action=="save") {
+                app.ActiveDesignFile.Save();result="ACTIVE_SOURCE_SAVED";
             } else throw new InvalidOperationException("Unsupported bridge action.");
             Reply(request,true,result);
-        } catch(Exception error) {Reply(request,false,error.Message);}
+        } catch(Exception error) {Reply(request,false,"Stage: "+SonMapClean.Stage+"\n"+error.ToString(),error is SonMapClean.RestoreFailed);}
         finally {timer.Start();}
     }
     private int[] Integers(object value) {
@@ -56,9 +70,9 @@ internal sealed class SonMapCadBridge : Bentley.MicroStation.AddIn {
         for(int i=0;i<rows.Length;i++)result[i]=Convert.ToInt32(rows[i]);
         return result;
     }
-    private void Reply(Dictionary<string,object> request,bool ok,object result) {
+    private void Reply(Dictionary<string,object> request,bool ok,object result,bool rescue=false) {
         string temporary=Path.Combine(directory,"response.tmp");
-        File.WriteAllText(temporary,json.Serialize(new {id=request==null?null:request["id"],ok=ok,result=result}));
+        File.WriteAllText(temporary,json.Serialize(new {id=request==null?null:request["id"],ok=ok,result=result,rescue_required=rescue}));
         string destination=Path.Combine(directory,"response.json");
         if(File.Exists(destination))File.Delete(destination);
         File.Move(temporary,destination);

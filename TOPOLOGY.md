@@ -1,11 +1,11 @@
-# SonMap+ V10.18 — làm trực tiếp trên laptop
+# SonMap+ V10.19 — làm trực tiếp trên laptop
 
 Phiên bản lấy từ [VERSION](VERSION), lịch sử và giới hạn nghiệm thu từng bản
 ở [CHANGELOG.md](CHANGELOG.md). Quy ước phát triển nằm trong [AGENTS.md](AGENTS.md).
 
 ## Cài hoặc nâng cấp ứng dụng
 
-Giải nén SonMapPlus_V10_18_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
+Giải nén SonMapPlus_V10_19_Update.zip, đóng SonMap cũ và chạy Cai_dat.cmd.
 Lối tắt SonMap+ dùng chương trình ở `%LOCALAPPDATA%\SonMapPlus\App`.
 Trình cài giữ các phiên bản trước, sao lưu mã cũ và có công cụ Khôi phục.
 Nếu thiếu CPython 3.12 64-bit phù hợp, chuẩn bị bản riêng cho SonMap từ bộ cài
@@ -33,6 +33,19 @@ giữ tâm tại lỗi đang chọn. Với đầu ranh hở, tâm là chính đ�
 giữa đoạn dài. **Xóa vòng đang chọn** chỉ dọn SMERR tại vị trí đó; **Xóa dấu lỗi**
 dọn toàn bộ SMERR trong model. Danh sách vẫn giữ để tiếp tục tìm vị trí sau
 khi xóa vòng; cần kiểm tra lại ranh trước khi ghi kết quả phân tích mới.
+
+Khi tìm hoặc zoom lỗi, bảng lớn thu lại thành **Tìm vị trí lỗi** ở góc màn
+hình; MicroStation được đưa lên trước, có chữ thập vàng chỉ vị trí đang chọn.
+Bấm **Danh sách** để mở lại bảng đầy đủ. Chữ thập là dấu hiển thị tạm, không
+thêm phần tử hoặc ghi vào DGN; đổi bản vẽ/model sẽ dọn dấu tạm. Nút zoom cho
+phép đi sâu hơn trước, vẫn giới hạn theo độ phân giải gốc của DGN. Với nút gần,
+chi tiết hiện khoảng cách thực; khe nhỏ hơn độ phân giải bản vẽ có chú thích
+riêng, vì không thể nhận ra bằng cách xem nét ở tỷ lệ thông thường. Không tự
+làm tròn tọa độ hoặc coi xóa dấu là đã sửa ranh.
+
+V10.19 chuyển bước ẩn lớp/lưu và ghi sửa ranh trực tiếp vào V8i, giữ tệp phục
+hồi tạm và kiểm tra tọa độ sau ghi. Thông báo hoàn tất Sửa lỗi hiện tổng thời
+gian gồm phân tích và ghi; tránh nhầm tốc độ đọc ranh với toàn bộ công việc.
 
 V10.18 đọc ranh và zoom qua cầu nối SonMap bên trong V8i. Lần đầu tự biên
 dịch từ mã nguồn bằng các thư viện Bentley đã cài trên máy; không đóng gói

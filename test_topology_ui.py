@@ -128,6 +128,8 @@ class DialogTests(unittest.TestCase):
         with patch('topology_ui.focus_issue') as focus:
             self.button(win,'Sau ▶').invoke();self.pump()
             self.assertEqual(self.workspace.error_position.get(),'2/2')
+            self.assertEqual(win.state(),'withdrawn')
+            self.assertTrue(self.workspace.windows['navigator'].winfo_viewable())
             self.button(win,'Phóng to +').invoke();self.pump()
             self.assertEqual(focus.call_args.args[2],.5)
             self.assertEqual(focus.call_args.args[1]['point'],[3,4])
@@ -140,6 +142,8 @@ class DialogTests(unittest.TestCase):
             self.button(win,'Thu nhỏ −').invoke();self.pump()
             self.assertEqual(focus.call_args.args[1]['point'],[3,4])
         self.assertIsNotNone(self.workspace.navigation_project)
+        self.workspace.restore_navigation();self.root.update()
+        self.assertEqual(win.state(),'normal')
         self.workspace.source.set('another.dgn');self.root.update()
         self.assertIsNone(self.workspace.navigation_project)
 
@@ -150,6 +154,16 @@ class DialogTests(unittest.TestCase):
         self.assertEqual(self.workspace.parcel_table.item('0','values')[3],'568,7')
         self.assertEqual(self.workspace.project['parcels'][0]['DienTich'],568.74321)
         self.assertIn('568,7 m²',self.workspace.report_detail({'area_m2':568.74321}))
+
+    def test_sub_resolution_gap_is_explained_without_changing_coordinates(self):
+        self.workspace.project=copy.deepcopy(self.data)
+        self.workspace.project['uors_per_master_unit']=1000
+        issue={'code':'NEAR_NODE','point':[500000,1000000],'candidates':[[500000.0000001,1000000]]}
+        before=copy.deepcopy(issue)
+        self.assertIn('Dưới độ phân giải DGN',self.workspace.report_detail(issue))
+        self.workspace.project['issues']=[issue]
+        self.assertIn('Dưới độ phân giải DGN',self.workspace.report_detail({'code':'DANGLE','point':issue['point']}))
+        self.assertEqual(issue,before)
 
     def test_default_direct_topology_updates_connected_mdb(self):
         self.workspace.current_mdb='current.mdb'
