@@ -1,5 +1,11 @@
 # Phiên bản SonMap+
 
+Phiên bản ứng dụng hiện tại lấy từ [VERSION](VERSION). Các mục dưới đây ghi
+lịch sử từng bản, bao gồm hành vi sao lưu và giới hạn tại thời điểm phát hành;
+không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy ước lâu dài nằm
+trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
+[PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
+
 ## V10.16
 
 - Sửa lỗi dừng topology vì so sánh Double tuyệt đối khi MDB đọc lại lệch vài ULP (trường DienTich, ID 111). Chỉ dung sai sai số biểu diễn số thực; ID, văn bản và Geometry vẫn kiểm tra chính xác, diện tích hiển thị một chữ số thập phân.
