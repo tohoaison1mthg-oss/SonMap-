@@ -76,7 +76,10 @@ try {
  }
  InvokePython $venvPython @('-c',"import importlib.metadata as m, sys; versions={d.metadata['Name'].lower():d.version for d in m.distributions()}; sys.exit(0 if versions.get('shapely')=='2.0.7' else 1)")
  if($script:PythonExitCode -ne 0) {
-  InvokePython $venvPython @('-m','pip','install','-r',(Join-Path $PSScriptRoot 'requirements-topology.txt'))
+  $pipArgs=@('-m','pip','install','--disable-pip-version-check')
+  $wheels=Join-Path $PSScriptRoot 'prerequisites\wheels'
+  if(Test-Path -LiteralPath $wheels){$pipArgs+=@('--no-index','--find-links',$wheels)}
+  InvokePython $venvPython ($pipArgs+@('-r',(Join-Path $PSScriptRoot 'requirements-topology.txt')))
   if($script:PythonExitCode -ne 0){throw 'Could not install topology dependencies. Check the pip error above.'}
  }
  if($PrepareOnly){Write-Host 'Python and topology dependencies are ready.';exit 0}

@@ -1,5 +1,5 @@
 # Per-user source updater. No administrator access or private CAD data required.
-param([string]$InstallRoot,[switch]$NoLaunch)
+param([string]$InstallRoot,[switch]$NoLaunch,[switch]$IsolatedTest)
 $ErrorActionPreference='Stop'
 if(-not $InstallRoot){$InstallRoot=Join-Path $env:LOCALAPPDATA 'SonMapPlus\App'}
 $InstallRoot=[IO.Path]::GetFullPath($InstallRoot)
@@ -34,6 +34,14 @@ try {
   if(-not $path.StartsWith($stage+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Invalid manifest path.'}
   if((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $item.sha256){throw ('Package checksum mismatch: '+$relative)}
  }
+ # Optional full-install resources stay separate from the public source payload.
+ $resourceScript=Join-Path $stage 'installer\full_resources.ps1'
+ if(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'resources.zip')) {
+  & $resourceScript -InstallRoot $InstallRoot -BundleRoot $PSScriptRoot -ValidateOnly
+ }
+ if(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'prerequisites')) {
+  Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'prerequisites') -Destination (Join-Path $stage 'prerequisites') -Recurse
+ }
  $old=$null
  $installed=Join-Path $InstallRoot 'VERSION'
  if(Test-Path -LiteralPath $installed) {
@@ -41,14 +49,16 @@ try {
   if([version]$old -gt [version]$version){throw ('A newer version V'+$old+' is installed; refusing to downgrade.')}
  }
  # Never replace application modules while the old copy is running.
+ if(-not $IsolatedTest) {
  foreach($proc in Get-CimInstance Win32_Process -Filter "Name='python.exe' OR Name='pythonw.exe'") {
   if($proc.CommandLine -and $proc.CommandLine -match ('(?i)'+[regex]::Escape($InstallRoot+'\')+'(launch|app)\.py(?:"|\s|$)')) {
    throw 'Close the installed SonMap window, then run this installer again.'
   }
  }
+ }
  [void](New-Item -ItemType Directory -Path $InstallRoot -Force)
  # Prepare dependencies first. If this fails, existing application files are unchanged.
- Log 'Preparing Python and dependencies. Internet is required on first install.'
+ Log 'Preparing Python and dependencies (offline when full installer is used).'
  $powershell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
  $previous=$ErrorActionPreference
  try {
@@ -79,11 +89,15 @@ try {
  $restoreInfo=@{schema=1;from_version=$old;installed_version=$version;files=@($restoreEntries.ToArray())}
  [IO.File]::WriteAllText((Join-Path $backup 'restore.json'),(ConvertTo-Json -InputObject $restoreInfo -Depth 6),(New-Object Text.UTF8Encoding($false)))
  # Reuse private export resources from the legacy local installation if available.
- $legacy=Join-Path $env:LOCALAPPDATA 'ThanhTanApp'
+ $legacy=if($IsolatedTest){Join-Path $storage 'isolated-legacy'}else{Join-Path $env:LOCALAPPDATA 'ThanhTanApp'}
  foreach($relative in @('assets','ThanhTanApp.mvba')) {
   $target=Join-Path $InstallRoot $relative;$source=Join-Path $legacy $relative
   if(-not (Test-Path -LiteralPath $target) -and (Test-Path -LiteralPath $source)){Copy-Item -LiteralPath $source -Destination $target -Recurse}
  }
+ if(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'resources.zip')) {
+  & $resourceScript -InstallRoot $InstallRoot -BundleRoot $PSScriptRoot
+ }
+ if(-not $IsolatedTest) {
  $shell=New-Object -ComObject WScript.Shell
  $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'SonMap+.lnk'))
  $shortcut.TargetPath=Join-Path $InstallRoot 'start_topology.cmd'
@@ -100,6 +114,14 @@ try {
  $restoreShortcut.WorkingDirectory=$tools
  $restoreShortcut.IconLocation=Join-Path $InstallRoot 'sonmap.ico'
  $restoreShortcut.Save()
+ $cadShortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'SonMap+ - MicroStation V8i.lnk'))
+ $cadShortcut.TargetPath=$powershell
+ $cadShortcut.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $InstallRoot 'start_v8i.ps1')+'" -NewSession'
+ $cadShortcut.WorkingDirectory=$InstallRoot
+ $cadShortcut.IconLocation=Join-Path $InstallRoot 'sonmap.ico'
+ $cadShortcut.WindowStyle=7
+ $cadShortcut.Save()
+ }
  $committed=$true
  # Old MicroStation VBA can call ThanhTanApp/app.py directly, bypassing the
  # current Desktop shortcut. Preserve that app and forward its entry point.

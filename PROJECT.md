@@ -3,7 +3,7 @@
 ## Nguồn thông tin hiện hành
 
 - Phiên bản thực tế lấy từ [VERSION](VERSION); tại lần cập nhật tài liệu này là
-  **10.21**. Lịch sử thay đổi và phạm vi từng bản nằm trong [CHANGELOG.md](CHANGELOG.md).
+  **10.22**. Lịch sử thay đổi và phạm vi từng bản nằm trong [CHANGELOG.md](CHANGELOG.md).
   Không suy ra phiên bản từ README cũ hoặc tiêu đề bàn giao lịch sử.
 - Quy ước phát triển lâu dài nằm trong [AGENTS.md](AGENTS.md), mục
   **Development principles**. Khi hướng dẫn cũ khác quy ước hiện hành, áp dụng
@@ -57,3 +57,7 @@ Chưa hoàn thiện tự sửa ranh/tạo topology trên DGN. Không được su
 ## Workspace
 
 SonMap.ucf giữ thiết lập V7/tài nguyên nhưng không nạp VietMap.Init.dll, giúp tránh khởi tạo mạng của plugin khi chỉ dùng SonMap. VietMapXM.ucf cũ giữ nguyên; không sửa DLL/khóa hoặc bỏ kiểm tra bản quyền. Thông báo Error2 của VietMap vẫn có thể có khi dùng workspace VietMapXM.
+
+## Bộ cài V10.22
+
+Xem V10_22_VALIDATION.md. Một EXE cài offline Python và thư viện cùng tài nguyên riêng. Không cần workspace VietMapXM; chưa nghiệm thu trên máy sạch chỉ có V8i.

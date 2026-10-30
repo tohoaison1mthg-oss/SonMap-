@@ -25,8 +25,8 @@ Public Sub MoBangThuocTinh(ByVal dgnPath As String)
     appRoot = Environ$("LOCALAPPDATA") & "\SonMapPlus\App"
     python = appRoot & "\.venv-topology\Scripts\pythonw.exe"
     If Not fs.FileExists(appRoot & "\VERSION") Or Not fs.FileExists(python) Then
-        appRoot = "C:\Users\tohoa\Documents\Codex\2026-10-12\referenced-chatgpt-conversation-this-is-an\outputs\ThanhTanApp"
-        python = "C:\Users\tohoa\Documents\EZDGN\.venv\Scripts\pythonw.exe"
+        MsgBox "SonMap is not installed. Run the full setup first.", vbExclamation
+        Exit Sub
     End If
     If Not fs.FolderExists(appRoot & "\data") Then fs.CreateFolder appRoot & "\data"
     Set stream = fs.CreateTextFile(appRoot & "\data\active_dgn.txt", True, True)

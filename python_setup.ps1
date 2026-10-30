@@ -48,16 +48,22 @@ function InstallSonMapPython([string]$TargetDirectory) {
   $installer=Join-Path $temporary 'python-3.12.10-amd64.exe'
   $url='https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe'
   Write-Host 'Preparing a separate Python 3.12 for SonMap. Your other Python versions remain installed.'
-  Write-Host ('Downloading from '+$url)
-  [Net.ServicePointManager]::SecurityProtocol=[Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-  Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $installer
+  $bundled=Join-Path $PSScriptRoot 'prerequisites\python-3.12.10-amd64.exe'
+  if(Test-Path -LiteralPath $bundled){
+   Write-Host 'Using bundled Python installer (offline).'
+   Copy-Item -LiteralPath $bundled -Destination $installer
+  } else {
+   Write-Host ('Downloading from '+$url)
+   [Net.ServicePointManager]::SecurityProtocol=[Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+   Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $installer
+  }
   $signature=Get-AuthenticodeSignature -LiteralPath $installer
   if($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate -or $signature.SignerCertificate.Subject -notmatch '(^|,\s*)O=Python Software Foundation(,|$)') {
    throw 'Python installer signature is invalid or not from Python Software Foundation. Installation stopped.'
   }
   Write-Host ('Python installer SHA256: '+(Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash)
   $arguments='/quiet InstallAllUsers=0 Include_launcher=0 InstallLauncherAllUsers=0 AssociateFiles=0 Shortcuts=0 PrependPath=0 AppendPath=0 Include_doc=0 Include_test=0 Include_tools=0 Include_tcltk=1 Include_pip=1 TargetDir="'+$TargetDirectory+'" /log "'+(Join-Path $temporary 'install.log')+'"'
-  $process=Start-Process -FilePath $installer -ArgumentList $arguments -PassThru -Wait
+  $process=Start-Process -FilePath $installer -ArgumentList $arguments -WindowStyle Hidden -PassThru -Wait
   if($process.ExitCode -notin @(0,3010)) {
    $keep=Join-Path $logDirectory 'python-install.log'
    $logs=@(Get-ChildItem -LiteralPath $temporary -Filter '*.log' -File)

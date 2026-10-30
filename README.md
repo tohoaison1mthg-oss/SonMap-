@@ -1,6 +1,6 @@
 # SonMap+
 
-Phần mềm địa chính cho Windows + MicroStation V8i. Phiên bản hiện tại: **V10.7**.
+Phần mềm địa chính cho Windows + MicroStation V8i. Phiên bản hiện tại: **V10.22**.
 
 Tự nhận DGN đang mở và MDB cùng tên; tìm thửa, kiểm tra hình học, xuất trích lục/In GCN/Mẫu 03; địa chỉ từ Xudong + xã/phường + tỉnh; Reference tọa độ thực, bật/tắt bằng nút Ánh xạ. Giao diện gọn, danh sách thửa mở/thu gọn riêng. Có workspace SonMap V7 độc lập.
 
@@ -48,3 +48,7 @@ V10.7 mặc định ghi DGN hiện tại và cập nhật MDB kết nối, có s
 chưa có số chính thức hiển thị Chờ số; xuất hồ sơ cần gán số trước. Có gói
 Laptop_Workspace để chạy Codex local trong VS Code rồi gửi mã lên GitHub.
 Xem TOPOLOGY.md; thao tác COM/Jet trực tiếp vẫn cần kiểm chứng trên Windows thật.
+
+## Bộ cài đầy đủ V10.22
+
+Một EXE cho Windows x64 đã có V8i, gồm Python và thư viện offline, hai mẫu xuất và VBA từ tài nguyên cục bộ. Xem V10_22_VALIDATION.md. Mã xây dựng ở installer/package_full.py; tài nguyên riêng không đưa lên GitHub. Các hướng dẫn V10.7 bên trên là lịch sử.

@@ -6,6 +6,14 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.22
+
+- Bo cai mot tep EXE cho Windows 64-bit da co MicroStation V8i: kem Python 3.12.10, Shapely 2.0.7 va NumPy 1.26.4 de cai offline.
+- Dong goi rieng hai mau xuat va project VBA tu tai nguyen cuc bo; khong dua DGN/MDB ca nhan hoac tai nguyen rieng len GitHub.
+- Bo sung cau noi cap nhat VBA o thu muc ung dung va khoi dong V8i khong phu thuoc workspace VietMapXM.
+- Kiem tra checksum, giu tai nguyen/du lieu hien co va sao luu ma khi cap nhat.
+- Xem V10_22_VALIDATION.md ve pham vi kiem thu va gioi han may moi.
+
 ## V10.21
 
 - Sửa vòng lặp báo đầu ranh hở nhỏ: mặc định bật nối ranh trong ngưỡng 0,01 m;
