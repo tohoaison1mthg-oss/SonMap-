@@ -23,10 +23,10 @@ class DialogTests(unittest.TestCase):
         for name,output in [('showerror',self.errors),('showinfo',self.infos)]:
             p=patch('tkinter.messagebox.'+name,side_effect=lambda *a,_out=output,**k:_out.append(a))
             self.stack.append(p);p.start()
-        self.workspace=TopologyWorkspace(self.root,'source.dgn',on_database=self.connected.append)
+        self.workspace=TopologyWorkspace(self.root,'source1.dgn',on_database=self.connected.append)
         self.temporary=tempfile.TemporaryDirectory();self.path=Path(self.temporary.name)/'project.json'
         self.data=project([line(rect(x=0,y=0))],[text('12',5,5,13)])
-        self.data.update(source={'path':'source.dgn'},working_sha256='fixture',working_dgn='copy.dgn')
+        self.data.update(source={'path':'source1.dgn'},working_sha256='fixture',working_dgn='copy.dgn')
         save_project(self.path,self.data)
 
     def tearDown(self):
@@ -107,7 +107,7 @@ class DialogTests(unittest.TestCase):
         self.workspace.project=copy.deepcopy(self.data);self.workspace.path=self.path
         with patch('topology_ui.clear_error_markers') as clear:
             self.workspace.clear_markers();self.pump()
-        self.assertEqual(clear.call_args.args[0],'source.dgn')
+        self.assertEqual(clear.call_args.args[0],'source1.dgn')
         self.assertEqual(clear.call_args.args[1]['model'],'Default')
         self.assertIsNone(self.workspace.project);self.assertIsNone(self.workspace.path)
         self.assertIn('kiểm tra lại',self.workspace.status.get())

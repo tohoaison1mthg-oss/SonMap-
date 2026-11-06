@@ -6,6 +6,52 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.28
+
+- Khi nối đầu ranh vào hình chiếu trên cạnh xiên, chèn cùng một đỉnh lên cả đầu ranh và cạnh đích. Tránh ranh hở giả do sai số số thực ở tọa độ lớn.
+- Giữ nguyên ngưỡng nối do người dùng chọn và chốt chặn ranh hở trước khi ghi MDB; không tăng sai số bỏ qua hoặc làm tròn toàn bản đồ.
+- Dựng lại snapshot DC113: 212 vùng giữ nguyên, hai DANGLE ẩn do sai số số thực được giải quyết, kiểm tra export_rows đạt. Xem V10_28_VALIDATION.md.
+
+## V10.27
+
+- Ghi topology toàn bản đồ trực tiếp trên luồng V8i, giữ kiểm tra snapshot, tọa độ, MDB staging/readback và khôi phục khi lỗi. Phạm vi cục bộ và dự án cũ tiếp tục dùng đường ghi cũ.
+- Đọc tọa độ mỗi tâm CENTRD một lần, lọc bounding box trước khi đối chiếu polygon; giữ kết quả ghép tâm cũ.
+- Lưu thời gian từng bước vào data/topology-performance-last.json để chẩn đoán.
+- Mỗi loại hồ sơ chỉ có một nút xuất: danh sách mở và có dòng chọn thì xuất dòng đó; danh sách thu gọn/chưa chọn dòng thì chờ click DGN. Áp dụng Trích lục, In GCN, Mẫu 03/CLBĐ.
+- Bỏ nút Trích lục → chọn DGN. Khóa thửa đã click theo ID, không hỏi chọn lại.
+- Ánh xạ dùng cặp nguồn/hồ sơ xuất đã xác nhận, có khôi phục ngữ cảnh từ runtime/result khi mở lại app; tránh lấy hồ sơ làm nguồn Reference.
+- Xem V10_27_VALIDATION.md.
+
+## V10.26
+
+- Nút Zoom đến thửa trong danh sách, tìm theo hình học đúng ID của dòng đang chọn; kiểm tra MDB thay đổi trước khi zoom.
+- Trích lục xuất ngay dòng đang chọn. Khi chưa chọn dòng, chuyển sang click chọn thửa trong DGN.
+- Nút Trích lục → chọn DGN luôn chờ chọn trên bản vẽ, không dùng dòng cũ đang chọn trong danh sách.
+- Dùng chung quy trình xuất, xác nhận kết quả và lưu theo khóa tờ/thửa/ID. Hủy chọn hoặc đổi nguồn/MDB thì không xuất.
+- Xem V10_26_VALIDATION.md.
+
+## V10.25
+
+- Tờ topology tự lấy từ tên DGN đang mở (dc188 → 188), hoặc ToBD duy nhất trong MDB khi tên không xác định; ô chỉ đọc, không tự mặc định tờ 1.
+- Chọn thửa bằng primitive nhận một điểm trực tiếp trên luồng giao diện V8i; chuột phải hủy. Giữ kiểm tra DGN/model và MDB thay đổi.
+- Bỏ Số tạm khỏi bảng thông tin, không xóa cột/dữ liệu MDB.
+- Tâm thửa dùng cell CENTRD lớp 11, sao cấu trúc từ mẫu hiện có; giữ tâm hợp lệ và không nhân đôi khi chạy lại. Không dùng ID nội bộ làm số thửa.
+- Xem V10_25_VALIDATION.md về kiểm thử và giới hạn.
+
+## V10.24
+
+- Lối tắt SonMap+ - MicroStation V8i mở cả V8i và giao diện SonMap, thay vì chỉ mở V8i.
+- SonMap tiếp tục theo dõi DGN đang hoạt động; không yêu cầu MDB để hiện giao diện.
+- Giữ các sửa cấu hình và chẩn đoán V10.23; không thay đổi thuật toán địa chính.
+
+## V10.23
+
+- Khởi động V8i bằng User/Project SonMap riêng trong thư mục ứng dụng; không phụ thuộc lựa chọn VietMapXM trước đó.
+- Báo rõ khi V8i chưa mở hoặc không kết nối được; không tự chạy lại thao tác ghi.
+- Báo đường dẫn MDB và quyền Modify cần có khi Windows từ chối thay thế tệp; không tự sửa quyền.
+- Lưu traceback lỗi topo vào data/topology-error.log để chẩn đoán đúng bước lỗi.
+- Giữ nguyên thuật toán địa chính và dữ liệu DGN/MDB. Xem V10_23_VALIDATION.md.
+
 ## V10.22
 
 - Bo cai mot tep EXE cho Windows 64-bit da co MicroStation V8i: kem Python 3.12.10, Shapely 2.0.7 va NumPy 1.26.4 de cai offline.

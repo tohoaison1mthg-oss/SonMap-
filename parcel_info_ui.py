@@ -11,7 +11,7 @@ LABELS={'ToBD':'Tờ bản đồ','TCT':'Số thửa','TenChu':'Tên chủ sử 
 # Only the user-requested cadastral fields belong in this dialog. Extra MDB columns stay untouched.
 FORM_FIELDS={
  'ToBD':('Tờ BĐ',('ToBD',)), 'TCT':('Số thửa',('TCT',)),
- 'temporary':('Số tạm',('ThuaTam','SoTam','SHTam')), 'DienTich':('Diện tích',('DienTich',)),
+ 'DienTich':('Diện tích',('DienTich',)),
  'residential':('Đất ở',('dtThocu','DTDatO','DienTichDatO')),
  'legal_area':('DT pháp lý',('DTPhapLy','DienTichPhapLy')),
  'land':('MĐSD',('LRD','MaLD')), 'subject':('ĐTSD',('DTSD','KyHieuDTSD')),
@@ -30,7 +30,7 @@ FORM_FIELDS={
  'spouse_place':('Nơi cấp',('NoiCapVC','NoiCapCMNDVC')),
  'note':('Ghi chú',('GhiChu',))}
 AREA_FIELDS={'DienTich','residential','legal_area'}
-CHECK_FIELDS={'ToBD','TCT','temporary','residential','legal_area','land','subject','parcel_address','TenChu','DiaChi','note'}
+CHECK_FIELDS={'ToBD','TCT','residential','legal_area','land','subject','parcel_address','TenChu','DiaChi','note'}
 
 
 def form_bindings(connected,row):
@@ -111,7 +111,7 @@ class ParcelInfoController:
             self._vars[key].trace_add('write',lambda *_,k=key:None if self.loading or k not in self._writable else self._enabled[k].set(True))
         top=ttk.Frame(body);top.pack(fill='x',padx=3,pady=4)
         top.columnconfigure(1,weight=1);top.columnconfigure(3,weight=1)
-        for row,pair in enumerate((('ToBD','TCT'),('temporary','DienTich'),('residential','legal_area'))):
+        for row,pair in enumerate((('ToBD','TCT'),('DienTich',),('residential','legal_area'))):
             for col,key in zip((0,2),pair):field(top,key,row,col)
         land=ttk.Frame(body);land.pack(fill='x',padx=3,pady=3);land.columnconfigure(1,weight=1)
         for row,key in enumerate(('land','subject','parcel_address')):field(land,key,row)

@@ -13,6 +13,7 @@ internal sealed class SonMapCadBridge : Bentley.MicroStation.AddIn {
     private Timer timer;
     private string directory;
     private JavaScriptSerializer json;
+    private SonMapParcelPicker picker;
     private SonMapCadBridge(IntPtr descriptor) : base(descriptor) {}
     protected override int Run(string[] args) {
         directory = Path.GetDirectoryName(GetType().Assembly.Location);
@@ -43,7 +44,15 @@ internal sealed class SonMapCadBridge : Bentley.MicroStation.AddIn {
             if(wantedModel.Length>0 && model.Name!=wantedModel)throw new InvalidOperationException("Active model changed; operation cancelled.");
             string action=Convert.ToString(request["action"]);
             object result;
-            if(action=="extract") {
+            if(action=="pick") {
+                IntPtr window=System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+                if(IsIconic(window))ShowWindow(window,9);
+                SetForegroundWindow(window);
+                picker=new SonMapParcelPicker(app,source,model.Name,
+                    delegate(object picked){Reply(request,true,json.Serialize(picked));});
+                app.CommandState.StartPrimitive(picker,false);
+                return;
+            } else if(action=="extract") {
                 int[] levels=Integers(request["levels"]);
                 int[] text=request["text_levels"]==null?null:Integers(request["text_levels"]);
                 bool defaultModel=app.ActiveDesignFile.Models.Count==1 || Object.ReferenceEquals(model,app.ActiveDesignFile.DefaultModelReference) || model.Name==app.ActiveDesignFile.DefaultModelReference.Name;
@@ -54,8 +63,8 @@ internal sealed class SonMapCadBridge : Bentley.MicroStation.AddIn {
                 SetForegroundWindow(window);
                 SonMapInProcessRecords.Focus(app,Convert.ToDouble(request["x"]),Convert.ToDouble(request["y"]),Convert.ToDouble(request["span"]));
                 result="FOCUSED";
-            } else if(action=="clean") {
-                result=SonMapClean.Run(app,(Dictionary<string,object>)request["project"]);
+            } else if(action=="clean" || action=="topology") {
+                result=SonMapClean.Run(app,(Dictionary<string,object>)request["project"],action=="topology");
             } else if(action=="hide" || action=="restore") {
                 result=SonMapView.Run(app,request,action=="restore");
             } else if(action=="save") {
@@ -77,4 +86,23 @@ internal sealed class SonMapCadBridge : Bentley.MicroStation.AddIn {
         if(File.Exists(destination))File.Delete(destination);
         File.Move(temporary,destination);
     }
+}
+
+[ComVisible(true)]
+public sealed class SonMapParcelPicker : B.IPrimitiveCommandEvents {
+    private B.Application app;
+    private string source,model;
+    private Action<object> reply;
+    private bool completed;
+    public SonMapParcelPicker(B.Application application,string path,string name,Action<object> callback){app=application;source=path;model=name;reply=callback;}
+    private void Finish(object value){if(completed)return;completed=true;reply(value);app.CommandState.StartDefaultCommand();}
+    public void Start(){app.ShowPrompt("SonMap: Click once inside a parcel; right-click to cancel.");}
+    public void DataPoint(ref B.Point3d point,B.View view){
+        if(!String.Equals(Path.GetFullPath(app.ActiveDesignFile.FullName),Path.GetFullPath(source),StringComparison.OrdinalIgnoreCase) || app.ActiveModelReference.Name!=model){Finish(new {cancelled=true});return;}
+        Finish(new {point=new double[]{point.X,point.Y},source=source,model=model});
+    }
+    public void Reset(){Finish(new {cancelled=true});}
+    public void Cleanup(){if(!completed){completed=true;reply(new {cancelled=true});}app.ShowPrompt("");}
+    public void Keyin(string keyin){}
+    public void Dynamics(ref B.Point3d point,B.View view,B.MsdDrawingMode mode){}
 }

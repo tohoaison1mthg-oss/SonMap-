@@ -379,15 +379,67 @@ def gui():
             return True
         except Exception as exc:
             messagebox.showerror('Chưa tạo được bộ xuất',str(exc));return False
-    def request(mode='TrichLuc'):
+    def zoom_selected():
+        if state['exporting']:return
+        if not tree.selection():messagebox.showinfo('Zoom đến thửa','Chọn một dòng trong danh sách trước.');return
+        import threading,queue,copy
+        from topology_workflow import focus_parcel
+        p=copy.deepcopy(state['parcels'][int(tree.selection()[0])])
+        source=state.get('drawing','');mdb=variables['mdb'].get()
+        if p.get('_source_key')!=source_key(mdb,sha(mdb)):
+            messagebox.showwarning('Nguồn đã đổi','Đọc lại MDB trước khi zoom đến thửa.');return
+        state['exporting']=True;completion=queue.Queue()
+        def work():
+            try:focus_parcel({'source':source,'row':p});completion.put(None)
+            except Exception as exc:completion.put(str(exc))
+        def done():
+            try:error=completion.get_nowait()
+            except queue.Empty:win.after(100,done);return
+            state['exporting']=False
+            if error:messagebox.showerror('Không zoom được',error)
+            else:status.set(f'Đã tìm vị trí tờ {p["ToBD"]}, thửa {p.get("TCT") or "chưa có số"}.')
+        threading.Thread(target=work,daemon=True).start();win.after(100,done)
+
+    def pick_for_export(mode):
+        import threading,queue
+        from parcel_info import pick_parcel
+        from parcel_actions import record_index
+        source=state.get('drawing','');mdb=variables['mdb'].get()
+        if not source or not Path(mdb).is_file():
+            messagebox.showinfo('Chọn thửa xuất','Mở DGN và MDB cùng tên trước khi chọn thửa.');return
+        state['exporting']=True;completion=queue.Queue()
+        status.set('Click một lần bên trong thửa trên DGN để xuất; chuột phải để hủy.')
+        win.iconify()
+        def work():
+            try:completion.put((pick_parcel(source,mdb),None))
+            except Exception as exc:completion.put((None,str(exc)))
+        def done():
+            try:selection,error=completion.get_nowait()
+            except queue.Empty:win.after(100,done);return
+            state['exporting']=False;win.deiconify()
+            if error:messagebox.showerror('Chưa chọn được thửa xuất',error);return
+            if not selection:status.set('Đã hủy chọn thửa; chưa xuất hồ sơ.');return
+            try:
+                if state.get('drawing')!=source or variables['mdb'].get()!=mdb:
+                    raise ValueError('Nguồn đã đổi; chưa xuất hồ sơ. Chọn lại thửa trên DGN mới.')
+                if not database_connected(selection['connected']):
+                    raise ValueError('Không đọc được hình học thửa đã chọn; chưa xuất hồ sơ.')
+                index=record_index(state['parcels'],selection['row']['ID'])
+                clear_search();tree.selection_set(str(index));tree.focus(str(index));tree.see(str(index));selected()
+                request(mode,picked_index=index)
+            except Exception as exc:messagebox.showerror('Chưa xuất hồ sơ',str(exc))
+        threading.Thread(target=work,daemon=True).start();win.after(100,done)
+
+    def request(mode='TrichLuc',picked_index=None):
         if state['exporting']:messagebox.showinfo('Đang xuất','Đợi lượt xuất hiện tại hoàn tất.');return
-        if not tree.selection():messagebox.showwarning('Chọn thửa','Chọn một dòng trong danh sách.');return
+        if picked_index is None and (not state['list_open'] or not tree.selection()):pick_for_export(mode);return
         import threading,queue,copy
         save_edit()
         config=settings(mode)
         if Path(config['dgn']).suffix.lower()!='.dgn':
             messagebox.showerror('Sai tệp','Bản đồ DGN gốc phải là .dgn.');return
-        p=copy.deepcopy(state['parcels'][int(tree.selection()[0])])
+        index=picked_index if picked_index is not None else int(tree.selection()[0])
+        p=copy.deepcopy(state['parcels'][index])
         parcels=copy.deepcopy(state['parcels']);rejected=copy.deepcopy(state['rejected'])
         state['exporting']=True
         status.set('Đang chuẩn bị dữ liệu và tứ cận; giao diện vẫn hoạt động…')
@@ -433,6 +485,10 @@ def gui():
                 state['exporting']=False
                 if fields[0]=='OK':
                     state['last_output']=fields[2]
+                    state['last_source']=config['dgn']
+                    try:
+                        (ROOT/'data/last-export.json').write_text(json.dumps({'source':config['dgn'],'target':fields[2]},ensure_ascii=False),encoding='utf-8')
+                    except OSError:pass
                     status.set('Đã lưu DGN: '+fields[2]);messagebox.showinfo('Đã xuất Mẫu 03/CLBĐ' if mode=='Mau03' else 'Đã tạo bản In GCN' if mode=='GCN' else 'Đã xuất trích lục',fields[2])
                 else:status.set('Xuất chưa thành công.');messagebox.showerror('MicroStation báo lỗi',fields[2])
             elif attempt>=240:
@@ -458,14 +514,15 @@ def gui():
             tree.grid_remove();searchbar.grid_remove();panel.grid_remove();win.rowconfigure(7,weight=0);win.geometry('900x300')
     def reference_map():
         if state['exporting']:return
-        if not state.get('last_output'):
-            messagebox.showinfo('Ánh xạ tờ bản đồ','Xuất hồ sơ thành công trước, giữ bản vẽ kết quả mở rồi bấm Ánh xạ.');return
+        from parcel_actions import reference_context
+        try:reference=reference_context(ROOT,state.get('last_source',''),state.get('last_output',''))
+        except ValueError as exc:messagebox.showinfo('Ánh xạ tờ bản đồ',str(exc));return
         import threading,queue
         result=queue.Queue();state['exporting']=True
         def work():
             try:
                 ps=Path(os.environ.get('WINDIR',r'C:\Windows'))/'SysWOW64/WindowsPowerShell/v1.0/powershell.exe'
-                proc=subprocess.run([str(ps),'-NoProfile','-ExecutionPolicy','Bypass','-File',str(ROOT/'reference_map.ps1'),'-Source',state['drawing'],'-Target',state['last_output']],capture_output=True,timeout=20,creationflags=0x08000000)
+                proc=subprocess.run([str(ps),'-NoProfile','-ExecutionPolicy','Bypass','-File',str(ROOT/'reference_map.ps1'),'-Source',reference['source'],'-Target',reference['target']],capture_output=True,timeout=20,creationflags=0x08000000)
                 result.put((proc.returncode,(proc.stdout+proc.stderr).decode('utf-8',errors='replace')))
             except Exception as exc:result.put((1,str(exc)))
         def wait():
@@ -486,7 +543,8 @@ def gui():
             parcels,rejected=decode_mdb_rows(result['rows'],path,result['sha256'],allow_empty=True)
             state.update(parcels=parcels,rejected=rejected);filter_rows()
             status.set(f'Đã kết nối CSDL: {len(parcels)} thửa; {len(rejected)} hình học chưa hỗ trợ.')
-        except Exception as exc:messagebox.showerror('Không nạp được dữ liệu thửa',str(exc))
+            return True
+        except Exception as exc:messagebox.showerror('Không nạp được dữ liệu thửa',str(exc));return False
     def dgn_tools(mode='main'):
         if state['exporting']:return
         from topology_ui import TopologyWorkspace
@@ -497,11 +555,14 @@ def gui():
         source=state.get('drawing','')
         if source and source!=workspace.source.get():workspace.source.set(source)
         workspace.current_mdb=variables['mdb'].get() if Path(variables['mdb'].get()).is_file() else None
+        from topology_ui import drawing_sheet
+        workspace.vars['sheet'].set(drawing_sheet(source,state['parcels']))
         if workspace.current_mdb:workspace.database.set(workspace.current_mdb)
         {'main':workspace.main,'clean':workspace.clean,'topology':workspace.topology,'database':workspace.database_dialog}[mode]()
     compact=ttk.Frame(win);compact.grid(row=1,column=0,columnspan=3,sticky='w',padx=10,pady=5)
     ttk.Button(compact,text='Mở V8i',image=icons['read'],compound='left',command=connect_v8i).pack(side='left',padx=4)
     ttk.Button(compact,text='Danh sách thửa ▾',image=icons['list'],compound='left',command=toggle_parcels).pack(side='left',padx=4)
+    ttk.Button(searchbar,text='Zoom đến thửa',command=zoom_selected).pack(side='left',padx=6)
     ttk.Button(compact,text='Ánh xạ tờ bản đồ',image=icons['map'],compound='left',command=reference_map).pack(side='left',padx=4)
     primary=ttk.LabelFrame(win,text='BẢN ĐỒ ĐỊA CHÍNH');primary.grid(row=2,column=0,columnspan=3,sticky='ew',padx=10,pady=6)
     for title,mode in [('Sửa lỗi','clean'),('Tạo topology','topology'),('Kết nối CSDL','database')]:

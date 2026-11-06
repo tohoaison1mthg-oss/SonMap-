@@ -75,6 +75,7 @@ def build(snapshot, options):
                            [('level',min(selected)),('color',0),('weight',0),('line_style','0'),('source_id',element.get('id'))]})
     if not segments:
         raise ValueError('Không có đường ranh trên các lớp đã chọn.')
+    projection_splits={}
     if options.get('snap',False) and tolerance:
         # Collapse submillimetre digitising noise even at connected vertices.
         # Complete-link groups prevent a chain from drifting across the map.
@@ -157,13 +158,23 @@ def build(snapshot, options):
                     a,b=segments[int(index)]
                     if p in (a,b):continue
                     edge=LineString((a,b));q=edge.interpolate(edge.project(point))
-                    if 0<point.distance(q)<=tolerance:projections.append(tuple(q.coords[0]))
-                if projections and all(math.dist(projections[0],q)<=1e-9 for q in projections):target=projections[0]
+                    if 0<point.distance(q)<=tolerance:projections.append((int(index),tuple(q.coords[0])))
+                if projections and all(math.dist(projections[0][1],q)<=1e-9 for _,q in projections):
+                    target=projections[0][1]
+                    # GEOS cannot node an endpoint that differs from its target
+                    # edge by one floating-point ULP. Materialise the shared
+                    # vertex on BOTH lines rather than hiding the open chain.
+                    for index,_ in projections:projection_splits.setdefault(index,set()).add(target)
             if target is not None and target!=p:
                 replacements[p]=target;assigned.add(p)
                 issue('SNAPPED_ENDPOINT',point=p,target=target,displacement_m=math.dist(p,target)*scale)
-    repaired_with_style = [(replacements.get(a,a),replacements.get(b,b),style)
-                           for (a,b),style in zip(segments,styles) if replacements.get(a,a)!=replacements.get(b,b)]
+    repaired_with_style=[]
+    for index,((a,b),style) in enumerate(zip(segments,styles)):
+        start,end=replacements.get(a,a),replacements.get(b,b)
+        if start==end:continue
+        edge=LineString((start,end))
+        points=[start]+sorted(projection_splits.get(index,set())-{start,end},key=lambda p:edge.project(Point(p)))+[end]
+        repaired_with_style.extend((p,q,style) for p,q in zip(points,points[1:]) if p!=q)
     repaired = [(a,b) for a,b,_ in repaired_with_style]
     if not repaired:
         raise ValueError('Không còn đường ranh sau xử lý.')

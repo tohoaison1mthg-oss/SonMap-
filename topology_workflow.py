@@ -56,6 +56,10 @@ def check_database_replaceable(path):
         if error in (32,33):
             raise RuntimeError('MDB đang bị khóa. Ngắt kết nối MDB trong phần mềm đang dùng rồi thử lại. '
                                'Chưa ghi thay đổi DGN/MDB.\n'+str(path))
+        if error == 5:
+            raise PermissionError('Windows từ chối quyền thay thế MDB. Cần quyền Modify (Sửa đổi) '
+                                  'cho tài khoản đang dùng trên tệp và thư mục chứa MDB. '
+                                  'Chưa ghi thay đổi DGN/MDB.\n'+str(path))
         raise ctypes.WinError(error)
     close(handle)
 
@@ -265,7 +269,7 @@ def prepare(source, options):
     snapshot['source'] = {'path': str(source), 'sha256': original}
     project = build(snapshot, options)
     project.update(working_dgn=str(working), working_sha256=original,
-                   references_excluded=snapshot.get('references_excluded', 0), status='review',
+                   references_excluded=snapshot.get('references_excluded', 0), status='review',native_write=True,
                    timing={'scan_seconds':scanned-started,'build_seconds':time.perf_counter()-scanned})
     save_project(folder / 'project.json', project)
     return folder / 'project.json', project
@@ -435,6 +439,8 @@ def assign_labels(project_path, label_levels):
 def apply_current(project_path, database_path=None,clean_only=False,keep_backup=False):
     """Update active DGN/MDB with temporary recovery data and checked readback."""
     from database_topology import reconcile
+    operation_started=time.perf_counter()
+    timings={}
     project_path=Path(project_path)
     original_project=json.loads(project_path.read_text(encoding='utf-8'))
     project=copy.deepcopy(original_project)
@@ -448,6 +454,7 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
     if digest(dgn_backup)!=project['source']['sha256']:raise RuntimeError('Bản sao lưu DGN không khớp nguồn.')
     delta=None;target=None;staged=None;db_backup=None;db_before=None;db_applied=False;dgn_applied=False;dgn_attempted=False;new_db_digest=None
     try:
+        database_started=time.perf_counter()
         if database_path:
             target=Path(database_path).resolve()
             if target.suffix.lower()!='.mdb':raise ValueError('CSDL cần có phần mở rộng .mdb.')
@@ -478,6 +485,7 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
                     other=found[rid][key]
                     if not database_value_equal(value,other):
                         raise RuntimeError(f'MDB tạm không khớp trường {key} của ID {rid}.')
+        timings['database_prepare_seconds']=time.perf_counter()-database_started
         # Geometry must remain exportable, but new parcels may wait for official numbering.
         if clean_only:
             if any(i['code']=='UNSUPPORTED' for i in project['issues']):raise ValueError('Còn phần tử ranh chưa hỗ trợ; không ghi đè.')
@@ -487,12 +495,14 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
         if target and digest(target)!=db_before:raise ValueError('MDB đang bị thay đổi bởi chương trình khác. Chưa ghi thay đổi.')
         dgn_attempted=True
         write_started=time.perf_counter()
-        if clean_only and not target and not project.get('scope_rings'):
+        if not project.get('scope_rings') and ((clean_only and not target) or (not clean_only and project.get('native_write'))):
             from cad_bridge import request
-            request('clean',source,model=project['model'],project=project)
+            request('clean' if clean_only else 'topology',source,model=project['model'],project=project)
         else:powershell('dgn_topology.ps1','-Action','ApplyClean' if clean_only else 'ApplyDrawing','-InputPath',project_path,'-OutputPath',source)
         write_seconds=time.perf_counter()-write_started
+        timings['dgn_write_seconds']=write_seconds
         dgn_applied=True
+        commit_started=time.perf_counter()
         if target:
             if digest(target)!=db_before:raise ValueError('MDB thay đổi trong khi cập nhật DGN; cần kết nối lại.')
             if changes:
@@ -505,6 +515,7 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
                 db_applied=True
             connected=inspect_database(target) if changes else old
         else:connected=None
+        timings['database_commit_seconds']=time.perf_counter()-commit_started
         project['source']['sha256']=digest(source)
         # Refresh the analysis copy so a subsequent explicit operation does not use stale geometry.
         if Path(project['working_dgn']).resolve()!=source.resolve():shutil.copyfile(source,project['working_dgn'])
@@ -516,9 +527,16 @@ def apply_current(project_path, database_path=None,clean_only=False,keep_backup=
                  'before_count':delta['before_count'] if delta else None,
                  'after_count':delta['after_count'] if delta else None,
                  'splits':delta['splits'] if delta else [],'unnumbered':delta['unnumbered'] if delta else 0,
-                 'write_seconds':write_seconds}
+                 'write_seconds':write_seconds,'timing':timings}
         (backup/'receipt.json').write_text(json.dumps({k:v for k,v in receipt.items() if k not in ('project','connected')},ensure_ascii=False,indent=2),encoding='utf-8')
         if not keep_backup:shutil.rmtree(backup)
+        timings['apply_total_seconds']=time.perf_counter()-operation_started
+        try:
+            (ROOT/'data').mkdir(exist_ok=True)
+            (ROOT/'data/topology-performance-last.json').write_text(json.dumps(
+                {'source':str(source),'prepare':project.get('timing',{}),'apply':timings,
+                 'parcels':len(project['parcels'])},ensure_ascii=False,indent=2),encoding='utf-8')
+        except OSError:pass  # Diagnostics must not undo a successfully verified update.
         return receipt
     except Exception as exc:
         failures=[]

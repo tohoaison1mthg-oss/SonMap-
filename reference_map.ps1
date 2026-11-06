@@ -1,12 +1,13 @@
 param([string]$Source,[string]$Target,[switch]$ProbeOnly)
 $ErrorActionPreference='Stop'
+[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
 try {
  $Source=[IO.Path]::GetFullPath($Source);$Target=[IO.Path]::GetFullPath($Target)
  if($Source -eq $Target){throw 'Source and output must be different files.'}
  if(-not (Test-Path -LiteralPath $Source) -or -not (Test-Path -LiteralPath $Target)){throw 'Source or output DGN is missing.'}
  $a=[Runtime.InteropServices.Marshal]::GetActiveObject('MicroStationDGN.Application')
  $fs=New-Object -ComObject Scripting.FileSystemObject
- if($fs.GetFile($a.ActiveDesignFile.FullName).ShortPath -ne $fs.GetFile($Target).ShortPath){throw 'Open the exported DGN before attaching its source map.'}
+ if($fs.GetFile($a.ActiveDesignFile.FullName).ShortPath -ne $fs.GetFile($Target).ShortPath){throw ('Mo DGN ho so da xuat truoc khi Anh xa: '+$Target)}
  if($ProbeOnly){Write-Output 'READY';exit 0}
  foreach($ref in $a.ActiveModelReference.Attachments){
   if(-not $ref.IsMissingFile -and $fs.FileExists($ref.AttachName) -and $fs.GetFile($ref.AttachName).ShortPath -eq $fs.GetFile($Source).ShortPath){

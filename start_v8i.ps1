@@ -15,9 +15,13 @@ try {
  if($ProbeOnly){Write-Output $exe;exit 0}
  $project=(Join-Path $PSScriptRoot 'ThanhTanApp.mvba').Replace('\','/')
  if(-not (Test-Path -LiteralPath $project)){throw 'Missing SonMap VBA project. Run the full installer.'}
- # Session configuration, no VietMapXM workspace or global profile changes.
- $arguments=@('-wsMS_OPENV7=3',('-wsMS_VBASEARCHDIRECTORIES='+$PSScriptRoot.Replace('\','/')+'/'))
+ # Explicit per-user User/Project; ignore the last selected VietMap workspace.
+ $arguments=@(& (Join-Path $PSScriptRoot 'v8i_workspace.ps1'))
+ $arguments+=@('-wsMS_OPENV7=3',('-wsMS_VBASEARCHDIRECTORIES='+$PSScriptRoot.Replace('\','/')+'/'))
  $quoted=($arguments|ForEach-Object {'"'+$_+'"'}) -join ' '
- Start-Process -FilePath $exe -ArgumentList $quoted -WindowStyle Hidden
- Write-Output 'STARTING: select a DGN in MicroStation; SonMap will connect automatically.'
+ Start-Process -FilePath $exe -ArgumentList $quoted -WindowStyle Normal
+ $python=Join-Path $PSScriptRoot '.venv-topology\Scripts\pythonw.exe'
+ if(-not (Test-Path -LiteralPath $python)){throw 'SonMap Python is missing. Run the full setup again.'}
+ Start-Process -FilePath $python -ArgumentList ('"'+(Join-Path $PSScriptRoot 'launch.py')+'"') -WorkingDirectory $PSScriptRoot -WindowStyle Normal
+ Write-Output 'STARTING: V8i and SonMap opened. Select a DGN in MicroStation; SonMap follows the active drawing.'
 }catch{Write-Output $_.Exception.Message;exit 1}

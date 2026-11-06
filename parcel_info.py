@@ -122,7 +122,8 @@ def locate_parcel(rows, point):
 def pick_parcel(source, mdb):
     source=Path(source).resolve()
     connected=inspect_database(mdb)
-    result=json.loads(powershell('pick_dgn_point.ps1','-SourcePath',source))
+    from cad_bridge import request
+    result=json.loads(request('pick',source))
     if result.get('cancelled'):return None
     if digest(connected['path'])!=connected['sha256']:raise ValueError('MDB đã đổi trong lúc chọn. Chọn lại thửa để đọc thông tin mới.')
     return {'source':str(source),'model':result.get('model'),'connected':connected,'row':locate_parcel(connected['rows'],result['point'])}

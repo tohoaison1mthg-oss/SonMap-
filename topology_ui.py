@@ -4,6 +4,8 @@ import json
 import queue
 import threading
 import time
+import traceback
+import re
 from pathlib import Path
 
 from topology import BLOCKING, finite, save_project
@@ -22,12 +24,20 @@ ISSUES = {
  'LABEL_INVALID':'Số thửa không hợp lệ', 'ARC_APPROXIMATED':'Đã chia cung'
  ,'INTERSECTION_NODE':'Đã tạo giao điểm ranh'
 }
-DEFAULTS = dict(boundary_levels='10',sheet='1',metres_per_unit='1',short_length='.001',
+DEFAULTS = dict(boundary_levels='10',sheet='',metres_per_unit='1',short_length='.001',
  min_area='.3',near_distance='.1',snap_tolerance='.01',ignore_tolerance='.001',chord_tolerance='.001',
  centre_level='11',centre_color='3',centre_height='1',error_level='60',error_color='3',
  error_radius='.01',label_TCT='',label_LRD='',label_TenChu='',label_Xudong='')
 FLAGS = dict(snap=True,break_arcs=False,break_complex=True,join_lines=False,
              short_enabled=True,area_enabled=True,near_enabled=True,auto_hide=True)
+
+
+def drawing_sheet(source,rows=()):
+    match=re.fullmatch(r'(?i)(?:dc|to|tb|sheet|source)[ _-]*0*(\d+)',Path(source).stem)
+    if match and int(match[1])>0:return str(int(match[1]))
+    numbers={int(r['ToBD']) for r in rows if str(r.get('ToBD','')).isdigit() and int(r['ToBD'])>0}
+    if len(numbers)==1:return str(next(iter(numbers)))
+    return ''
 
 
 class TopologyWorkspace:
@@ -47,6 +57,7 @@ class TopologyWorkspace:
         self.error_description=tk.StringVar(master=parent,value='')
         self.navigation_hidden=[]
         self.source.trace_add('write',self.source_changed)
+        self.vars['sheet'].set(drawing_sheet(source))
 
     def style_dialog(self,win):
         """Named styles keep the exporter's existing widgets unchanged."""
@@ -71,6 +82,7 @@ class TopologyWorkspace:
         apply(win)
 
     def source_changed(self,*_):
+        self.vars['sheet'].set(drawing_sheet(self.source.get()))
         self.restore_navigation()
         self.project=None;self.path=None;self.navigation_project=None
         self.refresh_parcels()
@@ -143,7 +155,7 @@ class TopologyWorkspace:
         validate_options(options)
         for key in ('metres_per_unit','short_length','min_area','near_distance','snap_tolerance','ignore_tolerance'):
             finite(options[key],key,key=='metres_per_unit')
-        if int(options['sheet'])<=0:raise ValueError('Số tờ bản đồ phải lớn hơn 0.')
+        if not options['sheet'].isdigit() or int(options['sheet'])<=0:raise ValueError('Chưa xác định được tờ bản đồ từ DGN/MDB đang mở. Kiểm tra tên DGN hoặc kết nối MDB cùng tờ.')
         return options
 
     def launch(self,work,done):
@@ -164,7 +176,14 @@ class TopologyWorkspace:
         result=queue.Queue()
         def run():
             try:result.put((True,work()))
-            except Exception as exc:result.put((False,str(exc)))
+            except Exception as exc:
+                log=Path(__file__).resolve().parent/'data'/'topology-error.log'
+                try:
+                    log.parent.mkdir(parents=True,exist_ok=True)
+                    log.write_text(traceback.format_exc(),encoding='utf-8')
+                    detail=str(exc)+'\n\nChi tiết: '+str(log)
+                except OSError:detail=str(exc)
+                result.put((False,detail))
         def poll():
             try:ok,value=result.get_nowait()
             except queue.Empty:self.parent.after(120,poll);return
@@ -335,7 +354,7 @@ class TopologyWorkspace:
         body=ttk.Frame(tabs);tabs.add(body,text='Tạo topology')
         fields=ttk.Frame(body);fields.pack(fill='x',padx=4,pady=6)
         self.entry(fields,'boundary_levels',0,'Lớp tạo vùng (nhập số)',width=30)
-        self.entry(fields,'sheet',1,'Tờ bản đồ số (nhập số)',width=30)
+        self.entry(fields,'sheet',1,'Tờ bản đồ đang mở',width=30).configure(state='readonly')
         self.controls.append(ttk.Radiobutton(body,text='Cập nhật DGN và CSDL đang kết nối',variable=self.in_place,value=True))
         self.controls[-1].pack(anchor='w',padx=12,pady=3)
         mode=ttk.LabelFrame(body,text='Thuộc tính khi ranh thửa thay đổi');mode.pack(fill='x',padx=12,pady=4)

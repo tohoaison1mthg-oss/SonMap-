@@ -25,7 +25,7 @@ internal static class SonMapClean {
         using(var stream=File.Open(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite))
         using(var hash=SHA256.Create())return BitConverter.ToString(hash.ComputeHash(stream)).Replace("-","").ToLowerInvariant();
     }
-    public static object Run(B.Application app,Dictionary<string,object> project) {
+    public static object Run(B.Application app,Dictionary<string,object> project,bool topology=false) {
         Stage="validate-snapshot";
         var source=Map(project["source"]);string path=Convert.ToString(source["path"]);
         string backup=Convert.ToString(project["direct_backup"]),expected=Convert.ToString(source["sha256"]);
@@ -36,6 +36,8 @@ internal static class SonMapClean {
         var boundary=new HashSet<int>();
         foreach(string token in Convert.ToString(options["boundary_levels"]).Split(','))boundary.Add(Int32.Parse(token.Trim()));
         int errorLevel=Convert.ToInt32(options["error_level"]);
+        int centreLevel=Convert.ToInt32(options["centre_level"]);
+        if(topology && (boundary.Contains(centreLevel) || centreLevel==errorLevel))throw new InvalidOperationException("Centre, boundary and error levels must differ.");
         if(boundary.Contains(errorLevel))throw new InvalidOperationException("Error and boundary levels must differ.");
         double radius=Convert.ToDouble(options["error_radius"])/Convert.ToDouble(options["metres_per_unit"]);
         if(radius<=0 || Double.IsNaN(radius)||Double.IsInfinity(radius))throw new InvalidOperationException("Invalid error radius.");
@@ -47,7 +49,7 @@ internal static class SonMapClean {
         foreach(object value in SonMapInProcessRecords.OutputElements(app,model,levels,rewrite)) {
             var e=(B.Element)value;
             if(rewrite && e.Level!=null && boundary.Contains(e.Level.Number)){templates[e.ID.ToString()]=e;remove.Add(e);}
-            else if((int)e.Type==2 && e.AsCellElement().Name=="SMERR")remove.Add(e);
+            else if((int)e.Type==2 && (e.AsCellElement().Name=="SMERR" || (topology && e.AsCellElement().Name=="SMPARC")))remove.Add(e);
         }
         var levelCache=new Dictionary<int,B.Level>();
         foreach(B.Level level in design.Levels)levelCache[level.Number]=level;
@@ -100,6 +102,11 @@ internal static class SonMapClean {
             SonMapInProcessRecords.RemoveElements(model,remove.ToArray());
             SonMapInProcessRecords.AddElements(model,pending.ToArray());
             SonMapInProcessRecords.AddElements(model,markers.ToArray());
+            if(topology){
+                Stage="create-parcel-centres";
+                var serializer=new System.Web.Script.Serialization.JavaScriptSerializer();serializer.MaxJsonLength=int.MaxValue;
+                SonMapInProcessRecords.AddCentres(app,model,serializer.Serialize(project["parcels"]),findLevel(centreLevel),Convert.ToInt32(options["centre_color"]),Convert.ToDouble(options["centre_height"]));
+            }
             Stage="save-dgn";design.Save();
             Stage="verify-written-coordinates";
             double tolerance=Math.Max(1e-8,1.1/model.UORsPerMasterUnit);
@@ -109,7 +116,7 @@ internal static class SonMapClean {
                 for(int j=0;j<actual.Length;j++)if(Math.Abs(actual[j][0]-wanted[j][0])>tolerance || Math.Abs(actual[j][1]-wanted[j][1])>tolerance)throw new InvalidOperationException("Written boundary coordinate mismatch.");
             }
             Stage="redraw";
-            foreach(B.View view in design.Views)if(view.IsOpen){view.ShowLevel(findLevel(errorLevel));view.Redraw();}
+            foreach(B.View view in design.Views)if(view.IsOpen){view.ShowLevel(findLevel(errorLevel));if(topology)view.ShowLevel(findLevel(centreLevel));view.Redraw();}
             return new {boundaries=pending.Count,markers=markers.Count};
         } catch(Exception error) {
             if(mutated) {
