@@ -5,7 +5,7 @@
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "8952172ba1f7b596a81049270104c9c2971a9c6435687d8c159dd3c4b1f6b9f1"
+    "sha256": "f908c108568a1edc70fdcabf8a2383a2f957162f980393d0c91ab2fe8ae7eda0"
   },
   {
     "file": "CONTINUE.md",
@@ -45,11 +45,11 @@
   },
   {
     "file": "PROJECT.md",
-    "sha256": "6dad2235b4b384c1dff86528665ecd1c60ce9f35823c8a5857b816511b0ce1cf"
+    "sha256": "0c88ad7bdd5bef1ec4fc481af4155c3b8796cc3f8223a23f16eff4d99e9e8276"
   },
   {
     "file": "README.md",
-    "sha256": "cdd30c949216bb81ddd2f32cb45bac72d0b7c861989790b7d75215fffd654169"
+    "sha256": "d916859003921c2a9646600e55da59a91c0a44e72c22523efe979b1829017a0b"
   },
   {
     "file": "SonMap.code-workspace",
@@ -105,7 +105,7 @@
   },
   {
     "file": "VERSION",
-    "sha256": "4f5d2c61e7471780fe04f1da2da7167688166e47a2c1a3ae2b3d8c9e2221df50"
+    "sha256": "60abe854cdf7741a58aee9f027cb324551a5df00fc7eb832b860c59d00c22cfb"
   },
   {
     "file": "VIETMAPXM_STUDY.md",
@@ -321,7 +321,7 @@
   },
   {
     "file": "start_v8i.ps1",
-    "sha256": "2f2e7b423bf00222ce487c7f2cb25a4d73b95dc39ab1c2932e925c99717c398f"
+    "sha256": "a8818afae227bf2db31060040b5e685237edd994c6408d98fe7781d90d5cc3c3"
   },
   {
     "file": "sync_github.ps1",

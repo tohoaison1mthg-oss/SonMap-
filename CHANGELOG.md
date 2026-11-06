@@ -6,6 +6,12 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.24
+
+- Lối tắt SonMap+ - MicroStation V8i mở cả V8i và giao diện SonMap, thay vì chỉ mở V8i.
+- SonMap tiếp tục theo dõi DGN đang hoạt động; không yêu cầu MDB để hiện giao diện.
+- Giữ các sửa cấu hình và chẩn đoán V10.23; không thay đổi thuật toán địa chính.
+
 ## V10.23
 
 - Khởi động V8i bằng User/Project SonMap riêng trong thư mục ứng dụng; không phụ thuộc lựa chọn VietMapXM trước đó.

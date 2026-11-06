@@ -20,5 +20,8 @@ try {
  $arguments+=@('-wsMS_OPENV7=3',('-wsMS_VBASEARCHDIRECTORIES='+$PSScriptRoot.Replace('\','/')+'/'))
  $quoted=($arguments|ForEach-Object {'"'+$_+'"'}) -join ' '
  Start-Process -FilePath $exe -ArgumentList $quoted -WindowStyle Normal
- Write-Output 'STARTING: select a DGN in MicroStation; SonMap will connect automatically.'
+ $python=Join-Path $PSScriptRoot '.venv-topology\Scripts\pythonw.exe'
+ if(-not (Test-Path -LiteralPath $python)){throw 'SonMap Python is missing. Run the full setup again.'}
+ Start-Process -FilePath $python -ArgumentList ('"'+(Join-Path $PSScriptRoot 'launch.py')+'"') -WorkingDirectory $PSScriptRoot -WindowStyle Normal
+ Write-Output 'STARTING: V8i and SonMap opened. Select a DGN in MicroStation; SonMap follows the active drawing.'
 }catch{Write-Output $_.Exception.Message;exit 1}
