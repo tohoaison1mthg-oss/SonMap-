@@ -196,16 +196,61 @@ public static class SonMapV8iRecords {
   foreach(object value in elements)m.AddElement((B.Element)value);
  }
  public static void AddCentres(object application,object model,string parcelsJson,object level,int color,double height) {
+  B.Application app=(B.Application)application;
   var json=new System.Web.Script.Serialization.JavaScriptSerializer();json.MaxJsonLength=int.MaxValue;
   var parcels=(object[])json.DeserializeObject(parcelsJson);
   var m=(B.ModelReference)model;
+  var criteria=(B.ElementScanCriteria)app.CreateObjectInMicroStation("MicroStationDGN.ElementScanCriteria");
+  criteria.ExcludeAllTypes();criteria.IncludeType(B.MsdElementType.CellHeader);
+  var scan=m.Scan(criteria);var existing=new List<B.CellElement>();B.Element template=null;
+  while(scan.MoveNext()){
+   var cell=scan.Current.AsCellElement();
+   if(cell.Name!="CENTRD")continue;
+   var children=cell.GetSubElements();bool matchingLevel=false;
+   while(children.MoveNext())if(children.Current.Level!=null && children.Current.Level.Number==((B.Level)level).Number)matchingLevel=true;
+   if(!matchingLevel)continue;
+   existing.Add(cell);if(template==null)template=cell.Clone();
+  }
   foreach(object value in parcels) {
    var row=(Dictionary<string,object>)value;
    var point=(object[])row["centre"];
-   string label=row["TCT"]==null?"ID:"+Convert.ToString(row["ID"],System.Globalization.CultureInfo.InvariantCulture):Convert.ToString(row["TCT"],System.Globalization.CultureInfo.InvariantCulture);
-   var cell=(B.CellElement)TextCell(application,label,Convert.ToDouble(point[0]),Convert.ToDouble(point[1]),level,color,height);
-   cell.Level=(B.Level)level;m.AddElement(cell);
+   B.CellElement kept=null;
+   foreach(var old in existing){
+    var origin=old.Origin;
+    if(!InParcel(row,origin.X,origin.Y))continue;
+    if(kept==null)kept=old;else m.RemoveElement(old);
+   }
+   if(kept!=null)continue;
+   B.Point3d centre=new B.Point3d();centre.X=Convert.ToDouble(point[0]);centre.Y=Convert.ToDouble(point[1]);
+   B.CellElement created;
+   if(template!=null){
+    created=template.Clone().AsCellElement();created.RemoveAllDatabaseLinks();
+    var origin=created.Origin;created.ScaleUniform(ref origin,height);
+    B.Point3d delta=new B.Point3d();delta.X=centre.X-origin.X;delta.Y=centre.Y-origin.Y;created.Move(ref delta);
+   }else{
+    // A standalone cadastral centre, never an internal ID disguised as a parcel number.
+    double size=height*.3;var children=new List<B.Element>();
+    var rotation=app.Matrix3dIdentity();
+    children.Add(app.CreateEllipseElement2(null,ref centre,size*.2,size*.2,ref rotation));
+    double[][] offsets=new double[][]{new double[]{-size,0,size,0},new double[]{0,-size,0,size},new double[]{0,size*.5,size*.5,0},new double[]{size*.5,0,0,-size*.5},new double[]{0,-size*.5,-size*.5,0},new double[]{-size*.5,0,0,size*.5}};
+    foreach(var offset in offsets){B.Point3d a=centre,b=centre;a.X+=offset[0];a.Y+=offset[1];b.X+=offset[2];b.Y+=offset[3];children.Add(app.CreateLineElement2(null,ref a,ref b));}
+    foreach(var child in children){child.Level=(B.Level)level;child.Color=color;}
+    var parts=children.ToArray();created=app.CreateCellElement1("CENTRD",ref parts,ref centre,false);
+   }
+   m.AddElement(created);
   }
+ }
+ private static bool InRing(object value,double x,double y){
+  var ring=(object[])value;bool inside=false;
+  for(int i=0,j=ring.Length-1;i<ring.Length;j=i++){
+   var p=(object[])ring[i];var q=(object[])ring[j];double px=Convert.ToDouble(p[0]),py=Convert.ToDouble(p[1]),qx=Convert.ToDouble(q[0]),qy=Convert.ToDouble(q[1]);
+   if((py>y)!=(qy>y) && x<(qx-px)*(y-py)/(qy-py)+px)inside=!inside;
+  }return inside;
+ }
+ private static bool InParcel(Dictionary<string,object> row,double x,double y){
+  if(!InRing(row["points"],x,y))return false;
+  if(row.ContainsKey("holes"))foreach(object hole in (object[])row["holes"])if(InRing(hole,x,y))return false;
+  return true;
  }
  public static object ErrorCell(object app,double x,double y,double radius,object level,int color) {
   B.Application a=(B.Application)app;

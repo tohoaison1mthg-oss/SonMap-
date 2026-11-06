@@ -497,6 +497,8 @@ def gui():
         source=state.get('drawing','')
         if source and source!=workspace.source.get():workspace.source.set(source)
         workspace.current_mdb=variables['mdb'].get() if Path(variables['mdb'].get()).is_file() else None
+        from topology_ui import drawing_sheet
+        workspace.vars['sheet'].set(drawing_sheet(source,state['parcels']))
         if workspace.current_mdb:workspace.database.set(workspace.current_mdb)
         {'main':workspace.main,'clean':workspace.clean,'topology':workspace.topology,'database':workspace.database_dialog}[mode]()
     compact=ttk.Frame(win);compact.grid(row=1,column=0,columnspan=3,sticky='w',padx=10,pady=5)

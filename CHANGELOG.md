@@ -6,6 +6,14 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.25
+
+- Tờ topology tự lấy từ tên DGN đang mở (dc188 → 188), hoặc ToBD duy nhất trong MDB khi tên không xác định; ô chỉ đọc, không tự mặc định tờ 1.
+- Chọn thửa bằng primitive nhận một điểm trực tiếp trên luồng giao diện V8i; chuột phải hủy. Giữ kiểm tra DGN/model và MDB thay đổi.
+- Bỏ Số tạm khỏi bảng thông tin, không xóa cột/dữ liệu MDB.
+- Tâm thửa dùng cell CENTRD lớp 11, sao cấu trúc từ mẫu hiện có; giữ tâm hợp lệ và không nhân đôi khi chạy lại. Không dùng ID nội bộ làm số thửa.
+- Xem V10_25_VALIDATION.md về kiểm thử và giới hạn.
+
 ## V10.24
 
 - Lối tắt SonMap+ - MicroStation V8i mở cả V8i và giao diện SonMap, thay vì chỉ mở V8i.

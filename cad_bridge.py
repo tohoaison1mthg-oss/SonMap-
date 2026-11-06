@@ -30,7 +30,7 @@ def request(action,source,**values):
             directory=None
             raise
         rid=uuid.uuid4().hex
-        if action=='focus':
+        if action in ('focus','pick'):
             import ctypes
             ready=json.loads((directory/'ready.json').read_text(encoding='utf-8-sig'))
             ctypes.windll.user32.AllowSetForegroundWindow(int(ready['pid']))
@@ -41,7 +41,7 @@ def request(action,source,**values):
         response=directory/'response.json'
         if response.exists():response.unlink()
         temporary.replace(directory/'request.json')
-        deadline=time.monotonic()+30
+        deadline=time.monotonic()+(120 if action=='pick' else 30)
         while not response.exists():
             if time.monotonic()>deadline:
                 pending=directory/'request.json'
