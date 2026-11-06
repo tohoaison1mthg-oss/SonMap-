@@ -5,7 +5,7 @@
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "2507952f82545c3d77a99acb45b1ee6577cd100788c73af67254ec7b3db022e2"
+    "sha256": "8952172ba1f7b596a81049270104c9c2971a9c6435687d8c159dd3c4b1f6b9f1"
   },
   {
     "file": "CONTINUE.md",
@@ -45,11 +45,11 @@
   },
   {
     "file": "PROJECT.md",
-    "sha256": "73607809f1954b72718b983cb2e65454a8c8d8e8ff9c884eb7208a55e884fa31"
+    "sha256": "6dad2235b4b384c1dff86528665ecd1c60ce9f35823c8a5857b816511b0ce1cf"
   },
   {
     "file": "README.md",
-    "sha256": "2c4a78f27ae5e372022784f9f246334eb9b73ebc14b0bb6f37ba4359b6c412a3"
+    "sha256": "cdd30c949216bb81ddd2f32cb45bac72d0b7c861989790b7d75215fffd654169"
   },
   {
     "file": "SonMap.code-workspace",
@@ -100,8 +100,12 @@
     "sha256": "eed0174f5b86f1dccbecd7fb3581775a62afd5adeed3e25c4073bd1e4c570a91"
   },
   {
+    "file": "V10_23_VALIDATION.md",
+    "sha256": "283745b12f877cdca4f423ff9006b4d9e926d157ba265098d177f63099a29896"
+  },
+  {
     "file": "VERSION",
-    "sha256": "b6d46b2800ffc5b85da08c7df586115f4341a09c1fd829c24109562b5df1f04c"
+    "sha256": "4f5d2c61e7471780fe04f1da2da7167688166e47a2c1a3ae2b3d8c9e2221df50"
   },
   {
     "file": "VIETMAPXM_STUDY.md",
@@ -161,7 +165,7 @@
   },
   {
     "file": "dgn_bridge.ps1",
-    "sha256": "4e643e5638574a7b6c995a9f023ab1252772ab03fc6efd13aea4b253ad9018b9"
+    "sha256": "bc8803f9f94462657e7ba973d876e553b58b05417d969f0c8cf2965f212af855"
   },
   {
     "file": "dgn_interop.ps1",
@@ -317,7 +321,7 @@
   },
   {
     "file": "start_v8i.ps1",
-    "sha256": "fdfde75365ba3ff6f92edfb67c76fa0cbf4e47053cb2bf30f8a1fdda49323c28"
+    "sha256": "2f2e7b423bf00222ce487c7f2cb25a4d73b95dc39ab1c2932e925c99717c398f"
   },
   {
     "file": "sync_github.ps1",
@@ -358,6 +362,10 @@
   {
     "file": "test_fixes_v1021.py",
     "sha256": "6a528ad34f30774112751ce905fc4a3239519502509f33aaf5889cb87b9f95c6"
+  },
+  {
+    "file": "test_fixes_v1023.py",
+    "sha256": "a0f83786ffb4ee88bfc2cc5d838ab5e07bd6ab74d28556dca1f7160e764adb2b"
   },
   {
     "file": "test_legacy_startup.py",
@@ -401,11 +409,11 @@
   },
   {
     "file": "topology_ui.py",
-    "sha256": "610c3cc6e9990287902c15d63c51df0f824221457d5295579fc9a559d3237bdf"
+    "sha256": "28588a655eab7f407afcedc8a332a9fd10b89803529bf8d69ce26277457c581e"
   },
   {
     "file": "topology_workflow.py",
-    "sha256": "e20873770026e0ae01bff6f9355bb8eeb71df5edb62ba6e86f6269b724565ed7"
+    "sha256": "a048d450285eec6e0e0132f6919fc97baa40ea557067ed9ff3ed34c280ca8ff0"
   },
   {
     "file": "update_mdb_topology.ps1",
@@ -422,6 +430,10 @@
   {
     "file": "update_vba.ps1",
     "sha256": "87405ec0182b8ea50f276e82d47b32958b4b65fbba98fa90278887d4129f6887"
+  },
+  {
+    "file": "v8i_workspace.ps1",
+    "sha256": "17a3d073f93a09a060ccc01a5355f2207565b75d7b31ba738f5f733a86fbe47b"
   },
   {
     "file": "workflow.py",

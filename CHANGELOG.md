@@ -6,6 +6,14 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.23
+
+- Khởi động V8i bằng User/Project SonMap riêng trong thư mục ứng dụng; không phụ thuộc lựa chọn VietMapXM trước đó.
+- Báo rõ khi V8i chưa mở hoặc không kết nối được; không tự chạy lại thao tác ghi.
+- Báo đường dẫn MDB và quyền Modify cần có khi Windows từ chối thay thế tệp; không tự sửa quyền.
+- Lưu traceback lỗi topo vào data/topology-error.log để chẩn đoán đúng bước lỗi.
+- Giữ nguyên thuật toán địa chính và dữ liệu DGN/MDB. Xem V10_23_VALIDATION.md.
+
 ## V10.22
 
 - Bo cai mot tep EXE cho Windows 64-bit da co MicroStation V8i: kem Python 3.12.10, Shapely 2.0.7 va NumPy 1.26.4 de cai offline.

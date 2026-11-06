@@ -4,6 +4,7 @@ import json
 import queue
 import threading
 import time
+import traceback
 from pathlib import Path
 
 from topology import BLOCKING, finite, save_project
@@ -164,7 +165,14 @@ class TopologyWorkspace:
         result=queue.Queue()
         def run():
             try:result.put((True,work()))
-            except Exception as exc:result.put((False,str(exc)))
+            except Exception as exc:
+                log=Path(__file__).resolve().parent/'data'/'topology-error.log'
+                try:
+                    log.parent.mkdir(parents=True,exist_ok=True)
+                    log.write_text(traceback.format_exc(),encoding='utf-8')
+                    detail=str(exc)+'\n\nChi tiết: '+str(log)
+                except OSError:detail=str(exc)
+                result.put((False,detail))
         def poll():
             try:ok,value=result.get_nowait()
             except queue.Empty:self.parent.after(120,poll);return

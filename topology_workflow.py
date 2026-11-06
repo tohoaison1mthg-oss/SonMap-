@@ -56,6 +56,10 @@ def check_database_replaceable(path):
         if error in (32,33):
             raise RuntimeError('MDB đang bị khóa. Ngắt kết nối MDB trong phần mềm đang dùng rồi thử lại. '
                                'Chưa ghi thay đổi DGN/MDB.\n'+str(path))
+        if error == 5:
+            raise PermissionError('Windows từ chối quyền thay thế MDB. Cần quyền Modify (Sửa đổi) '
+                                  'cho tài khoản đang dùng trên tệp và thư mục chứa MDB. '
+                                  'Chưa ghi thay đổi DGN/MDB.\n'+str(path))
         raise ctypes.WinError(error)
     close(handle)
 

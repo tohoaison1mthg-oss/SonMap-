@@ -28,7 +28,12 @@ $source="namespace SonMapFast$identity {`n"+$records+"`n}`nnamespace SonMapFast$
 if(-not (Test-Path -LiteralPath $target)) {
  Add-Type -TypeDefinition $source -ReferencedAssemblies @($interop,$microstation,$hostAssembly,(Join-Path $assemblies 'ECFramework/Bentley.General.1.0.dll'),(Join-Path $assemblies 'bentley.microstation.interfaces.1.0.dll'),'System.Windows.Forms','System.Web.Extensions') -OutputAssembly $target -OutputType Library
 }
-$app=[Runtime.InteropServices.Marshal]::GetActiveObject('MicroStationDGN.Application')
+try {$app=[Runtime.InteropServices.Marshal]::GetActiveObject('MicroStationDGN.Application')}
+catch {
+ $running=Get-Process -Name ustation -ErrorAction SilentlyContinue
+ $reason=if($running){'V8i dang chay nhung SonMap chua ket noi duoc. Mo ca hai bang cung tai khoan va cung muc quyen; dong hop thoai dang chan trong V8i.'}else{'Chua mo MicroStation V8i. Mo loi tat SonMap+ - MicroStation V8i tren Desktop, mo DGN va doi ban do hien day du.'}
+ throw ($reason+' Sau do thu lai thao tac. Khong tu dong chay lai lenh ghi ban do.')
+}
 $search=[string]$app.ActiveWorkspace.ConfigurationVariableValue('MS_ADDINPATH')
 if(($search -split ';') -notcontains ($Directory+'\')) {
  $app.ActiveWorkspace.AddConfigurationVariable('MS_ADDINPATH',($search.TrimEnd(';')+';'+$Directory+'\'))
