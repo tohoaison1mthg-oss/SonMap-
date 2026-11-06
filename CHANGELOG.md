@@ -6,6 +6,14 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.26
+
+- Nút Zoom đến thửa trong danh sách, tìm theo hình học đúng ID của dòng đang chọn; kiểm tra MDB thay đổi trước khi zoom.
+- Trích lục xuất ngay dòng đang chọn. Khi chưa chọn dòng, chuyển sang click chọn thửa trong DGN.
+- Nút Trích lục → chọn DGN luôn chờ chọn trên bản vẽ, không dùng dòng cũ đang chọn trong danh sách.
+- Dùng chung quy trình xuất, xác nhận kết quả và lưu theo khóa tờ/thửa/ID. Hủy chọn hoặc đổi nguồn/MDB thì không xuất.
+- Xem V10_26_VALIDATION.md.
+
 ## V10.25
 
 - Tờ topology tự lấy từ tên DGN đang mở (dc188 → 188), hoặc ToBD duy nhất trong MDB khi tên không xác định; ô chỉ đọc, không tự mặc định tờ 1.

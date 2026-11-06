@@ -379,9 +379,60 @@ def gui():
             return True
         except Exception as exc:
             messagebox.showerror('Chưa tạo được bộ xuất',str(exc));return False
-    def request(mode='TrichLuc'):
+    def zoom_selected():
+        if state['exporting']:return
+        if not tree.selection():messagebox.showinfo('Zoom đến thửa','Chọn một dòng trong danh sách trước.');return
+        import threading,queue,copy
+        from topology_workflow import focus_parcel
+        p=copy.deepcopy(state['parcels'][int(tree.selection()[0])])
+        source=state.get('drawing','');mdb=variables['mdb'].get()
+        if p.get('_source_key')!=source_key(mdb,sha(mdb)):
+            messagebox.showwarning('Nguồn đã đổi','Đọc lại MDB trước khi zoom đến thửa.');return
+        state['exporting']=True;completion=queue.Queue()
+        def work():
+            try:focus_parcel({'source':source,'row':p});completion.put(None)
+            except Exception as exc:completion.put(str(exc))
+        def done():
+            try:error=completion.get_nowait()
+            except queue.Empty:win.after(100,done);return
+            state['exporting']=False
+            if error:messagebox.showerror('Không zoom được',error)
+            else:status.set(f'Đã tìm vị trí tờ {p["ToBD"]}, thửa {p.get("TCT") or "chưa có số"}.')
+        threading.Thread(target=work,daemon=True).start();win.after(100,done)
+
+    def pick_for_export(mode):
+        import threading,queue
+        from parcel_info import pick_parcel
+        from parcel_actions import record_index
+        source=state.get('drawing','');mdb=variables['mdb'].get()
+        if not source or not Path(mdb).is_file():
+            messagebox.showinfo('Chọn thửa xuất','Mở DGN và MDB cùng tên trước khi chọn thửa.');return
+        state['exporting']=True;completion=queue.Queue()
+        status.set('Click một lần bên trong thửa trên DGN để xuất; chuột phải để hủy.')
+        win.iconify()
+        def work():
+            try:completion.put((pick_parcel(source,mdb),None))
+            except Exception as exc:completion.put((None,str(exc)))
+        def done():
+            try:selection,error=completion.get_nowait()
+            except queue.Empty:win.after(100,done);return
+            state['exporting']=False;win.deiconify()
+            if error:messagebox.showerror('Chưa chọn được thửa xuất',error);return
+            if not selection:status.set('Đã hủy chọn thửa; chưa xuất hồ sơ.');return
+            try:
+                if state.get('drawing')!=source or variables['mdb'].get()!=mdb:
+                    raise ValueError('Nguồn đã đổi; chưa xuất hồ sơ. Chọn lại thửa trên DGN mới.')
+                if not database_connected(selection['connected']):
+                    raise ValueError('Không đọc được hình học thửa đã chọn; chưa xuất hồ sơ.')
+                index=record_index(state['parcels'],selection['row']['ID'])
+                clear_search();tree.selection_set(str(index));tree.focus(str(index));tree.see(str(index));selected()
+                request(mode)
+            except Exception as exc:messagebox.showerror('Chưa xuất hồ sơ',str(exc))
+        threading.Thread(target=work,daemon=True).start();win.after(100,done)
+
+    def request(mode='TrichLuc',from_dgn=False):
         if state['exporting']:messagebox.showinfo('Đang xuất','Đợi lượt xuất hiện tại hoàn tất.');return
-        if not tree.selection():messagebox.showwarning('Chọn thửa','Chọn một dòng trong danh sách.');return
+        if from_dgn or not tree.selection():pick_for_export(mode);return
         import threading,queue,copy
         save_edit()
         config=settings(mode)
@@ -486,7 +537,8 @@ def gui():
             parcels,rejected=decode_mdb_rows(result['rows'],path,result['sha256'],allow_empty=True)
             state.update(parcels=parcels,rejected=rejected);filter_rows()
             status.set(f'Đã kết nối CSDL: {len(parcels)} thửa; {len(rejected)} hình học chưa hỗ trợ.')
-        except Exception as exc:messagebox.showerror('Không nạp được dữ liệu thửa',str(exc))
+            return True
+        except Exception as exc:messagebox.showerror('Không nạp được dữ liệu thửa',str(exc));return False
     def dgn_tools(mode='main'):
         if state['exporting']:return
         from topology_ui import TopologyWorkspace
@@ -504,6 +556,7 @@ def gui():
     compact=ttk.Frame(win);compact.grid(row=1,column=0,columnspan=3,sticky='w',padx=10,pady=5)
     ttk.Button(compact,text='Mở V8i',image=icons['read'],compound='left',command=connect_v8i).pack(side='left',padx=4)
     ttk.Button(compact,text='Danh sách thửa ▾',image=icons['list'],compound='left',command=toggle_parcels).pack(side='left',padx=4)
+    ttk.Button(searchbar,text='Zoom đến thửa',command=zoom_selected).pack(side='left',padx=6)
     ttk.Button(compact,text='Ánh xạ tờ bản đồ',image=icons['map'],compound='left',command=reference_map).pack(side='left',padx=4)
     primary=ttk.LabelFrame(win,text='BẢN ĐỒ ĐỊA CHÍNH');primary.grid(row=2,column=0,columnspan=3,sticky='ew',padx=10,pady=6)
     for title,mode in [('Sửa lỗi','clean'),('Tạo topology','topology'),('Kết nối CSDL','database')]:
@@ -517,7 +570,7 @@ def gui():
     ttk.Button(primary,text='Thông tin thửa trên DGN',command=edit_dgn_parcel,width=26).pack(side='left',padx=8,pady=10)
     tree.grid_remove();searchbar.grid_remove();panel.grid_remove()
     buttons=ttk.Frame(win);buttons.grid(row=6,column=0,columnspan=3,sticky='w',padx=10,pady=8)
-    for title,kind,command in [('Trích lục','export',request),('In GCN','print',lambda:request('GCN')),('Mẫu 03/CLBĐ','sheet',lambda:request('Mau03')),('Địa chỉ thửa','address',edit_address),('Thư mục hồ sơ','export',open_output_folder)]:
+    for title,kind,command in [('Trích lục','export',request),('Trích lục → chọn DGN','export',lambda:request(from_dgn=True)),('In GCN','print',lambda:request('GCN')),('Mẫu 03/CLBĐ','sheet',lambda:request('Mau03')),('Địa chỉ thửa','address',edit_address),('Thư mục hồ sơ','export',open_output_folder)]:
         ttk.Button(buttons,text=title,image=icons[kind],compound='left',command=command).pack(side='left',padx=3)
     state['export_tools_open']=False
     def toggle_export_tools():

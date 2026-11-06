@@ -5,7 +5,7 @@
   },
   {
     "file": "CHANGELOG.md",
-    "sha256": "dd2ffa1e0de4a3b975bb9a5e5c3119b6726bc5c79834c92593f5c29fc50e5764"
+    "sha256": "16e091464528bbd18f2ccdcb7de8d7802445a306b9203cde624d48676a98dedc"
   },
   {
     "file": "CONTINUE.md",
@@ -45,11 +45,11 @@
   },
   {
     "file": "PROJECT.md",
-    "sha256": "23ff6e0dff1e1df6a411ca26703c881b53a6c8dc10b4213da6032ec33b97431b"
+    "sha256": "6747a224488a2aa57ad8a5537961a83f2bd14ac4d824e657543d6ff3e612b65d"
   },
   {
     "file": "README.md",
-    "sha256": "d0efa9d48bc28285dd4a4fb4e8b6ed5ce62dc0877552cd3c3752e3c869c042fe"
+    "sha256": "d182489ee6b7e9e81979e1777cafe52d2f459a2def67f8135e4bdd3e75206bb1"
   },
   {
     "file": "SonMap.code-workspace",
@@ -108,8 +108,12 @@
     "sha256": "82c0ef1fdb4712342b7f9cf02628a7cc90b30d455ea19862add426a63cc2e35b"
   },
   {
+    "file": "V10_26_VALIDATION.md",
+    "sha256": "740aefdeaa743de575d3c47eef74835260835a75ab412d1c6c99135160c7db4c"
+  },
+  {
     "file": "VERSION",
-    "sha256": "8c5af8767febfc509cebeb2326f0a00d041184f650bbd2ab1e7728dcb35b45cf"
+    "sha256": "a36c588e6be29efe22aaa9b74244cb99ec2bbee7283781f4bfb54a6405e86219"
   },
   {
     "file": "VIETMAPXM_STUDY.md",
@@ -129,7 +133,7 @@
   },
   {
     "file": "app.py",
-    "sha256": "16fb9372a88ec3cb9fd5f4fab2f153390c8cfd32e6ef284e8076ac55ad8a3a6b"
+    "sha256": "14db7b18ec97b4bb5e0a1041a7c94a745e61f52ef0b84bb38e9a5c8aca057a84"
   },
   {
     "file": "bootstrap.template.bas",
@@ -268,6 +272,10 @@
     "sha256": "ef95e68521473d56578e2f4f1994af1f8c3e3c86915e94fcb6cb29d7f4a50d2c"
   },
   {
+    "file": "parcel_actions.py",
+    "sha256": "893e7ef25678d63e8b58c1cbf574f3056adf2280a16a5b5b5c82c4e89250e64e"
+  },
+  {
     "file": "parcel_info.py",
     "sha256": "327d4b241f345cadfd47f5212ff7ae86cd633df06100f94a54f8b9dc27e2870f"
   },
@@ -364,6 +372,10 @@
     "sha256": "a69835582f924de33153ce2628b1575bebd26ec498bcf425c4cf3b86a4e12bba"
   },
   {
+    "file": "test_export_ui.py",
+    "sha256": "98424f21a490cbdc7cd51cfe43a0c7ef47c5e87107374590ad4a80275a8b9ca6"
+  },
+  {
     "file": "test_fixes_v1021.py",
     "sha256": "6a528ad34f30774112751ce905fc4a3239519502509f33aaf5889cb87b9f95c6"
   },
@@ -378,6 +390,10 @@
   {
     "file": "test_legacy_startup.py",
     "sha256": "485edede6466a317bd1efdd2a49c9ce02f779206cd6ca869995ce4be305098ec"
+  },
+  {
+    "file": "test_parcel_actions.py",
+    "sha256": "a76b5459c86195dff1cc5f60d396b062e17e4578b8de333e3db965c495daa6ba"
   },
   {
     "file": "test_parcel_info.py",

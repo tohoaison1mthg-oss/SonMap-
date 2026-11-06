@@ -3,7 +3,7 @@
 ## Nguồn thông tin hiện hành
 
 - Phiên bản thực tế lấy từ [VERSION](VERSION); tại lần cập nhật tài liệu này là
-  **10.25**. Lịch sử thay đổi và phạm vi từng bản nằm trong [CHANGELOG.md](CHANGELOG.md).
+  **10.26**. Lịch sử thay đổi và phạm vi từng bản nằm trong [CHANGELOG.md](CHANGELOG.md).
   Không suy ra phiên bản từ README cũ hoặc tiêu đề bàn giao lịch sử.
 - Quy ước phát triển lâu dài nằm trong [AGENTS.md](AGENTS.md), mục
   **Development principles**. Khi hướng dẫn cũ khác quy ước hiện hành, áp dụng
