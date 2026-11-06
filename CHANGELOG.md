@@ -6,6 +6,16 @@ không dùng mô tả bản cũ làm quy ước phát triển hiện hành. Quy 
 trong [AGENTS.md](AGENTS.md); thông tin dự án và dẫn chiếu nghiệm thu nằm trong
 [PROJECT.md](PROJECT.md). Cập nhật tài liệu quy ước không tạo bản phát hành mới.
 
+## V10.27
+
+- Ghi topology toàn bản đồ trực tiếp trên luồng V8i, giữ kiểm tra snapshot, tọa độ, MDB staging/readback và khôi phục khi lỗi. Phạm vi cục bộ và dự án cũ tiếp tục dùng đường ghi cũ.
+- Đọc tọa độ mỗi tâm CENTRD một lần, lọc bounding box trước khi đối chiếu polygon; giữ kết quả ghép tâm cũ.
+- Lưu thời gian từng bước vào data/topology-performance-last.json để chẩn đoán.
+- Mỗi loại hồ sơ chỉ có một nút xuất: danh sách mở và có dòng chọn thì xuất dòng đó; danh sách thu gọn/chưa chọn dòng thì chờ click DGN. Áp dụng Trích lục, In GCN, Mẫu 03/CLBĐ.
+- Bỏ nút Trích lục → chọn DGN. Khóa thửa đã click theo ID, không hỏi chọn lại.
+- Ánh xạ dùng cặp nguồn/hồ sơ xuất đã xác nhận, có khôi phục ngữ cảnh từ runtime/result khi mở lại app; tránh lấy hồ sơ làm nguồn Reference.
+- Xem V10_27_VALIDATION.md.
+
 ## V10.26
 
 - Nút Zoom đến thửa trong danh sách, tìm theo hình học đúng ID của dòng đang chọn; kiểm tra MDB thay đổi trước khi zoom.

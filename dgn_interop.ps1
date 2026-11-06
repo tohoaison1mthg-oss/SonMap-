@@ -202,23 +202,26 @@ public static class SonMapV8iRecords {
   var m=(B.ModelReference)model;
   var criteria=(B.ElementScanCriteria)app.CreateObjectInMicroStation("MicroStationDGN.ElementScanCriteria");
   criteria.ExcludeAllTypes();criteria.IncludeType(B.MsdElementType.CellHeader);
-  var scan=m.Scan(criteria);var existing=new List<B.CellElement>();B.Element template=null;
+  var scan=m.Scan(criteria);var existing=new List<B.CellElement>();var origins=new List<double[]>();B.Element template=null;
+  int targetLevel=((B.Level)level).Number;
   while(scan.MoveNext()){
    var cell=scan.Current.AsCellElement();
    if(cell.Name!="CENTRD")continue;
    var children=cell.GetSubElements();bool matchingLevel=false;
-   while(children.MoveNext())if(children.Current.Level!=null && children.Current.Level.Number==((B.Level)level).Number)matchingLevel=true;
+   while(children.MoveNext()){var childLevel=children.Current.Level;if(childLevel!=null && childLevel.Number==targetLevel){matchingLevel=true;break;}}
    if(!matchingLevel)continue;
-   existing.Add(cell);if(template==null)template=cell.Clone();
+   existing.Add(cell);var origin=cell.Origin;origins.Add(new double[]{origin.X,origin.Y});if(template==null)template=cell.Clone();
   }
+  var matches=CentreMatches(parcelsJson,origins.ToArray());int parcelIndex=0;
+  var removed=new HashSet<int>();
   foreach(object value in parcels) {
    var row=(Dictionary<string,object>)value;
    var point=(object[])row["centre"];
    B.CellElement kept=null;
-   foreach(var old in existing){
-    var origin=old.Origin;
-    if(!InParcel(row,origin.X,origin.Y))continue;
-    if(kept==null)kept=old;else m.RemoveElement(old);
+   foreach(int index in matches[parcelIndex++]){
+    if(removed.Contains(index))continue;
+    var old=existing[index];
+    if(kept==null)kept=old;else {m.RemoveElement(old);removed.Add(index);}
    }
    if(kept!=null)continue;
    B.Point3d centre=new B.Point3d();centre.X=Convert.ToDouble(point[0]);centre.Y=Convert.ToDouble(point[1]);
@@ -239,6 +242,22 @@ public static class SonMapV8iRecords {
    }
    m.AddElement(created);
   }
+ }
+ public static int[][] CentreMatches(string parcelsJson,double[][] origins){
+  var json=new System.Web.Script.Serialization.JavaScriptSerializer();json.MaxJsonLength=int.MaxValue;
+  var parcels=(object[])json.DeserializeObject(parcelsJson);var result=new int[parcels.Length][];
+  for(int parcel=0;parcel<parcels.Length;parcel++){
+   var row=(Dictionary<string,object>)parcels[parcel];var ring=(object[])row["points"];
+   double minX=Double.PositiveInfinity,minY=minX,maxX=Double.NegativeInfinity,maxY=maxX;
+   foreach(object value in ring){var point=(object[])value;double x=Convert.ToDouble(point[0]),y=Convert.ToDouble(point[1]);minX=Math.Min(minX,x);minY=Math.Min(minY,y);maxX=Math.Max(maxX,x);maxY=Math.Max(maxY,y);}
+   var matches=new List<int>();
+   for(int i=0;i<origins.Length;i++){
+    double x=origins[i][0],y=origins[i][1];
+    if(x<minX || x>maxX || y<minY || y>maxY)continue;
+    if(InParcel(row,x,y))matches.Add(i);
+   }
+   result[parcel]=matches.ToArray();
+  }return result;
  }
  private static bool InRing(object value,double x,double y){
   var ring=(object[])value;bool inside=false;

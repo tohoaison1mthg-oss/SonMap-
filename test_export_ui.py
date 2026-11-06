@@ -15,7 +15,8 @@ class ExportUiTests(unittest.TestCase):
                     return result
                 buttons={str(w.cget('text')):w for w in widgets(root) if isinstance(w,ttk.Button)}
                 self.assertIn('Zoom đến thửa',buttons)
-                self.assertIn('Trích lục → chọn DGN',buttons)
+                self.assertNotIn('Trích lục → chọn DGN',buttons)
+                for name in ('Trích lục','In GCN','Mẫu 03/CLBĐ'):self.assertIn(name,buttons)
                 buttons['Danh sách thửa ▾'].invoke()
                 buttons['Xuất hồ sơ ▾'].invoke()
                 root.update_idletasks()

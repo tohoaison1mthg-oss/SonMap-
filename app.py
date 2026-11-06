@@ -426,19 +426,20 @@ def gui():
                     raise ValueError('Không đọc được hình học thửa đã chọn; chưa xuất hồ sơ.')
                 index=record_index(state['parcels'],selection['row']['ID'])
                 clear_search();tree.selection_set(str(index));tree.focus(str(index));tree.see(str(index));selected()
-                request(mode)
+                request(mode,picked_index=index)
             except Exception as exc:messagebox.showerror('Chưa xuất hồ sơ',str(exc))
         threading.Thread(target=work,daemon=True).start();win.after(100,done)
 
-    def request(mode='TrichLuc',from_dgn=False):
+    def request(mode='TrichLuc',picked_index=None):
         if state['exporting']:messagebox.showinfo('Đang xuất','Đợi lượt xuất hiện tại hoàn tất.');return
-        if from_dgn or not tree.selection():pick_for_export(mode);return
+        if picked_index is None and (not state['list_open'] or not tree.selection()):pick_for_export(mode);return
         import threading,queue,copy
         save_edit()
         config=settings(mode)
         if Path(config['dgn']).suffix.lower()!='.dgn':
             messagebox.showerror('Sai tệp','Bản đồ DGN gốc phải là .dgn.');return
-        p=copy.deepcopy(state['parcels'][int(tree.selection()[0])])
+        index=picked_index if picked_index is not None else int(tree.selection()[0])
+        p=copy.deepcopy(state['parcels'][index])
         parcels=copy.deepcopy(state['parcels']);rejected=copy.deepcopy(state['rejected'])
         state['exporting']=True
         status.set('Đang chuẩn bị dữ liệu và tứ cận; giao diện vẫn hoạt động…')
@@ -484,6 +485,10 @@ def gui():
                 state['exporting']=False
                 if fields[0]=='OK':
                     state['last_output']=fields[2]
+                    state['last_source']=config['dgn']
+                    try:
+                        (ROOT/'data/last-export.json').write_text(json.dumps({'source':config['dgn'],'target':fields[2]},ensure_ascii=False),encoding='utf-8')
+                    except OSError:pass
                     status.set('Đã lưu DGN: '+fields[2]);messagebox.showinfo('Đã xuất Mẫu 03/CLBĐ' if mode=='Mau03' else 'Đã tạo bản In GCN' if mode=='GCN' else 'Đã xuất trích lục',fields[2])
                 else:status.set('Xuất chưa thành công.');messagebox.showerror('MicroStation báo lỗi',fields[2])
             elif attempt>=240:
@@ -509,14 +514,15 @@ def gui():
             tree.grid_remove();searchbar.grid_remove();panel.grid_remove();win.rowconfigure(7,weight=0);win.geometry('900x300')
     def reference_map():
         if state['exporting']:return
-        if not state.get('last_output'):
-            messagebox.showinfo('Ánh xạ tờ bản đồ','Xuất hồ sơ thành công trước, giữ bản vẽ kết quả mở rồi bấm Ánh xạ.');return
+        from parcel_actions import reference_context
+        try:reference=reference_context(ROOT,state.get('last_source',''),state.get('last_output',''))
+        except ValueError as exc:messagebox.showinfo('Ánh xạ tờ bản đồ',str(exc));return
         import threading,queue
         result=queue.Queue();state['exporting']=True
         def work():
             try:
                 ps=Path(os.environ.get('WINDIR',r'C:\Windows'))/'SysWOW64/WindowsPowerShell/v1.0/powershell.exe'
-                proc=subprocess.run([str(ps),'-NoProfile','-ExecutionPolicy','Bypass','-File',str(ROOT/'reference_map.ps1'),'-Source',state['drawing'],'-Target',state['last_output']],capture_output=True,timeout=20,creationflags=0x08000000)
+                proc=subprocess.run([str(ps),'-NoProfile','-ExecutionPolicy','Bypass','-File',str(ROOT/'reference_map.ps1'),'-Source',reference['source'],'-Target',reference['target']],capture_output=True,timeout=20,creationflags=0x08000000)
                 result.put((proc.returncode,(proc.stdout+proc.stderr).decode('utf-8',errors='replace')))
             except Exception as exc:result.put((1,str(exc)))
         def wait():
@@ -570,7 +576,7 @@ def gui():
     ttk.Button(primary,text='Thông tin thửa trên DGN',command=edit_dgn_parcel,width=26).pack(side='left',padx=8,pady=10)
     tree.grid_remove();searchbar.grid_remove();panel.grid_remove()
     buttons=ttk.Frame(win);buttons.grid(row=6,column=0,columnspan=3,sticky='w',padx=10,pady=8)
-    for title,kind,command in [('Trích lục','export',request),('Trích lục → chọn DGN','export',lambda:request(from_dgn=True)),('In GCN','print',lambda:request('GCN')),('Mẫu 03/CLBĐ','sheet',lambda:request('Mau03')),('Địa chỉ thửa','address',edit_address),('Thư mục hồ sơ','export',open_output_folder)]:
+    for title,kind,command in [('Trích lục','export',request),('In GCN','print',lambda:request('GCN')),('Mẫu 03/CLBĐ','sheet',lambda:request('Mau03')),('Địa chỉ thửa','address',edit_address),('Thư mục hồ sơ','export',open_output_folder)]:
         ttk.Button(buttons,text=title,image=icons[kind],compound='left',command=command).pack(side='left',padx=3)
     state['export_tools_open']=False
     def toggle_export_tools():

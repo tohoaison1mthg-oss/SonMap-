@@ -63,8 +63,8 @@ internal sealed class SonMapCadBridge : Bentley.MicroStation.AddIn {
                 SetForegroundWindow(window);
                 SonMapInProcessRecords.Focus(app,Convert.ToDouble(request["x"]),Convert.ToDouble(request["y"]),Convert.ToDouble(request["span"]));
                 result="FOCUSED";
-            } else if(action=="clean") {
-                result=SonMapClean.Run(app,(Dictionary<string,object>)request["project"]);
+            } else if(action=="clean" || action=="topology") {
+                result=SonMapClean.Run(app,(Dictionary<string,object>)request["project"],action=="topology");
             } else if(action=="hide" || action=="restore") {
                 result=SonMapView.Run(app,request,action=="restore");
             } else if(action=="save") {
